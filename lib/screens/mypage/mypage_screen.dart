@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import '../changepw/change_password_screen.dart';
-import '../mypage/profile_setting_screen.dart'; // [추가] 실제 화면 연결을 위해 임포트
+import '../mypage/profile_setting_screen.dart';
 import '../../routes/app_routes.dart';
 
-/// [클래스] MyPageScreen
-/// 사용자님의 기존 로직에 Vipa의 UI 개선사항을 통합한 버전입니다.
 class MyPageScreen extends StatelessWidget {
   const MyPageScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     const String loginType = 'email'; 
+    const String currentPlan = 'PRO'; // 가상 데이터
+    const String nextBillingDate = '2024.06.20'; // 다음 결제 예정일 가상 데이터
 
     return Scaffold(
-      // [개선] 배경색을 연한 회색으로 설정하여 흰색 카드들이 더 입체적으로 보이게 함
       backgroundColor: const Color(0xFFF5F7FA), 
       appBar: AppBar(
         title: const Text('마이페이지', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
@@ -25,11 +24,27 @@ class MyPageScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
         child: Column(
           children: [
-            // [섹션 1] 프로필 요약 카드
-            _buildProfileCard(context),
+            // [섹션 1] 프로필 및 구독 상태 카드
+            _buildProfileCard(context, currentPlan, nextBillingDate),
             const SizedBox(height: 30),
 
-            // [섹션 2] 내 정보 관리 메뉴
+            // [섹션 2] 멤버십 관리
+            _buildSectionTitle('멤버십 관리'),
+            _buildMenuCard([
+              _buildMenuItem(
+                icon: Icons.card_membership_outlined, 
+                title: '멤버십 구독 및 변경', 
+                onTap: () => Navigator.pushNamed(context, AppRoutes.subscription),
+              ),
+              _buildMenuItem(
+                icon: Icons.receipt_long_outlined, 
+                title: '구독 결제 내역', 
+                onTap: () => Navigator.pushNamed(context, AppRoutes.subscriptionHistory),
+              ),
+            ]),
+            const SizedBox(height: 30),
+
+            // [섹션 3] 내 정보 관리
             _buildSectionTitle('내 정보 관리'),
             _buildMenuCard([
               if (loginType == 'email')
@@ -50,17 +65,23 @@ class MyPageScreen extends StatelessWidget {
                 title: '이메일 변경', 
                 onTap: () => debugPrint("이메일 변경 시도"),
               ),
+              // [추가] 구독 해지 버튼
+              if (currentPlan != 'FREE')
+                _buildMenuItem(
+                  icon: Icons.cancel_outlined, 
+                  title: '구독 해지', 
+                  onTap: () => _showCancelSubscriptionDialog(context),
+                ),
               _buildMenuItem(
                 icon: Icons.person_remove_outlined, 
                 title: '회원 탈퇴', 
                 onTap: () => _showWithdrawalDialog(context), 
-                isDanger: true, // [개선] 위험 버튼임을 명시하여 빨간색으로 렌더링
+                isDanger: true,
               ),
             ]),
 
             const SizedBox(height: 30),
             
-            // [섹션 3] 로그아웃 버튼
             _buildLogoutButton(context),
           ],
         ),
@@ -68,11 +89,8 @@ class MyPageScreen extends StatelessWidget {
     );
   }
 
-  /// [함수] _buildProfileCard
-  /// [변경사항] 
-  /// 1. withOpacity 대신 최신 문법 withValues(alpha: 0.05) 사용 (Lint 경고 해결)
-  /// 2. 프로필 수정 버튼 클릭 시 ProfileSettingScreen으로 이동하는 로직 추가
-  Widget _buildProfileCard(BuildContext context) {
+  /// [수정] 프로필 카드에 다음 결제일 정보 추가
+  Widget _buildProfileCard(BuildContext context, String plan, String nextDate) {
     return Container(
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
@@ -80,51 +98,79 @@ class MyPageScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            // [수정] Flutter 최신 버전의 투명도 설정 방식 적용
             color: Colors.black.withValues(alpha: 0.05), 
             blurRadius: 10, 
             offset: const Offset(0, 4),
           )
         ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          const CircleAvatar(
-            radius: 35, 
-            backgroundColor: Colors.blueAccent, 
-            child: Icon(Icons.person, color: Colors.white, size: 40),
+          Row(
+            children: [
+              const CircleAvatar(
+                radius: 35, 
+                backgroundColor: Colors.blueAccent, 
+                child: Icon(Icons.person, color: Colors.white, size: 40),
+              ),
+              const SizedBox(width: 20),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('닉네임', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text('user@email.com', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                  ],
+                ),
+              ),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ProfileSettingScreen()),
+                  );
+                }, 
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.blueAccent),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('프로필 수정'),
+              ),
+            ],
           ),
-          const SizedBox(width: 20),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('닉네임', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Text('user@email.com', style: TextStyle(color: Colors.grey, fontSize: 14)),
-              ],
-            ),
-          ),
-          // [수정] 실제 '프로필 설정' 화면으로 이동하도록 Navigator 연결
-          OutlinedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileSettingScreen()),
-              );
-            }, 
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.blueAccent),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('프로필 수정'),
-          ),
+          const Divider(height: 40),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("나의 멤버십 플랜", style: TextStyle(fontWeight: FontWeight.w500)),
+                  if (plan != 'FREE')
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text("다음 결제일: $nextDate", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  plan,
+                  style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ),
+            ],
+          )
         ],
       ),
     );
   }
 
-  /// [함수] _buildMenuCard
-  /// [변경사항] 불필요한 null 필터링 제거 (입력받은 children 리스트를 그대로 사용)
   Widget _buildMenuCard(List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
@@ -136,13 +182,11 @@ class MyPageScreen extends StatelessWidget {
     );
   }
 
-  /// [함수] _buildMenuItem
-  /// [변경사항] 호출 시 '이름 있는 인자(named parameters)'를 사용하여 가독성 향상
   Widget _buildMenuItem({
     required IconData icon, 
     required String title, 
     required VoidCallback onTap, 
-    bool isDanger = false, // 탈퇴 버튼 등 강조용
+    bool isDanger = false,
   }) {
     return ListTile(
       leading: Icon(icon, color: isDanger ? Colors.red : Colors.blueAccent),
@@ -158,8 +202,6 @@ class MyPageScreen extends StatelessWidget {
     );
   }
 
-  /// [함수] _buildSectionTitle
-  /// 메뉴 그룹 위의 회색 작은 제목
   Widget _buildSectionTitle(String title) {
     return Align(
       alignment: Alignment.centerLeft,
@@ -170,8 +212,6 @@ class MyPageScreen extends StatelessWidget {
     );
   }
 
-  /// [함수] _buildLogoutButton
-  /// 로그아웃 시 로그인 페이지로 이동 (라우트 사용)
   Widget _buildLogoutButton(BuildContext context) {
     return TextButton.icon(
       onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
@@ -180,8 +220,28 @@ class MyPageScreen extends StatelessWidget {
     );
   }
 
-  /// [함수] _showWithdrawalDialog
-  /// 사용자님의 기존 탈퇴 확인 로직 유지
+  /// [함수] 구독 해지 확인 다이얼로그
+  void _showCancelSubscriptionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text('구독 해지', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('정말 구독을 해지하시겠습니까?\n해지 시 이번 결제 주기까지는 혜택이 유지됩니다.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소', style: TextStyle(color: Colors.grey))),
+          TextButton(
+            onPressed: () {
+              debugPrint("구독 해지 로직 실행");
+              Navigator.pop(context);
+            }, 
+            child: const Text('해지하기', style: TextStyle(color: Colors.red))
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showWithdrawalDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -189,15 +249,9 @@ class MyPageScreen extends StatelessWidget {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           title: const Text('회원 탈퇴', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: const Text(
-            '정말로 VIPA를 떠나시겠어요?\n탈퇴 시 모든 학습 데이터와 단어장이 삭제되며 복구할 수 없습니다.',
-            style: TextStyle(height: 1.5),
-          ),
+          content: const Text('정말로 VIPA를 떠나시겠어요?\n탈퇴 시 모든 학습 데이터와 단어장이 삭제되며 복구할 수 없습니다.'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('취소', style: TextStyle(color: Colors.grey)),
-            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소', style: TextStyle(color: Colors.grey))),
             TextButton(
               onPressed: () {
                 debugPrint("회원 탈퇴 프로세스 시작");

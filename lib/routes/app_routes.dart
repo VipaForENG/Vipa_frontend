@@ -10,6 +10,8 @@ import '../screens/vocabulary/vocabulary_screen.dart';
 import '../screens/grammar/grammar_screen.dart';
 import '../screens/login/reset_password_screen.dart';
 import '../screens/changepw/change_password_screen.dart';
+import '../screens/mypage/subscription_screen.dart';
+import '../screens/mypage/subscription_history_screen.dart';
 
 /// [클래스] AppRoutes
 /// 목적: 앱 내의 모든 페이지 경로(Route) 이름과 위젯을 매핑하여 중앙 관리합니다.
@@ -24,7 +26,8 @@ class AppRoutes {
   static const String grammar = '/grammar';           // 문법
   static const String resetPassword = '/reset-password'; // 비밀번호 찾기(이메일 인증)
   static const String changePassword = '/change-password'; // 비밀번호 변경(공통)
-
+  static const String subscription = '/subscription';  // 구독제 충전 화면
+  static const String subscriptionHistory = '/subscription-history';  // 구독제 충전/사용 내역 화면
 
   /// [함수] getRoutes
   /// 목적: 정의된 경로 이름과 실제 위젯(페이지)을 매핑한 맵을 반환합니다.
@@ -44,6 +47,10 @@ class AppRoutes {
       conversation: (context) => const ConversationScreen(),
       vocabulary: (context) => const VocabularyScreen(),
       grammar: (context) => const GrammarScreen(),
+
+
+      subscription: (context) => const SubscriptionScreen(),
+      subscriptionHistory: (context) => const SubscriptionHistoryScreen(),
     };
   }
 }
