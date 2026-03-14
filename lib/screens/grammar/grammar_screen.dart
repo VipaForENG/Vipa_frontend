@@ -72,8 +72,15 @@ class _GrammarScreenState extends State<GrammarScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-        title: _buildProgressBar(), // 커스텀 진행바 호출
+        // 단순히 Icon만 있으면 클릭이 안 됩니다. IconButton으로 감싸야 합니다.
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () {
+            // 현재 화면을 닫고 이전 화면(마이페이지 등)으로 돌아갑니다.
+            Navigator.pop(context); 
+          },
+        ),
+        title: _buildProgressBar(),
         centerTitle: true,
         actions: const [
           Icon(Icons.settings, color: Colors.white),
