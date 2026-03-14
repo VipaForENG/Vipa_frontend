@@ -8,6 +8,8 @@ import '../screens/history/learning_history_screen.dart';
 import '../screens/conversation/conversation_screen.dart';
 import '../screens/vocabulary/vocabulary_screen.dart';
 import '../screens/grammar/grammar_screen.dart';
+import '../screens/login/reset_password_screen.dart';
+import '../screens/changepw/change_password_screen.dart';
 
 /// [클래스] AppRoutes
 /// 목적: 앱 내의 모든 페이지 경로(Route) 이름과 위젯을 매핑하여 중앙 관리합니다.
@@ -20,6 +22,9 @@ class AppRoutes {
   static const String conversation = '/conversation'; // 실전회화
   static const String vocabulary = '/vocabulary';     // 단어
   static const String grammar = '/grammar';           // 문법
+  static const String resetPassword = '/reset-password'; // 비밀번호 찾기(이메일 인증)
+  static const String changePassword = '/change-password'; // 비밀번호 변경(공통)
+
 
   /// [함수] getRoutes
   /// 목적: 정의된 경로 이름과 실제 위젯(페이지)을 매핑한 맵을 반환합니다.
@@ -28,7 +33,9 @@ class AppRoutes {
       // 1. 초기 진입 경로 및 인증 관련
       login: (context) => const LoginScreen(),
       signup: (context) => const SignupScreen(),
-
+      resetPassword: (context) => const ResetPasswordScreen(),
+      changePassword: (context) => const ChangePasswordScreen(),
+      
       // 2. 메인 대시보드
       home: (context) => const HomeScreen(),
 

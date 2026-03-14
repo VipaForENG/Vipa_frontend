@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../changepw/change_password_screen.dart';
+import '../../routes/app_routes.dart'; // 경로 상수를 위해 추가
 
 /// [클래스] MyPageScreen
 /// 목적: 사용자 프로필, 계정 관리, 로그아웃 기능을 포함한 마이페이지 화면.
@@ -7,8 +9,11 @@ class MyPageScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // [가정] 실제 개발 시에는 서버나 상태 관리에서 사용자 정보를 가져옵니다.
+    const String loginType = 'email'; 
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // 배경색을 은은한 회색으로 변경하여 카드 강조
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         title: const Text('마이페이지', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
         backgroundColor: Colors.white,
@@ -19,22 +24,35 @@ class MyPageScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
         child: Column(
           children: [
-            // [위젯] 상단 프로필 카드 (스케치 이미지의 상단부 반영)
             _buildProfileCard(),
             const SizedBox(height: 30),
 
-            // [위젯] 내 정보 관리 섹션 (스케치 하단 메뉴 반영)
             _buildSectionTitle('내 정보 관리'),
             _buildMenuCard([
-              _buildMenuItem(Icons.lock_outline, '비밀번호 변경', () => print("비번변경")),
-              _buildMenuItem(Icons.email_outlined, '이메일 변경', () => print("이메일변경")),
-              _buildMenuItem(Icons.person_remove_outlined, '회원 탈퇴', () => print("탈퇴"), isDanger: true),
+              if (loginType == 'email')
+                _buildMenuItem(
+                  Icons.lock_outline,
+                  '비밀번호 변경',
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ChangePasswordScreen(isFromMyPage: true),
+                      ),
+                    );
+                  },
+                ),
+              _buildMenuItem(Icons.email_outlined, '이메일 변경', () => debugPrint("이메일 변경 시도")),
+              _buildMenuItem(
+                Icons.person_remove_outlined, 
+                '회원 탈퇴', 
+                () => _showWithdrawalDialog(context), 
+                isDanger: true
+              ),
             ]),
 
             const SizedBox(height: 30),
-
-            // [위젯] 로그아웃 버튼 (하단 강조)
-            _buildLogoutButton(),
+            _buildLogoutButton(context),
           ],
         ),
       ),
@@ -42,23 +60,33 @@ class MyPageScreen extends StatelessWidget {
   }
 
   /// [함수] _buildProfileCard
-  /// 목적: 프로필 사진, 닉네임, 이메일을 담은 카드 형태의 위젯 생성.
   Widget _buildProfileCard() {
     return Container(
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            // [수정] deprecated: withOpacity -> withValues 사용
+            color: Colors.black.withValues(alpha: 0.05), 
+            blurRadius: 10, 
+            offset: const Offset(0, 4)
+          )
+        ],
       ),
       child: Row(
         children: [
-          const CircleAvatar(radius: 35, backgroundColor: Colors.blueAccent, child: Icon(Icons.person, color: Colors.white, size: 40)),
+          const CircleAvatar(
+            radius: 35, 
+            backgroundColor: Colors.blueAccent, 
+            child: Icon(Icons.person, color: Colors.white, size: 40)
+          ),
           const SizedBox(width: 20),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text('닉네임', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 Text('user@email.com', style: TextStyle(color: Colors.grey, fontSize: 14)),
               ],
@@ -71,8 +99,8 @@ class MyPageScreen extends StatelessWidget {
   }
 
   /// [함수] _buildMenuCard
-  /// 목적: 메뉴 항목들을 감싸는 카드 배경 생성.
   Widget _buildMenuCard(List<Widget> children) {
+    // [수정] unnecessary_null_comparison 경고 해결을 위해 필터링 제거 (이미 Widget 타입임이 보장됨)
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -84,7 +112,6 @@ class MyPageScreen extends StatelessWidget {
   }
 
   /// [함수] _buildMenuItem
-  /// 목적: 개별 메뉴 행 구성 (아이콘, 텍스트, 클릭 이벤트).
   Widget _buildMenuItem(IconData icon, String title, VoidCallback onTap, {bool isDanger = false}) {
     return ListTile(
       leading: Icon(icon, color: isDanger ? Colors.red : Colors.blueAccent),
@@ -95,7 +122,6 @@ class MyPageScreen extends StatelessWidget {
   }
 
   /// [함수] _buildSectionTitle
-  /// 목적: 섹션 구분용 제목 텍스트 구성.
   Widget _buildSectionTitle(String title) {
     return Align(
       alignment: Alignment.centerLeft,
@@ -107,12 +133,43 @@ class MyPageScreen extends StatelessWidget {
   }
 
   /// [함수] _buildLogoutButton
-  /// 목적: 화면 하단에 배치할 로그아웃 버튼 구성.
-  Widget _buildLogoutButton() {
+  Widget _buildLogoutButton(BuildContext context) {
     return TextButton.icon(
-      onPressed: () => print("로그아웃"),
+      onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
       icon: const Icon(Icons.logout, color: Colors.grey),
       label: const Text('로그아웃', style: TextStyle(color: Colors.grey, fontSize: 16)),
+    );
+  }
+
+  /// [함수] _showWithdrawalDialog
+  void _showWithdrawalDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: const Text('회원 탈퇴', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text(
+            '정말로 VIPA를 떠나시겠어요?\n탈퇴 시 모든 학습 데이터와 단어장이 삭제되며 복구할 수 없습니다.',
+            style: TextStyle(height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('취소', style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () {
+                // [로직] 실제 서버 탈퇴 API 연동 예정
+                debugPrint("회원 탈퇴 프로세스 시작");
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, AppRoutes.login);
+              },
+              child: const Text('탈퇴하기', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
     );
   }
 }
