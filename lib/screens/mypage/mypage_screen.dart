@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import '../changepw/change_password_screen.dart';
-import '../../routes/app_routes.dart'; // 경로 상수를 위해 추가
+import '../mypage/profile_setting_screen.dart'; // [추가] 실제 화면 연결을 위해 임포트
+import '../../routes/app_routes.dart';
 
 /// [클래스] MyPageScreen
-/// 목적: 사용자 프로필, 계정 관리, 로그아웃 기능을 포함한 마이페이지 화면.
+/// 사용자님의 기존 로직에 Vipa의 UI 개선사항을 통합한 버전입니다.
 class MyPageScreen extends StatelessWidget {
   const MyPageScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // [가정] 실제 개발 시에는 서버나 상태 관리에서 사용자 정보를 가져옵니다.
     const String loginType = 'email'; 
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      // [개선] 배경색을 연한 회색으로 설정하여 흰색 카드들이 더 입체적으로 보이게 함
+      backgroundColor: const Color(0xFFF5F7FA), 
       appBar: AppBar(
         title: const Text('마이페이지', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
         backgroundColor: Colors.white,
@@ -24,16 +25,18 @@ class MyPageScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
         child: Column(
           children: [
-            _buildProfileCard(),
+            // [섹션 1] 프로필 요약 카드
+            _buildProfileCard(context),
             const SizedBox(height: 30),
 
+            // [섹션 2] 내 정보 관리 메뉴
             _buildSectionTitle('내 정보 관리'),
             _buildMenuCard([
               if (loginType == 'email')
                 _buildMenuItem(
-                  Icons.lock_outline,
-                  '비밀번호 변경',
-                  () {
+                  icon: Icons.lock_outline,
+                  title: '비밀번호 변경',
+                  onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -42,16 +45,22 @@ class MyPageScreen extends StatelessWidget {
                     );
                   },
                 ),
-              _buildMenuItem(Icons.email_outlined, '이메일 변경', () => debugPrint("이메일 변경 시도")),
               _buildMenuItem(
-                Icons.person_remove_outlined, 
-                '회원 탈퇴', 
-                () => _showWithdrawalDialog(context), 
-                isDanger: true
+                icon: Icons.email_outlined, 
+                title: '이메일 변경', 
+                onTap: () => debugPrint("이메일 변경 시도"),
+              ),
+              _buildMenuItem(
+                icon: Icons.person_remove_outlined, 
+                title: '회원 탈퇴', 
+                onTap: () => _showWithdrawalDialog(context), 
+                isDanger: true, // [개선] 위험 버튼임을 명시하여 빨간색으로 렌더링
               ),
             ]),
 
             const SizedBox(height: 30),
+            
+            // [섹션 3] 로그아웃 버튼
             _buildLogoutButton(context),
           ],
         ),
@@ -60,7 +69,10 @@ class MyPageScreen extends StatelessWidget {
   }
 
   /// [함수] _buildProfileCard
-  Widget _buildProfileCard() {
+  /// [변경사항] 
+  /// 1. withOpacity 대신 최신 문법 withValues(alpha: 0.05) 사용 (Lint 경고 해결)
+  /// 2. 프로필 수정 버튼 클릭 시 ProfileSettingScreen으로 이동하는 로직 추가
+  Widget _buildProfileCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
@@ -68,10 +80,10 @@ class MyPageScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            // [수정] deprecated: withOpacity -> withValues 사용
+            // [수정] Flutter 최신 버전의 투명도 설정 방식 적용
             color: Colors.black.withValues(alpha: 0.05), 
             blurRadius: 10, 
-            offset: const Offset(0, 4)
+            offset: const Offset(0, 4),
           )
         ],
       ),
@@ -80,7 +92,7 @@ class MyPageScreen extends StatelessWidget {
           const CircleAvatar(
             radius: 35, 
             backgroundColor: Colors.blueAccent, 
-            child: Icon(Icons.person, color: Colors.white, size: 40)
+            child: Icon(Icons.person, color: Colors.white, size: 40),
           ),
           const SizedBox(width: 20),
           const Expanded(
@@ -92,15 +104,28 @@ class MyPageScreen extends StatelessWidget {
               ],
             ),
           ),
-          OutlinedButton(onPressed: () {}, child: const Text('프로필 수정')),
+          // [수정] 실제 '프로필 설정' 화면으로 이동하도록 Navigator 연결
+          OutlinedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileSettingScreen()),
+              );
+            }, 
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Colors.blueAccent),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('프로필 수정'),
+          ),
         ],
       ),
     );
   }
 
   /// [함수] _buildMenuCard
+  /// [변경사항] 불필요한 null 필터링 제거 (입력받은 children 리스트를 그대로 사용)
   Widget _buildMenuCard(List<Widget> children) {
-    // [수정] unnecessary_null_comparison 경고 해결을 위해 필터링 제거 (이미 Widget 타입임이 보장됨)
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -112,16 +137,29 @@ class MyPageScreen extends StatelessWidget {
   }
 
   /// [함수] _buildMenuItem
-  Widget _buildMenuItem(IconData icon, String title, VoidCallback onTap, {bool isDanger = false}) {
+  /// [변경사항] 호출 시 '이름 있는 인자(named parameters)'를 사용하여 가독성 향상
+  Widget _buildMenuItem({
+    required IconData icon, 
+    required String title, 
+    required VoidCallback onTap, 
+    bool isDanger = false, // 탈퇴 버튼 등 강조용
+  }) {
     return ListTile(
       leading: Icon(icon, color: isDanger ? Colors.red : Colors.blueAccent),
-      title: Text(title, style: TextStyle(fontWeight: FontWeight.w500, color: isDanger ? Colors.red : Colors.black87)),
-      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+      title: Text(
+        title, 
+        style: TextStyle(
+          fontWeight: FontWeight.w500, 
+          color: isDanger ? Colors.red : Colors.black87,
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
       onTap: onTap,
     );
   }
 
   /// [함수] _buildSectionTitle
+  /// 메뉴 그룹 위의 회색 작은 제목
   Widget _buildSectionTitle(String title) {
     return Align(
       alignment: Alignment.centerLeft,
@@ -133,6 +171,7 @@ class MyPageScreen extends StatelessWidget {
   }
 
   /// [함수] _buildLogoutButton
+  /// 로그아웃 시 로그인 페이지로 이동 (라우트 사용)
   Widget _buildLogoutButton(BuildContext context) {
     return TextButton.icon(
       onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
@@ -142,6 +181,7 @@ class MyPageScreen extends StatelessWidget {
   }
 
   /// [함수] _showWithdrawalDialog
+  /// 사용자님의 기존 탈퇴 확인 로직 유지
   void _showWithdrawalDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -160,7 +200,6 @@ class MyPageScreen extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                // [로직] 실제 서버 탈퇴 API 연동 예정
                 debugPrint("회원 탈퇴 프로세스 시작");
                 Navigator.pop(context);
                 Navigator.pushReplacementNamed(context, AppRoutes.login);
