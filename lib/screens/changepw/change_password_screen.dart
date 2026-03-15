@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
 import '../../routes/app_routes.dart';
+// [임포트] 직접 만드신 커스텀 스낵바입니다.
+import '../../design/snack_bar.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   final bool isFromMyPage;
@@ -45,11 +47,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 height: 52,
                 child: ElevatedButton(
                   onPressed: () {
-                    // TODO: 비밀번호 변경 API 호출
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("비밀번호 변경이 완료되었습니다.")),
-                    );
+                    // TODO: 비밀번호 변경 API 호출 로직이 들어갈 자리입니다.
+
+                    // [수정] ScaffoldMessenger 대신 커스텀 VipaSnackBar를 사용합니다.
+                    VipaSnackBar.show(context, "비밀번호 변경이 완료되었습니다.");
                     
+                    // 기존 화면 이동 로직 유지
                     if (widget.isFromMyPage) {
                       Navigator.pop(context);
                     } else {
