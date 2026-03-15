@@ -1,28 +1,32 @@
-# [기존 항목 유지] 안드로이드 관련 파일 무시
+# [기존 항목 유지]
 *.iml
 .gradle
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+/.idea/
 .DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
 
-# [추가 항목] Flutter 및 Dart 관련 필수 무시 파일
+# [추가 항목] Flutter/Dart
 .dart_tool/
 .packages
 .pub-cache/
 .pub/
+build/
+proxies.json
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages-do-not-modify
 
-# [추가 항목] 로그 및 기타 환경 설정
+# [추가 항목] IDE 및 OS 관련 (매우 중요)
+.vscode/
+.idea/
+*.iws
+*.out
+*.app
+
+# [추가 항목] 로그 및 환경변수
 *.log
 .env
