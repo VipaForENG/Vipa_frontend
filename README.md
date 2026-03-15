@@ -13,31 +13,65 @@ External API: Oxford Dictionary API & AI Model Integration
 📂 Project Structure
 본 프로젝트는 기능(Feature)과 도메인(Domain) 단위로 모듈화되어 있으며, 파일 간 의존성을 최소화하고 재사용성을 극대화하도록 설계되었습니다.
 
-Plaintext
 lib/
-├── main.dart                 # 앱 실행 진입점 (Entry Point)
-├── constants/                # 앱 전반의 색상 테마 및 스타일 상수 관리
-├── logic/                    # 비즈니스 로직 및 서버 통신 계층
-│   ├── api_service.dart      # 베이스 네트워크 클라이언트
-│   ├── home_controller.dart  # 상태 관리 및 제어 로직
-│   └── oxford_api_service.dart # 외부 사전 API 연동
-├── models/                   # 데이터 규격 및 모델링 (Type Safety)
-├── routes/                   # 네비게이션 및 라우팅 전략 관리
-└── screens/                  # 도메인별 독립적 UI 모듈
-    ├── ai/                   # AI 학습 엔진 인터페이스
-    ├── conversation/         # 대화형 학습 화면
-    ├── grammar/              # 문법 교정 및 학습
-    ├── history/              # 사용자 학습 이력 추적
-    ├── home/                 # 메인 대시보드 및 위젯
-    ├── vocabulary/           # 단어장 관리 시스템
-    ├── login/
-    │   └── login_screen.dart
-    ├── mypage/
-    │   └── mypage_screen.dart
-    ├── signup/
-    │   └── signup_screen.dart
-    └── vocabulary/
-        └── vocabulary_screen.dart
+├── api/                            # API 통신 및 데이터 컨트롤러
+│   ├── api_service.dart            # 공통 API 서비스
+│   ├── home_controller.dart        # 홈 화면 로직 제어
+│   └── oxford_api_service.dart     # 옥스퍼드 사전 API 서비스
+│
+├── design/                         # 공통 디자인 위젯 및 시스템
+│   ├── button_design.dart          # 버튼 스타일 정의
+│   ├── card_design.dart            # 카드 레이아웃 정의
+│   ├── circle_design.dart          # 원형 요소 디자인
+│   ├── section_header.dart         # 섹션 타이틀 헤더
+│   └── snack_bar.dart              # 커스텀 VipaSnackBar
+│
+├── models/                         # 데이터 모델링
+│   └── word_quiz_model.dart        # 단어 퀴즈 데이터 규격
+│
+├── routes/                         # 네비게이션 관리
+│   └── app_routes.dart             # 라우팅 경로 및 맵 정의
+│
+├── screens/                        # 도메인별 화면 모듈
+│   ├── ai/                         # AI 대화 엔진 관련
+│   │   ├── widgets/
+│   │   │   └── voice_wave.dart     # 음성 파형 애니메이션
+│   │   └── ai_screen.dart          # AI 메인 화면
+│   │
+│   ├── changepw/                   # 비밀번호 관리
+│   │   └── change_password_screen.dart
+│   │
+│   ├── conversation/               # 실전 회화 학습
+│   │   ├── widgets/
+│   │   │   └── conversation_widgets.dart
+│   │   ├── conversation_provider.dart
+│   │   └── conversation_screen.dart
+│   │
+│   ├── history/                    # 학습 이력
+│   │   └── learning_history_screen.dart
+│   │
+│   ├── home/                       # 홈 대시보드
+│   │   ├── widgets/
+│   │   │   ├── attendance_section.dart
+│   │   │   ├── learning_chart_section.dart
+│   │   │   ├── quick_menu_section.dart
+│   │   │   └── user_profile_section.dart
+│   │   └── home_screen.dart
+│   │
+│   ├── login/                      # 인증 및 로그인
+│   │   ├── login_screen.dart
+│   │   └── reset_password_screen.dart
+│   │
+│   ├── mypage/                     # 사용자 설정 및 구독
+│   │   ├── mypage_screen.dart
+│   │   ├── profile_setting_screen.dart
+│   │   ├── subscription_history_screen.dart
+│   │   └── subscription_screen.dart
+│   │
+│   └── signup/                     # 회원가입
+│       └── signup_screen.dart
+│
+└── main.dart                       # 앱 시작점
 
 
         
@@ -62,8 +96,6 @@ lib/
 
 🚀 Key Features
 AI-Powered Learning: 맞춤형 AI 모델을 통한 실시간 피드백 및 가이드.
-
-Oxford Dict Integration: 공신력 있는 사전 데이터를 활용한 정확한 어휘 학습.
 
 Progress Analytics: history 모듈을 통한 학습 데이터 추적 및 시각화.
 
