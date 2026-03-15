@@ -1,90 +1,120 @@
 import 'package:flutter/material.dart';
-// [추가] tts 라이브러리 사용을 위해 추가 필요 (예: flutter_tts)
-// import 'package:flutter_tts/flutter_tts.dart';
+import 'package:provider/provider.dart';
+import 'conversation_provider.dart';
+import 'widgets/conversation_widgets.dart';
 
-/// [클래스] ConversationScreen
-/// 목적: 타이핑 퀴즈를 통한 영어 학습 및 정답 시 TTS 발화 기능 제공.
-class ConversationScreen extends StatefulWidget {
+class ConversationScreen extends StatelessWidget {
   const ConversationScreen({super.key});
 
   @override
-  State<ConversationScreen> createState() => _ConversationScreenState();
-}
-
-class _ConversationScreenState extends State<ConversationScreen> {
-  final TextEditingController _textController = TextEditingController();
-
-  // [변수] 학습 상태 관리
-  String _targetSentence = "My boss was totally ______ today.";
-  String _correctAnswer = "frustrated";
-  bool _isAnswered = false;
-
-  @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<ConversationProvider>(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('실전 회화 퀴즈')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // [위젯] 문제 영역
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(16)),
-              child: Text(_targetSentence, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 30),
-
-            // [위젯] 정답 타이핑 입력창
-            TextField(
-              controller: _textController,
-              decoration: InputDecoration(
-                hintText: "빈칸에 들어갈 단어를 입력하세요",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onSubmitted: (value) => _checkAnswer(value), // [로직] 엔터키 입력 시 정답 체크
-            ),
-
-            const Spacer(),
-
-            // [위젯] 상태 표시 (정답 시 다음 문제 버튼 활성화)
-            if (_isAnswered)
-              ElevatedButton(
-                onPressed: _nextQuestion,
-                child: const Text("다음 문제로"),
-              ),
-          ],
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
+        title: ConversationTopBar(value: provider.progress),
+      ),
+      body: Stack(
+        children: [
+          _buildBackground(),
+          SafeArea(
+            bottom: false,
+            child: Stack(
+              children: [
+                Positioned(
+                  top: MediaQuery.of(context).size.height * 0.35,
+                  left: 20, right: 40,
+                  child: AiSpeechBubble(en: provider.aiEnglish, ko: provider.aiKorean),
+                ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: _buildBottomCard(provider),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  /// [함수] _checkAnswer
-  /// 목적: 입력된 정답을 검증하고, 맞으면 TTS로 읽어줍니다.
-  void _checkAnswer(String input) {
-    if (input.trim().toLowerCase() == _correctAnswer.toLowerCase()) {
-      setState(() => _isAnswered = true);
-      _speakSentence(_targetSentence.replaceAll("______", _correctAnswer));
-    } else {
-      // [로직] 틀렸을 경우 흔들림 애니메이션 등을 추가 가능
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("다시 생각해보세요!")));
-    }
+  Widget _buildBackground() {
+    return Container(color: Colors.grey[300], child: const Center(child: Text("배경 준비 중")));
   }
 
-  /// [함수] _speakSentence
-  /// 목적: 정답 문장을 TTS로 재생합니다.
-  Future<void> _speakSentence(String text) async {
-    // [로직] 여기에 flutter_tts 인스턴스를 통한 발화 로직 구현
-    print("TTS 재생: $text");
+  Widget _buildBottomCard(ConversationProvider provider) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20, offset: const Offset(0, -5))],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: provider.isAnswered 
+          ? _buildResultView(provider) 
+          : _buildInputView(provider),
+      ),
+    );
   }
 
-  /// [함수] _nextQuestion
-  /// 목적: 다음 문제를 가져오고 UI 상태를 초기화합니다.
-  void _nextQuestion() {
-    setState(() {
-      _isAnswered = false;
-      _textController.clear();
-      // [로직] 서버에서 다음 문제를 요청하는 비동기 처리 예정
-    });
+  List<Widget> _buildInputView(ConversationProvider provider) {
+    return [
+      Text(provider.userTargetSentence, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18)),
+      const SizedBox(height: 30),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _miniIconButton(Icons.help_outline, "힌트"),
+          _micButton(() => provider.setAnswered(true)),
+          _miniIconButton(Icons.keyboard_alt_outlined, "키보드"),
+        ],
+      ),
+    ];
+  }
+
+  List<Widget> _buildResultView(ConversationProvider provider) {
+    return [
+      const Text("Perfect!!", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF8877FF))),
+      const SizedBox(height: 15),
+      Row(
+        children: [
+          Expanded(child: ActionButton(icon: Icons.refresh, label: "재도전", onTap: () => provider.setAnswered(false))),
+          const SizedBox(width: 8),
+          Expanded(child: ActionButton(icon: Icons.play_arrow, label: "다음 문제", isPrimary: true, onTap: () => provider.nextStep())),
+        ],
+      )
+    ];
+  }
+
+  // 작은 헬퍼 위젯들...
+  Widget _micButton(VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: const BoxDecoration(color: Color(0xFF8877FF), shape: BoxShape.circle),
+        child: const Icon(Icons.mic, color: Colors.white, size: 38),
+      ),
+    );
+  }
+
+  Widget _miniIconButton(IconData icon, String label) {
+    return Column(
+      children: [
+        Icon(icon, color: const Color(0xFF8877FF).withValues(alpha: 0.6), size: 28),
+        Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF8877FF))),
+      ],
+    );
   }
 }

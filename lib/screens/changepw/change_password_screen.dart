@@ -1,10 +1,10 @@
+// screens/changepw/change_password_screen.dart
 import 'package:flutter/material.dart';
+import 'package:remixicon/remixicon.dart';
+import '../../routes/app_routes.dart';
 
-/// [클래스] ChangePasswordScreen
-/// 목적: 새 비밀번호를 입력하고 변경하는 UI (비밀번호 찾기/마이페이지 공용)
 class ChangePasswordScreen extends StatefulWidget {
   final bool isFromMyPage;
-
   const ChangePasswordScreen({super.key, this.isFromMyPage = false});
 
   @override
@@ -21,67 +21,68 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(widget.isFromMyPage ? "비밀번호 수정" : "새 비밀번호 설정", 
-             style: const TextStyle(color: Colors.black)),
+             style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("안전한 비밀번호로 변경해 주세요.", style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 32),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Column(
+            children: [
+              const Text("안전한 비밀번호로 변경해 주세요.", style: TextStyle(fontSize: 16, color: Colors.black54)),
+              const SizedBox(height: 50),
 
-            // 새 비밀번호 입력
-            TextField(
-              controller: _pwController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: "새 비밀번호",
-                helperText: "8자 이상, 숫자와 영문자를 포함해 주세요.",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
+              _buildUnderlineField(_pwController, "새 비밀번호", RemixIcons.lock_password_line),
+              const SizedBox(height: 25),
+              _buildUnderlineField(_confirmPwController, "새 비밀번호 확인", RemixIcons.checkbox_circle_line),
+              
+              const SizedBox(height: 50),
 
-            // 비밀번호 확인 입력
-            TextField(
-              controller: _confirmPwController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: "새 비밀번호 확인",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 40),
-
-            // 변경 완료 버튼
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () {
-                  // 성공 메시지 후 화면 이동
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("비밀번호 변경이 완료되었습니다.")),
-                  );
-                  
-                  if (widget.isFromMyPage) {
-                    Navigator.pop(context); // 마이페이지로 복귀
-                  } else {
-                    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false); // 로그인으로 이동
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black87,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              SizedBox(
+                width: 300,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // TODO: 비밀번호 변경 API 호출
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("비밀번호 변경이 완료되었습니다.")),
+                    );
+                    
+                    if (widget.isFromMyPage) {
+                      Navigator.pop(context);
+                    } else {
+                      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black87,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: const Text("변경 완료", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
-                child: const Text("변경 완료", style: TextStyle(color: Colors.white, fontSize: 16)),
               ),
-            ),
-          ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUnderlineField(TextEditingController controller, String hint, IconData icon) {
+    return SizedBox(
+      width: 300,
+      child: TextField(
+        controller: controller,
+        obscureText: true,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, size: 20),
+          prefixIconConstraints: const BoxConstraints(minWidth: 35),
+          hintText: hint,
+          enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black12)),
+          focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black87, width: 2)),
         ),
       ),
     );

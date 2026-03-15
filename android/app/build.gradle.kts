@@ -20,11 +20,12 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.vipa"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        
+        // [수정 포인트] flutter.minSdkVersion 대신 24(Android 7.0) 이상을 권장합니다.
+        // OpenAI Realtime API 통신과 최신 오디오 처리를 위해 24가 가장 안정적입니다.
+        minSdk = 24 
+        
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -33,8 +34,11 @@ android {
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            
+            // 코드 압축 시 TTS/STT 라이브러리 손상을 방지하기 위해 추가할 수 있음
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

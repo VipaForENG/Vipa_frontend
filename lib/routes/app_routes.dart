@@ -6,7 +6,6 @@ import '../screens/login/login_screen.dart';
 import '../screens/signup/signup_screen.dart';
 import '../screens/history/learning_history_screen.dart';
 import '../screens/conversation/conversation_screen.dart';
-import '../screens/vocabulary/vocabulary_screen.dart';
 import '../screens/grammar/grammar_screen.dart';
 import '../screens/login/reset_password_screen.dart';
 import '../screens/changepw/change_password_screen.dart';
@@ -45,7 +44,6 @@ class AppRoutes {
       // 3. 학습 기능 상세 페이지
       history: (context) => const LearningHistoryScreen(),
       conversation: (context) => const ConversationScreen(),
-      vocabulary: (context) => const VocabularyScreen(),
       grammar: (context) => const GrammarScreen(),
 
 

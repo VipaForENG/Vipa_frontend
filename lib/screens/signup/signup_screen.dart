@@ -16,7 +16,6 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _pwController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _nickController = TextEditingController();
 
 
@@ -92,13 +91,6 @@ class _SignupScreenState extends State<SignupScreen> {
                 icon: Icons.badge_outlined,
               ),
               _buildModernTextField(
-                controller: _phoneController,
-                label: "전화번호",
-                hint: "010-0000-0000",
-                icon: Icons.phone_android_outlined,
-                keyboardType: TextInputType.phone,
-              ),
-              _buildModernTextField(
                 controller: _nickController,
                 label: "닉네임",
                 hint: "앱에서 사용할 이름을 입력하세요",
@@ -114,7 +106,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     // [로직] 나중에 여기서 서버 통신(api_service.dart 활용)을 구현합니다.
-                    print("가입 시도 아이디: ${_idController.text}");
+                    debugPrint("가입 시도 아이디: ${_idController.text}");
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(

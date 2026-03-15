@@ -1,7 +1,13 @@
 // [임포트] Flutter UI 개발을 위한 핵심 Material 패키지입니다.
 import 'package:flutter/material.dart';
+// [임포트] 상태 관리를 위한 provider 패키지입니다.
+import 'package:provider/provider.dart';
 // [임포트] 우리가 정의한 앱 내 화면 이동 경로(라우트) 관리 파일입니다.
 import 'routes/app_routes.dart';
+
+// [임포트] 우리가 정의한 각 화면의 로직 및 상태 관리 파일들입니다.
+import 'screens/grammar/grammar_provider.dart';
+import 'screens/conversation/conversation_provider.dart';
 
 // [함수] main
 // 목적: 앱의 실행을 시작하는 진입점(Entry Point)입니다.
@@ -21,23 +27,32 @@ class VipaApp extends StatelessWidget {
   // 인자: context - 위젯 트리의 위치 정보
   @override
   Widget build(BuildContext context) {
-    // [위젯] MaterialApp: 앱의 이름, 테마, 라우팅 등 핵심 설정을 포함합니다.
-    return MaterialApp(
-      title: 'vipa', // 앱의 실행 제목
-      debugShowCheckedModeBanner: false, // 개발 시 오른쪽 상단 DEBUG 리본을 숨깁니다.
+    // [위젯] MultiProvider: 앱 전체에서 사용할 여러 개의 상태(Provider)를 등록합니다.
+    return MultiProvider(
+      providers: [
+        // 오늘의 어휘/문법 화면을 위한 상태 관리
+        ChangeNotifierProvider(create: (_) => GrammarProvider()),
+        // 대화 연습 화면을 위한 상태 관리
+        ChangeNotifierProvider(create: (_) => ConversationProvider()),
+      ],
+      // [위젯] MaterialApp: 앱의 이름, 테마, 라우팅 등 핵심 설정을 포함합니다.
+      child: MaterialApp(
+        title: 'vipa', // 앱의 실행 제목
+        debugShowCheckedModeBanner: false, // 개발 시 오른쪽 상단 DEBUG 리본을 숨깁니다.
 
-      // [테마] 앱 전반의 색상 체계와 Material 3 디자인 적용
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
-        useMaterial3: true,
+        // [테마] 앱 전반의 색상 체계와 Material 3 디자인 적용
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
+          useMaterial3: true,
+        ),
+
+        // [경로] 초기 화면 경로를 설정합니다.
+        // 만약 로그인을 먼저 띄우고 싶다면 AppRoutes.login 등으로 변경하세요.
+        initialRoute: AppRoutes.login,
+
+        // [경로] 별도 정의된 라우트 맵(AppRoutes.getRoutes)을 연결하여 화면 이동을 처리합니다.
+        routes: AppRoutes.getRoutes(),
       ),
-
-      // [경로] 초기 화면 경로를 설정합니다.
-      // 만약 로그인을 먼저 띄우고 싶다면 AppRoutes.login 등으로 변경하세요.
-      initialRoute: AppRoutes.login,
-
-      // [경로] 별도 정의된 라우트 맵(AppRoutes.getRoutes)을 연결하여 화면 이동을 처리합니다.
-      routes: AppRoutes.getRoutes(),
     );
   }
 }

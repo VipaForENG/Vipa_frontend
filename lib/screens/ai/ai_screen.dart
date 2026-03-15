@@ -1,77 +1,75 @@
 import 'package:flutter/material.dart';
+import '../../design/card_design.dart';
+import 'widgets/voice_wave.dart';
 
-/// [클래스] AiScreen
-/// 목적: AI와 함께하는 쉐도잉 학습 페이지. TTS 로그와 음성 분석 기능을 제공합니다.
 class AiScreen extends StatefulWidget {
   const AiScreen({super.key});
 
   @override
   State<AiScreen> createState() => _AiScreenState();
 }
-
 class _AiScreenState extends State<AiScreen> {
-  // [변수] isRecording: 현재 음성 녹음(발음 분석) 중인지 확인하는 플래그
-  bool isRecording = false;
-
+  String _recognizedText = "번역할 내용을 말씀해주세요.";
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('AI 쉐도잉 체크', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // [위젯] 상단 TTS 텍스트 및 로그 표시 영역
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.all(20),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: ListView(
-                children: const [
-                  Text("AI 쉐도잉 문장: Hello, how are you today?", style: TextStyle(fontSize: 16)),
-                  Divider(),
-                  Text("-> TTS text log:", style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text("User: (사용자 발음 로그가 이곳에 출력됩니다...)"),
-                ],
-              ),
-            ),
-          ),
-
-          // [위젯] 하단 마이크 컨트롤 영역
-          Padding(
-            padding: const EdgeInsets.only(bottom: 50),
-            child: Column(
-              children: [
-                Text(isRecording ? "분석 중입니다..." : "마이크를 눌러 시작하세요",
-                    style: const TextStyle(color: Colors.blueAccent)),
-                const SizedBox(height: 20),
-                // [위젯] 마이크 버튼 (누르면 녹음/분석 시작)
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      isRecording = !isRecording;
-                    });
-                  },
-                  child: Container(
+      backgroundColor: const Color(0xffF6F7FB),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          child: Column(
+            children: [
+              const SizedBox(height: 10),
+              // 1. 상단 카드
+              Expanded(
+                flex: 5,
+                child: cardContainer(
+                  height: double.infinity, // 👈 여기에 double.infinity를 넣으세요!
+                  child: Padding(
                     padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isRecording ? Colors.redAccent : Colors.blueAccent,
-                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Container(width: 30, height: 30, decoration: const BoxDecoration(color: Colors.grey, shape: BoxShape.circle)),
+                            const SizedBox(width: 10),
+                            const Text('English', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: SingleChildScrollView(
+                              child: Text(
+                                _recognizedText,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    child: Icon(isRecording ? Icons.stop : Icons.mic, color: Colors.white, size: 40),
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 15),
+              Expanded(
+                flex: 4,
+                child: cardContainer(
+                  height: double.infinity,
+                  child: Center(
+                    child: VoiceWaveView(
+                      onTextRecognized: (text) {
+                        setState(() => _recognizedText = text);
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
