@@ -9,7 +9,7 @@ class AiScreen extends StatefulWidget {
   State<AiScreen> createState() => _AiScreenState();
 }
 class _AiScreenState extends State<AiScreen> {
-  String _recognizedText = "번역할 내용을 말씀해주세요.";
+  String _recognizedText = "AI가 말하는 내용이 실시간 번역됩니다.";
   @override
   Widget build(BuildContext context) {
     return Scaffold(
