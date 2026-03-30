@@ -14,7 +14,7 @@ class MyPageScreen extends StatefulWidget {
 
 class _MyPageScreenState extends State<MyPageScreen> {
   // 상태로 관리할 변수들
-  String currentPlan = 'FREE'; 
+  String currentPlan = 'PRO'; 
   String nextBillingDate = '2024.06.20';
   final String loginType = 'email';
 

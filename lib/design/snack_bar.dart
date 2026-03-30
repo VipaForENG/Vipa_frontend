@@ -87,7 +87,11 @@ class _MessageSnackBarWidgetState extends State<_MessageSnackBarWidget> with Sin
               ),
               child: Text(
                 widget.message,
-                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  // 에러일 때는 흰색 글자, 아니면 검정 글자
+                  color: widget.isError ? Colors.white : Colors.black, 
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),

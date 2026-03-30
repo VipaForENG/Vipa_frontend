@@ -39,6 +39,7 @@ dependencies:
   flutter_tts: ^4.2.5
   remixicon: ^4.9.1
   provider: ^6.1.5+1
+  dio: ^5.9.2
 
 dev_dependencies:
   flutter_test:
