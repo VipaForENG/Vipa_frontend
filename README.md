@@ -22,10 +22,10 @@ lib/
 ```
 
 ## 🛠️ 기술 스택 (Tech Stack)
-Framework: Flutter (Dart)
-Network: Dio
-Icons: RemixIcon
-State Management: StatefulWidget & SetState (기초 단계)
+- Framework: Flutter (Dart)
+- Network: Dio
+- Icons: RemixIcon
+- State Management: StatefulWidget & SetState (기초 단계)
 
 ## 🚀 시작하기 (Getting Started)
 1. 환경 설정 Flutter SDK가 설치되어 있어야 합니다. (추천 버전: 3.19.0 이상)
@@ -34,7 +34,7 @@ State Management: StatefulWidget & SetState (기초 단계)
    flutter pub get
    ```
 4. API 서버 연결 설정lib/api/api_service.dart 파일에서 본인의 백엔드 서버 IP 주소로 수정해야 합니다.
-5. ```Dart
+   ```Dart
    static const String baseUrl = "http://YOUR_SERVER_IP:8000/api/v1";
    ```
    
