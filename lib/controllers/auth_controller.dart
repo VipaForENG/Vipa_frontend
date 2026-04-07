@@ -49,4 +49,50 @@ class AuthController {
       return null;
     }
   }
+
+  //인증 코드 발송
+  static Future<bool> sendRecoveryCode(String email) async {
+    try {
+      final response = await ApiService.dio.post(
+        "/users/password-recovery/send-code",
+        data: {"email": email},
+      );
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      debugPrint("❌ 코드 발송 에러: ${e.response?.data ?? e.message}");
+      return false;
+    }
+  }
+
+  //인증 코드 검증
+  static Future<bool> verifyRecoveryCode(String email, String code) async {
+    try {
+      final response = await ApiService.dio.post(
+        "/users/password-recovery/verify-code",
+        data: {"email": email, "code": code},
+      );
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      debugPrint("❌ 코드 검증 에러: ${e.response?.data ?? e.message}");
+      return false;
+    }
+  }
+
+  //비밀번호 찾기
+  static Future<bool> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await ApiService.dio.patch(
+        "/users/password-recovery/reset",
+        data: {"email": email, "code": code, "new_password": newPassword},
+      );
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      debugPrint("❌ 비번 재설정 에러: ${e.response?.data ?? e.message}");
+      return false;
+    }
+  }
 }
