@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../design/button_design.dart'; 
+// 디자인 위젯들 임포트
+import '../../../design/button_design.dart';
+import '../../../design/section_header.dart'; // SectionHeader 사용을 위해 추가
+// 화면 이동 대상 임포트
 import '../../conversation/conversation_screen.dart';
 import '../../grammar/grammar_screen.dart';
 
@@ -11,24 +14,38 @@ class QuickMenuSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '학습 바로가기',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3436)),
+        // 1. 하드코딩된 Text 대신, 미리 만들어둔 SectionHeader를 사용합니다.
+        const SectionHeader(
+          title: '학습 바로가기',
+          icon: Icons.rocket_launch_rounded, // 섹션의 성격에 맞는 아이콘
+          color: Color(0xFF2D3436), // 프로젝트 메인 컬러
         ),
-        const SizedBox(height: 12),
+
+        const SizedBox(height: 16), // 헤더와 버튼 사이 간격 최적화
+
         Row(
           children: [
-            // buttonDesign은 내부에 Expanded가 포함되어 있어 Row 안에서 바로 쓰면 됩니다.
-            buttonDesign(
-              "실전회화", 
-              Icons.chat_bubble_outline, 
-              () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ConversationScreen()))
+            // 2. 실전회화 버튼
+            vipaPrimaryButton(
+              title: "실전회화",
+              icon: Icons.chat_bubble_outline,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ConversationScreen(),
+                ),
+              ),
             ),
-            const SizedBox(width: 12), // 버튼 사이 간격
-            buttonDesign(
-              "오늘의 어휘", 
-              Icons.auto_awesome, 
-              () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GrammarScreen()))
+
+            const SizedBox(width: 12), // 버튼 사이 간격 유지
+            // 3. 오늘의 어휘 버튼
+            vipaPrimaryButton(
+              title: "오늘의 어휘",
+              icon: Icons.auto_awesome,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const GrammarScreen()),
+              ),
             ),
           ],
         ),

@@ -1,35 +1,43 @@
 import 'package:flutter/material.dart';
 
-Widget buttonDesign(String title, IconData icon, VoidCallback onPressed) {
-  return Expanded(
-    child: SizedBox(
-      height: 120,
-      child: ElevatedButton(
-        onPressed: onPressed, // 1. 클릭 시 실행될 함수 연결
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white, // 배경색
-          foregroundColor: const Color(0xFF2D3436), // 클릭 시 퍼지는 색상 (물결 효과)
-          elevation: 0, // 그림자 제거 (깔끔하게)
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16), // 테두리 둥글게
-            side: const BorderSide(color: Color(0xFFEDF0F3)), // 테두리 선
-          ),
-          padding: EdgeInsets.zero, // 내부 기본 패딩 제거
+/// Vipa 프로젝트의 공통 사각형 버튼 위젯입니다.
+/// [title]: 버튼에 표시될 텍스트
+/// [icon]: 상단에 표시될 아이콘 데이터
+/// [onPressed]: 버튼 클릭 시 실행될 콜백 함수
+Widget vipaPrimaryButton({
+  required String title,
+  required IconData icon,
+  required VoidCallback onPressed,
+  double height = 120.0, // 기본 높이 설정
+}) {
+  return SizedBox(
+    height: height,
+    child: ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF2D3436), // 클릭 시 물결 효과 색상
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFFEDF0F3)),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: const Color(0xFF2D3436), size: 30),
-            const SizedBox(height: 5),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
+        padding: EdgeInsets.zero,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: const Color(0xFF2D3436), size: 30),
+          const SizedBox(height: 8), // 간격을 살짝 넓혀 가독성 확보
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2D3436),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     ),
   );

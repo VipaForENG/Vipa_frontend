@@ -1,63 +1,72 @@
 import 'package:flutter/material.dart';
 
 class VipaSnackBar {
-  static void show(BuildContext context, String message, {bool isError = false}) {
-    // Overlay를 사용하여 화면 최상단에 위젯을 직접 띄웁니다.
+  static void show(
+    BuildContext context,
+    String message, {
+    bool isError = false,
+  }) {
     final overlay = Overlay.of(context);
-    final overlayEntry = OverlayEntry(
+    late OverlayEntry overlayEntry; // 선언을 먼저 합니다.
+
+    overlayEntry = OverlayEntry(
       builder: (context) => _MessageSnackBarWidget(
         message: message,
         isError: isError,
+        // 애니메이션이 완전히 끝난 후 Overlay에서 제거하도록 콜백 전달
+        onDismissed: () {
+          overlayEntry.remove();
+        },
       ),
     );
 
-    // 화면에 추가
     overlay.insert(overlayEntry);
-
-    // 2.5초 후에 제거
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      overlayEntry.remove();
-    });
   }
 }
 
 class _MessageSnackBarWidget extends StatefulWidget {
   final String message;
   final bool isError;
+  final VoidCallback onDismissed;
 
-  const _MessageSnackBarWidget({required this.message, required this.isError});
+  const _MessageSnackBarWidget({
+    required this.message,
+    required this.isError,
+    required this.onDismissed,
+  });
 
   @override
   State<_MessageSnackBarWidget> createState() => _MessageSnackBarWidgetState();
 }
 
-class _MessageSnackBarWidgetState extends State<_MessageSnackBarWidget> with SingleTickerProviderStateMixin {
+class _MessageSnackBarWidgetState extends State<_MessageSnackBarWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
 
   @override
   void initState() {
     super.initState();
-    // [애니메이션 설정] 0.5초 동안 부드럽게 작동
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
 
-    // 시작 위치는 화면 밖(아래), 도착 위치는 원래 자리
+    // [수정 포인트] 좌표값을 더 직관적으로 조정
+    // 화면 하단에서 위로 0.2(약 20%)만큼 올라온 지점에 멈춤
     _offsetAnimation = Tween<Offset>(
-      begin: const Offset(0.0, 2.0),
-      end: const Offset(0.0, -2.0), // 살짝 위로 띄움
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack, // 쫀득하게 올라오는 효과
-    ));
+      begin: const Offset(0.0, 1.5),
+      end: const Offset(0.0, -0.5),
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
-    _controller.forward(); // 시작
+    _controller.forward();
 
-    // 사라질 때 애니메이션
-    Future.delayed(const Duration(milliseconds: 2000), () {
-      if (mounted) _controller.reverse();
+    // 2.5초 노출 후 reverse 애니메이션 실행
+    Future.delayed(const Duration(milliseconds: 2500), () async {
+      if (mounted) {
+        await _controller.reverse(); // 애니메이션이 끝날 때까지 기다림
+        widget.onDismissed(); // 그 다음 Overlay 제거
+      }
     });
   }
 
@@ -79,17 +88,23 @@ class _MessageSnackBarWidgetState extends State<_MessageSnackBarWidget> with Sin
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: widget.isError ? Colors.redAccent : Colors.white,
+                // [수정 포인트] Vipa 프로젝트 표준 색상 적용 제안
+                color: widget.isError
+                    ? const Color(0xFFFF4757)
+                    : const Color(0xFF2D3436),
                 borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
                 ],
               ),
               child: Text(
                 widget.message,
-                style: TextStyle(
-                  // 에러일 때는 흰색 글자, 아니면 검정 글자
-                  color: widget.isError ? Colors.white : Colors.black, 
+                style: const TextStyle(
+                  color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),

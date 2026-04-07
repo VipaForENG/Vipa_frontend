@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffFFFFFF),
+      backgroundColor: const Color.fromARGB(255, 245, 228, 173),
       // 키보드가 올라올 때 화면이 가려지지 않도록 설정
       resizeToAvoidBottomInset: true,
       body: SafeArea(
@@ -62,12 +62,43 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                const SizedBox(height: 100),
+                const SizedBox(height: 95),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20), // 이미지 모서리를 둥글게
+                  child: Image.network(
+                    'https://cdn.discordapp.com/attachments/1482731178753654865/1491120727976443994/LOGO-Photoroom.png?ex=69d689e5&is=69d53865&hm=0e97e775c1ae8a46e987be819ef1f600daecbc86c9e51ce0073a328f141e72bf&', // 임시 이미지 링크
+                    width: 100, // 이미지 너비
+                    height: 100, // 이미지 높이
+                    fit: BoxFit.cover,
+                    // 이미지 로딩 중 표시할 위젯 (선택사항)
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const SizedBox(
+                        width: 100,
+                        height: 100,
+                        child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    },
+                    // 이미지 로드 실패 시 표시할 위젯
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 100,
+                      height: 100,
+                      color: const Color(0xFFEDF0F3),
+                      child: const Icon(
+                        Icons.broken_image,
+                        color: Colors.black26,
+                      ),
+                    ),
+                  ),
+                ),
+
                 // 로고 섹션
                 const Text(
                   'VIPA',
                   style: TextStyle(
-                    color: Colors.black87,
+                    color: Color.fromARGB(255, 255, 216, 154),
                     fontSize: 45,
                     fontWeight: FontWeight.w900, // 기존 1000 대신 w900 사용
                     letterSpacing: -1,
