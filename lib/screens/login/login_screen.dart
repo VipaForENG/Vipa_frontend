@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart'; // RemixIcon 패키지 확인 필요
 import '../../routes/app_routes.dart'; // 현재 프로젝트 라우트
 import '../../Design/snack_bar.dart'; // 기존 프로젝트의 스낵바 디자인
+import '../../controllers/auth_controller.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,12 +14,38 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _pwController = TextEditingController();
+  bool _isLoading = false; // 로딩 상태 추가
 
-  /// [함수] _handleLogin
-  void _handleLogin() {
-    // 스낵바 피드백 (기존 디자인 적용)
-    VipaSnackBar.show(context, '성공적으로 로그인되었습니다!');
-    Navigator.pushReplacementNamed(context, AppRoutes.home);
+  /// [함수] _handleLogin 연동 버전
+  Future<void> _handleLogin() async {
+    final email = _idController.text.trim();
+    final password = _pwController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      VipaSnackBar.show(context, '이메일과 비밀번호를 모두 입력해주세요.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    // AuthController를 통한 API 호출
+    final result = await AuthController.login(email: email, password: password);
+
+    setState(() => _isLoading = false);
+
+    if (result != null) {
+      // 1. 토큰 저장 로직 (필요 시 추가)
+      // String token = result['access_token'];
+
+      // 2. 성공 피드백 및 이동
+      if (!mounted) return;
+      VipaSnackBar.show(context, '성공적으로 로그인되었습니다!');
+      Navigator.pushReplacementNamed(context, AppRoutes.home);
+    } else {
+      // 3. 실패 피드백
+      if (!mounted) return;
+      VipaSnackBar.show(context, '이메일 또는 비밀번호가 일치하지 않습니다.');
+    }
   }
 
   @override
@@ -67,8 +94,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // 로그인 버튼
                 _buildPrimaryButton(
-                  text: '로그인',
-                  onPressed: _handleLogin,
+                  text: _isLoading ? '로그인 중...' : '로그인', // 로딩 텍스트 대응
+                  onPressed: _isLoading ? () {} : _handleLogin, // 로딩 중 클릭 방지
                   color: Colors.black87,
                   textColor: Colors.white,
                 ),
@@ -99,13 +126,21 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.pushNamed(context, AppRoutes.signup),
-                      child: const Text('회원가입', style: TextStyle(color: Colors.black54)),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, AppRoutes.signup),
+                      child: const Text(
+                        '회원가입',
+                        style: TextStyle(color: Colors.black54),
+                      ),
                     ),
                     const Text('|', style: TextStyle(color: Colors.black12)),
                     TextButton(
-                      onPressed: () => Navigator.pushNamed(context, AppRoutes.resetPassword),
-                      child: const Text('비밀번호 찾기', style: TextStyle(color: Colors.black54)),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, AppRoutes.resetPassword),
+                      child: const Text(
+                        '비밀번호 찾기',
+                        style: TextStyle(color: Colors.black54),
+                      ),
                     ),
                   ],
                 ),
@@ -165,12 +200,18 @@ class _LoginScreenState extends State<LoginScreen> {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: hasBorder ? const BorderSide(color: Colors.black87) : BorderSide.none,
+            side: hasBorder
+                ? const BorderSide(color: Colors.black87)
+                : BorderSide.none,
           ),
         ),
         child: Text(
           text,
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textColor),
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
         ),
       ),
     );

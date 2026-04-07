@@ -15,7 +15,7 @@ class AuthController {
           "email": email,
           "password": password,
           "nickname": nickname,
-          "is_social": 0,    // 백엔드 DB 설계에 맞춘 정수값
+          "is_social": 0, // 백엔드 DB 설계에 맞춘 정수값
           "social_role": 0,
         },
       );
@@ -25,6 +25,28 @@ class AuthController {
       // 에러 발생 시 로그 확인용
       debugPrint("❌ 회원가입 API 에러: ${e.response?.data ?? e.message}");
       return false;
+    }
+  }
+
+  // 로그인 관련 auth_controller
+  static Future<Map<String, dynamic>?> login({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final response = await ApiService.dio.post(
+        "/users/login", // 백엔드 엔드포인트 경로 확인 필요 (/auth/login 인지 등)
+        data: {"email": email, "password": password},
+      );
+
+      if (response.statusCode == 200) {
+        // 성공 시 {"access_token": "...", "token_type": "bearer"} 반환
+        return response.data;
+      }
+      return null;
+    } on DioException catch (e) {
+      debugPrint("❌ 로그인 API 에러: ${e.response?.data ?? e.message}");
+      return null;
     }
   }
 }
