@@ -1,4 +1,4 @@
-// 1. 코틀린 버전 명시를 위한 블록 추가
+// 1. 코틀린 버전 명시 및 구글 서비스 클래스패스 추가
 buildscript {
     repositories {
         google()
@@ -7,6 +7,7 @@ buildscript {
     dependencies {
         // 이 부분이 있어야 Daemon 에러를 방지할 수 있습니다.
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22")
+
     }
 }
 

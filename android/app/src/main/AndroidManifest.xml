@@ -26,6 +26,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+                <data android:scheme="kakao25362440966d18c3c3ee4562ace49b2e" android:host="oauth"/>
             </intent-filter>
         </activity>
 

@@ -8,10 +8,24 @@ import 'routes/app_routes.dart';
 // [임포트] 우리가 정의한 각 화면의 로직 및 상태 관리 파일들입니다.
 import 'screens/grammar/grammar_provider.dart';
 import 'screens/conversation/conversation_provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+// [임포트] 카카오 로그인 SDK 패키지입니다.
+import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 
 // [함수] main
 // 목적: 앱의 실행을 시작하는 진입점(Entry Point)입니다.
-void main() {
+void main() async { 
+  // [로직] Flutter 엔진과 위젯 트리가 바인딩되기 전에 초기화를 보장합니다.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // [로직] 숨겨둔 .env 파일을 불러옵니다.
+  await dotenv.load(fileName: ".env");
+
+  // [로직] 불러온 환경 변수 값으로 카카오 SDK를 초기화합니다.
+  KakaoSdk.init(
+    nativeAppKey: dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '',
+  );
+
   // [로직] runApp은 Flutter 앱을 구동하고 최상위 위젯을 화면에 띄웁니다.
   runApp(const VipaApp());
 }

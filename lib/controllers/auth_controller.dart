@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../api/api_service.dart';
 import 'package:flutter/foundation.dart'; // debugPrint를 위해 필요합니다.
+import '../services/auth_service.dart';
 
 class AuthController {
   static Future<bool> signUp({
@@ -93,6 +94,51 @@ class AuthController {
     } on DioException catch (e) {
       debugPrint("❌ 비번 재설정 에러: ${e.response?.data ?? e.message}");
       return false;
+    }
+  }
+  /// 구글 로그인 프로세스 (SDK 토큰 발급 -> 백엔드 검증)
+  static Future<Map<String, dynamic>?> loginWithGoogle() async {
+    try {
+      // 1. 프론트엔드 - 구글 SDK로 access_token 획득
+      final String? googleToken = await AuthService.getGoogleAccessToken();
+      if (googleToken == null) return null; // 로그인 취소
+
+      // 2. 백엔드로 토큰 전달 (엔드포인트 경로 /api/v1/auth/login/google 등 확인 필요)
+      final response = await ApiService.dio.post(
+        "/auth/login/google", 
+        data: {"access_token": googleToken},
+      );
+
+      if (response.statusCode == 200) {
+        return response.data; // {"access_token": "VIPA_JWT...", "token_type": "bearer"} 반환
+      }
+      return null;
+    } on DioException catch (e) {
+      debugPrint("❌ 백엔드 구글 로그인 API 에러: ${e.response?.data ?? e.message}");
+      return null;
+    }
+  }
+
+  /// 카카오 로그인 프로세스 (SDK 토큰 발급 -> 백엔드 검증)
+  static Future<Map<String, dynamic>?> loginWithKakao() async {
+    try {
+      // 1. 프론트엔드 - 카카오 SDK로 access_token 획득
+      final String? kakaoToken = await AuthService.getKakaoAccessToken();
+      if (kakaoToken == null) return null; // 로그인 취소
+
+      // 2. 백엔드로 토큰 전달
+      final response = await ApiService.dio.post(
+        "/auth/login/kakao", 
+        data: {"access_token": kakaoToken},
+      );
+
+      if (response.statusCode == 200) {
+        return response.data; // {"access_token": "VIPA_JWT...", "token_type": "bearer"} 반환
+      }
+      return null;
+    } on DioException catch (e) {
+      debugPrint("❌ 백엔드 카카오 로그인 API 에러: ${e.response?.data ?? e.message}");
+      return null;
     }
   }
 }

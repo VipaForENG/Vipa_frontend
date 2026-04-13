@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart'; // RemixIcon 패키지 확인 필요
-import '../../routes/app_routes.dart'; // 현재 프로젝트 라우트
-import '../../Design/snack_bar.dart'; // 기존 프로젝트의 스낵바 디자인
+import 'package:remixicon/remixicon.dart';
+import '../../routes/app_routes.dart';
+import '../../Design/snack_bar.dart';
 import '../../controllers/auth_controller.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -14,9 +14,13 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _pwController = TextEditingController();
-  bool _isLoading = false; // 로딩 상태 추가
+  
+  // 버튼별 로딩 상태 관리
+  bool _isNormalLoading = false;
+  bool _isGoogleLoading = false;
+  bool _isKakaoLoading = false;
 
-  /// [함수] _handleLogin 연동 버전
+  /// 일반 이메일 로그인
   Future<void> _handleLogin() async {
     final email = _idController.text.trim();
     final password = _pwController.text.trim();
@@ -26,33 +30,55 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
-
-    // AuthController를 통한 API 호출
+    setState(() => _isNormalLoading = true);
     final result = await AuthController.login(email: email, password: password);
+    setState(() => _isNormalLoading = false);
 
-    setState(() => _isLoading = false);
+    _processLoginResult(result);
+  }
+
+  /// 구글 로그인
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _isGoogleLoading = true);
+    final result = await AuthController.loginWithGoogle();
+    setState(() => _isGoogleLoading = false);
+
+    _processLoginResult(result, isSocial: true);
+  }
+
+  /// 카카오 로그인
+  Future<void> _handleKakaoLogin() async {
+    setState(() => _isKakaoLoading = true);
+    final result = await AuthController.loginWithKakao();
+    setState(() => _isKakaoLoading = false);
+
+    _processLoginResult(result, isSocial: true);
+  }
+
+  /// 로그인 결과 처리 공통 로직
+  void _processLoginResult(Map<String, dynamic>? result, {bool isSocial = false}) {
+    if (!mounted) return;
 
     if (result != null) {
-      // 1. 토큰 저장 로직 (필요 시 추가)
+      // TODO: 토큰 저장 로직 (FlutterSecureStorage 등)
       // String token = result['access_token'];
-
-      // 2. 성공 피드백 및 이동
-      if (!mounted) return;
+      
       VipaSnackBar.show(context, '성공적으로 로그인되었습니다!');
       Navigator.pushReplacementNamed(context, AppRoutes.home);
     } else {
-      // 3. 실패 피드백
-      if (!mounted) return;
-      VipaSnackBar.show(context, '이메일 또는 비밀번호가 일치하지 않습니다.');
+      // 소셜 로그인은 사용자가 취소해서 null이 반환될 수도 있으므로 에러 메시지를 다르게 처리할 수 있습니다.
+      String errorMsg = isSocial ? '소셜 로그인에 실패했거나 취소되었습니다.' : '이메일 또는 비밀번호가 일치하지 않습니다.';
+      VipaSnackBar.show(context, errorMsg);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // 혹시라도 셋 중 하나라도 로딩 중이면 전체 버튼 비활성화를 위해 사용
+    final bool isAnyLoading = _isNormalLoading || _isGoogleLoading || _isKakaoLoading;
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 245, 228, 173),
-      // 키보드가 올라올 때 화면이 가려지지 않도록 설정
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -64,49 +90,38 @@ class _LoginScreenState extends State<LoginScreen> {
               children: <Widget>[
                 const SizedBox(height: 95),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(20), // 이미지 모서리를 둥글게
+                  borderRadius: BorderRadius.circular(20),
                   child: Image.network(
-                    'https://cdn.discordapp.com/attachments/1482731178753654865/1491120727976443994/LOGO-Photoroom.png?ex=69d689e5&is=69d53865&hm=0e97e775c1ae8a46e987be819ef1f600daecbc86c9e51ce0073a328f141e72bf&', // 임시 이미지 링크
-                    width: 100, // 이미지 너비
-                    height: 100, // 이미지 높이
+                    'https://cdn.discordapp.com/attachments/1482731178753654865/1491120727976443994/LOGO-Photoroom.png?ex=69d689e5&is=69d53865&hm=0e97e775c1ae8a46e987be819ef1f600daecbc86c9e51ce0073a328f141e72bf&',
+                    width: 100,
+                    height: 100,
                     fit: BoxFit.cover,
-                    // 이미지 로딩 중 표시할 위젯 (선택사항)
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return const SizedBox(
-                        width: 100,
-                        height: 100,
-                        child: Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
+                        width: 100, height: 100,
+                        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
                       );
                     },
-                    // 이미지 로드 실패 시 표시할 위젯
                     errorBuilder: (context, error, stackTrace) => Container(
-                      width: 100,
-                      height: 100,
+                      width: 100, height: 100,
                       color: const Color(0xFFEDF0F3),
-                      child: const Icon(
-                        Icons.broken_image,
-                        color: Colors.black26,
-                      ),
+                      child: const Icon(Icons.broken_image, color: Colors.black26),
                     ),
                   ),
                 ),
 
-                // 로고 섹션
                 const Text(
                   'VIPA',
                   style: TextStyle(
                     color: Color.fromARGB(255, 255, 216, 154),
                     fontSize: 45,
-                    fontWeight: FontWeight.w900, // 기존 1000 대신 w900 사용
+                    fontWeight: FontWeight.w900,
                     letterSpacing: -1,
                   ),
                 ),
                 const SizedBox(height: 60),
 
-                // 이메일 입력 필드
                 _buildUnderlineTextField(
                   controller: _idController,
                   hintText: '이메일',
@@ -114,7 +129,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // 비밀번호 입력 필드
                 _buildUnderlineTextField(
                   controller: _pwController,
                   hintText: '비밀번호',
@@ -125,8 +139,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // 로그인 버튼
                 _buildPrimaryButton(
-                  text: _isLoading ? '로그인 중...' : '로그인', // 로딩 텍스트 대응
-                  onPressed: _isLoading ? () {} : _handleLogin, // 로딩 중 클릭 방지
+                  text: _isNormalLoading ? '로그인 중...' : '로그인',
+                  onPressed: isAnyLoading ? () {} : _handleLogin,
                   color: Colors.black87,
                   textColor: Colors.white,
                 ),
@@ -134,8 +148,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // 구글 로그인
                 _buildPrimaryButton(
-                  text: '구글로 로그인',
-                  onPressed: _handleLogin, // 현재는 개발용이라 같은 함수 연결
+                  text: _isGoogleLoading ? '처리 중...' : '구글로 로그인',
+                  onPressed: isAnyLoading ? () {} : _handleGoogleLogin,
                   color: Colors.white,
                   textColor: Colors.black87,
                   hasBorder: true,
@@ -144,34 +158,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // 카카오 로그인
                 _buildPrimaryButton(
-                  text: '카카오로 로그인',
-                  onPressed: _handleLogin,
+                  text: _isKakaoLoading ? '처리 중...' : '카카오로 로그인',
+                  onPressed: isAnyLoading ? () {} : _handleKakaoLogin,
                   color: const Color(0xFFFEE500),
                   textColor: Colors.black87,
                 ),
 
                 const SizedBox(height: 20),
 
-                // 하단 보조 버튼 (회원가입, 비밀번호 찾기)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     TextButton(
-                      onPressed: () =>
-                          Navigator.pushNamed(context, AppRoutes.signup),
-                      child: const Text(
-                        '회원가입',
-                        style: TextStyle(color: Colors.black54),
-                      ),
+                      onPressed: () => Navigator.pushNamed(context, AppRoutes.signup),
+                      child: const Text('회원가입', style: TextStyle(color: Colors.black54)),
                     ),
                     const Text('|', style: TextStyle(color: Colors.black12)),
                     TextButton(
-                      onPressed: () =>
-                          Navigator.pushNamed(context, AppRoutes.resetPassword),
-                      child: const Text(
-                        '비밀번호 찾기',
-                        style: TextStyle(color: Colors.black54),
-                      ),
+                      onPressed: () => Navigator.pushNamed(context, AppRoutes.resetPassword),
+                      child: const Text('비밀번호 찾기', style: TextStyle(color: Colors.black54)),
                     ),
                   ],
                 ),
@@ -183,9 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // --- 위젯 분리 ---
-
-  // 다른 프로젝트 스타일의 언더라인 텍스트 필드
+  // _buildUnderlineTextField 와 _buildPrimaryButton 는 기존과 동일하게 사용
   Widget _buildUnderlineTextField({
     required TextEditingController controller,
     required String hintText,
@@ -213,7 +216,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // 버튼 공통 위젯
   Widget _buildPrimaryButton({
     required String text,
     required VoidCallback onPressed,
@@ -231,9 +233,7 @@ class _LoginScreenState extends State<LoginScreen> {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: hasBorder
-                ? const BorderSide(color: Colors.black87)
-                : BorderSide.none,
+            side: hasBorder ? const BorderSide(color: Colors.black87) : BorderSide.none,
           ),
         ),
         child: Text(
