@@ -166,6 +166,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     setState(() => _isNormalLoading = true);
     final result = await AuthController.login(email: email, password: password);
+    
+    // [수정] 비동기 작업 완료 후 위젯이 여전히 활성 상태인지 확인
+    if (!mounted) return; 
+    
     setState(() => _isNormalLoading = false);
     _processLoginResult(result);
   }
@@ -173,6 +177,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleGoogleLogin() async {
     setState(() => _isGoogleLoading = true);
     final result = await AuthController.loginWithGoogle();
+    
+    // [수정] 비동기 작업 완료 후 mounted 체크
+    if (!mounted) return;
+
     setState(() => _isGoogleLoading = false);
     _processLoginResult(result, isSocial: true);
   }
@@ -180,20 +188,42 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleKakaoLogin() async {
     setState(() => _isKakaoLoading = true);
     final result = await AuthController.loginWithKakao();
+    
+    // [수정] 비동기 작업 완료 후 mounted 체크
+    if (!mounted) return;
+
     setState(() => _isKakaoLoading = false);
     _processLoginResult(result, isSocial: true);
   }
 
+  /// [수정된 메서드] 로그인 결과 처리 및 네비게이션
   void _processLoginResult(Map<String, dynamic>? result, {bool isSocial = false}) async {
-    if (!mounted) return;
+    // 1. 함수 시작 시 mounted 체크
+    if (!mounted) return; 
+
     if (result != null) {
       final String? token = result['access_token'];
       if (token != null) await AuthService.saveToken(token);
+      
+      // 2. Token 저장(비동기) 후 다시 한 번 mounted 체크 (Lint 에러 해결 핵심)
+      if (!mounted) return;
+
       final bool isTested = result['is_tested'] ?? false;
+      
+      // 성공 피드백 제공
       VipaSnackBar.show(context, '성공적으로 로그인되었습니다!');
-      Navigator.pushReplacementNamed(context, isTested ? AppRoutes.home : AppRoutes.levelTest);
+      
+      // 경로 이동: 테스트 완료 여부에 따라 홈 또는 레벨 테스트로 이동
+      Navigator.pushReplacementNamed(
+        context, 
+        isTested ? AppRoutes.home : AppRoutes.levelTest
+      );
     } else {
-      VipaSnackBar.show(context, isSocial ? '소셜 로그인에 실패했습니다.' : '이메일 또는 비밀번호를 확인해주세요.');
+      // 실패 피드백 제공
+      VipaSnackBar.show(
+        context, 
+        isSocial ? '소셜 로그인에 실패했습니다.' : '이메일 또는 비밀번호를 확인해주세요.'
+      );
     }
   }
 
