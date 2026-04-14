@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
-import '../../api/api_service.dart';
 import '../../routes/app_routes.dart';
 import '../../Design/snack_bar.dart';
 import '../../controllers/auth_controller.dart'; // AuthController 임포트 확인

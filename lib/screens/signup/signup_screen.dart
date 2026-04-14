@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import '../../routes/app_routes.dart';
 import '../../Design/snack_bar.dart';
 import '../../controllers/auth_controller.dart';
-import '../../services/auth_service.dart';
 
 // --- 로그인 화면과 동일한 파도 배경 위젯 ---
 
@@ -25,10 +24,7 @@ class WaveBackground extends StatelessWidget {
       duration: const Duration(milliseconds: 700),
       curve: Curves.easeOutCubic,
       builder: (context, factor, child) {
-        return _LoopingWave(
-          waveColor: waveColor,
-          heightFactor: factor,
-        );
+        return _LoopingWave(waveColor: waveColor, heightFactor: factor);
       },
     );
   }
@@ -38,13 +34,14 @@ class _LoopingWave extends StatefulWidget {
   final Color waveColor;
   final double heightFactor;
 
-  const _LoopingWave({super.key, required this.waveColor, required this.heightFactor});
+  const _LoopingWave({required this.waveColor, required this.heightFactor});
 
   @override
   State<_LoopingWave> createState() => _LoopingWaveState();
 }
 
-class _LoopingWaveState extends State<_LoopingWave> with SingleTickerProviderStateMixin {
+class _LoopingWaveState extends State<_LoopingWave>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -98,7 +95,7 @@ class WavePainter extends CustomPainter {
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
-        Colors.white.withOpacity(0.9),
+        Colors.white.withValues(alpha: 0.5),
         const Color(0xFFFDF5E6),
         const Color(0xFFF5E4AD), // 로그인 화면과 동일한 하단 색상
       ],
@@ -110,7 +107,7 @@ class WavePainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     Path path = Path();
-    double baseHeight = size.height * (1.0 - heightFactor); 
+    double baseHeight = size.height * (1.0 - heightFactor);
     double waveAmplitude = 18.0;
 
     path.moveTo(0, baseHeight);
@@ -118,7 +115,12 @@ class WavePainter extends CustomPainter {
     for (double i = 0; i <= size.width; i++) {
       path.lineTo(
         i,
-        baseHeight + math.sin((i / size.width * 2 * math.pi) + (waveAnimation * 2 * math.pi)) * waveAmplitude,
+        baseHeight +
+            math.sin(
+                  (i / size.width * 2 * math.pi) +
+                      (waveAnimation * 2 * math.pi),
+                ) *
+                waveAmplitude,
       );
     }
 
@@ -170,7 +172,9 @@ class _SignupScreenState extends State<SignupScreen> {
   void _onFocusChange() {
     if (!mounted) return;
     setState(() {
-      if (_emailFocusNode.hasFocus || _pwFocusNode.hasFocus || _nickFocusNode.hasFocus) {
+      if (_emailFocusNode.hasFocus ||
+          _pwFocusNode.hasFocus ||
+          _nickFocusNode.hasFocus) {
         _currentWaveHeight = 0.65;
       } else {
         _currentWaveHeight = 0.35;
@@ -190,17 +194,21 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   bool _checkEmailFormat(String email) {
-    return RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
-        .hasMatch(email);
+    return RegExp(
+      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+    ).hasMatch(email);
   }
 
   bool _checkPasswordFormat(String password) {
-    return RegExp(r'^(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$')
-        .hasMatch(password);
+    return RegExp(
+      r'^(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$',
+    ).hasMatch(password);
   }
 
   Future<void> _handleSignUp() async {
-    if (!_isEmailValid || !_isPasswordValid || _nickController.text.length < 2) {
+    if (!_isEmailValid ||
+        !_isPasswordValid ||
+        _nickController.text.length < 2) {
       VipaSnackBar.show(context, '입력 형식을 다시 확인해주세요.', isError: true);
       return;
     }
@@ -235,13 +243,22 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 245, 228, 173), // 로그인과 동일한 노란 배경
+      backgroundColor: const Color.fromARGB(
+        255,
+        245,
+        228,
+        173,
+      ), // 로그인과 동일한 노란 배경
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent, // 투명하게 설정하여 파도가 보이게 함
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.black87,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -255,7 +272,7 @@ class _SignupScreenState extends State<SignupScreen> {
               waveHeightFactor: _currentWaveHeight,
             ),
           ),
-          
+
           SafeArea(
             child: GestureDetector(
               onTap: () => FocusScope.of(context).unfocus(),
@@ -295,7 +312,9 @@ class _SignupScreenState extends State<SignupScreen> {
                             _emailError = null;
                           });
                         },
-                        activeColor: _isEmailValid ? Colors.blueAccent : Colors.black87,
+                        activeColor: _isEmailValid
+                            ? Colors.blueAccent
+                            : Colors.black87,
                       ),
                       if (_emailController.text.isNotEmpty && !_isEmailValid)
                         _buildValidationText('⚠️ 올바른 이메일 형식이 아닙니다.'),
@@ -313,7 +332,9 @@ class _SignupScreenState extends State<SignupScreen> {
                             _isPasswordValid = _checkPasswordFormat(val);
                           });
                         },
-                        activeColor: _isPasswordValid ? Colors.green : Colors.black87,
+                        activeColor: _isPasswordValid
+                            ? Colors.green
+                            : Colors.black87,
                       ),
                       if (_pwController.text.isNotEmpty && !_isPasswordValid)
                         _buildValidationText('⚠️ 소문자, 숫자, 특수문자 포함 8자 이상'),
@@ -328,29 +349,43 @@ class _SignupScreenState extends State<SignupScreen> {
                         onChanged: (val) {
                           setState(() {});
                         },
-                        activeColor: _nickController.text.length >= 2 ? Colors.blueAccent : Colors.black87,
+                        activeColor: _nickController.text.length >= 2
+                            ? Colors.blueAccent
+                            : Colors.black87,
                       ),
-                      if (_nickController.text.isNotEmpty && _nickController.text.length < 2)
+                      if (_nickController.text.isNotEmpty &&
+                          _nickController.text.length < 2)
                         _buildValidationText('⚠️ 닉네임은 2자 이상 입력해주세요.'),
-                      
+
                       const SizedBox(height: 60),
 
                       // 회원가입 버튼
                       _buildPrimaryButton(
                         text: _isLoading ? '처리 중...' : '회원가입 완료',
-                        onPressed: (_isEmailValid && _isPasswordValid && _nickController.text.length >= 2 && !_isLoading) 
-                            ? _handleSignUp 
+                        onPressed:
+                            (_isEmailValid &&
+                                _isPasswordValid &&
+                                _nickController.text.length >= 2 &&
+                                !_isLoading)
+                            ? _handleSignUp
                             : () {},
-                        color: (_isEmailValid && _isPasswordValid && _nickController.text.length >= 2) ? Colors.black87 : Colors.black26,
+                        color:
+                            (_isEmailValid &&
+                                _isPasswordValid &&
+                                _nickController.text.length >= 2)
+                            ? Colors.black87
+                            : Colors.black26,
                         textColor: Colors.white,
                       ),
-                      
+
                       const SizedBox(height: 20),
-                      
+
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('이미 계정이 있으신가요? 로그인', 
-                          style: TextStyle(color: Colors.black54, fontSize: 13)),
+                        child: const Text(
+                          '이미 계정이 있으신가요? 로그인',
+                          style: TextStyle(color: Colors.black54, fontSize: 13),
+                        ),
                       ),
                       const SizedBox(height: 50),
                     ],
@@ -371,7 +406,10 @@ class _SignupScreenState extends State<SignupScreen> {
       padding: const EdgeInsets.only(top: 8),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Text(text, style: const TextStyle(color: Colors.redAccent, fontSize: 11)),
+        child: Text(
+          text,
+          style: const TextStyle(color: Colors.redAccent, fontSize: 11),
+        ),
       ),
     );
   }
@@ -435,7 +473,11 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
         child: Text(
           text,
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textColor),
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
         ),
       ),
     );

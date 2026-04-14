@@ -1,11 +1,9 @@
 // screens/login/reset_password_screen.dart
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
-import 'package:vipa/api/api_service.dart';
 import '../../routes/app_routes.dart';
 import '../../controllers/auth_controller.dart';
 import '../../design/snack_bar.dart';
-import 'package:dio/dio.dart';
 // 아래 파일은 기존 프로젝트에서 쓰던 다이얼로그 위젯입니다. 경로를 확인해주세요.
 // import '../../Message_widget/passwordfind_message.dart';
 
