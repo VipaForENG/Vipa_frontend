@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.vipa"
+    namespace = "com.example.vipa" // 구글클라우드 com.example에 넣어야할 것
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

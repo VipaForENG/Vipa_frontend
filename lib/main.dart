@@ -14,7 +14,7 @@ import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 
 // [함수] main
 // 목적: 앱의 실행을 시작하는 진입점(Entry Point)입니다.
-void main() async { 
+void main() async {
   // [로직] Flutter 엔진과 위젯 트리가 바인딩되기 전에 초기화를 보장합니다.
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -22,10 +22,7 @@ void main() async {
   await dotenv.load(fileName: ".env");
 
   // [로직] 불러온 환경 변수 값으로 카카오 SDK를 초기화합니다.
-  KakaoSdk.init(
-    nativeAppKey: dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '',
-  );
-
+  KakaoSdk.init(nativeAppKey: dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '');
   // [로직] runApp은 Flutter 앱을 구동하고 최상위 위젯을 화면에 띄웁니다.
   runApp(const VipaApp());
 }
@@ -53,7 +50,6 @@ class VipaApp extends StatelessWidget {
       child: MaterialApp(
         title: 'vipa', // 앱의 실행 제목
         debugShowCheckedModeBanner: false, // 개발 시 오른쪽 상단 DEBUG 리본을 숨깁니다.
-
         // [테마] 앱 전반의 색상 체계와 Material 3 디자인 적용
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),

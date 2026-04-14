@@ -3,6 +3,7 @@ import 'package:remixicon/remixicon.dart';
 import '../../routes/app_routes.dart';
 import '../../Design/snack_bar.dart';
 import '../../controllers/auth_controller.dart';
+import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,7 +15,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _pwController = TextEditingController();
-  
+
   // 버튼별 로딩 상태 관리
   bool _isNormalLoading = false;
   bool _isGoogleLoading = false;
@@ -56,18 +57,37 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   /// 로그인 결과 처리 공통 로직
-  void _processLoginResult(Map<String, dynamic>? result, {bool isSocial = false}) {
+  void _processLoginResult(
+    Map<String, dynamic>? result, {
+    bool isSocial = false,
+  }) async {
+    // <--- 여기 async 추가
     if (!mounted) return;
 
     if (result != null) {
-      // TODO: 토큰 저장 로직 (FlutterSecureStorage 등)
-      // String token = result['access_token'];
-      
+      // 🟢 [수정됨] 토큰 저장 로직 추가
+      final String? token = result['access_token'];
+      if (token != null) {
+        debugPrint("🔑 [Login] 서버로부터 토큰을 받았습니다. 저장 시도...");
+        await AuthService.saveToken(token); // 👈 여기서 실제로 저장이 일어납니다!
+        debugPrint("✅ [Login] 토큰 저장 완료!");
+      } else {
+        debugPrint("🚨 [Login] 경고: 서버 응답에 토큰이 없습니다.");
+      }
+
+      final bool isTested = result['is_tested'] ?? false;
+
       VipaSnackBar.show(context, '성공적으로 로그인되었습니다!');
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+      if (isTested) {
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      } else {
+        Navigator.pushReplacementNamed(context, AppRoutes.levelTest);
+      }
     } else {
-      // 소셜 로그인은 사용자가 취소해서 null이 반환될 수도 있으므로 에러 메시지를 다르게 처리할 수 있습니다.
-      String errorMsg = isSocial ? '소셜 로그인에 실패했거나 취소되었습니다.' : '이메일 또는 비밀번호가 일치하지 않습니다.';
+      // ... 에러 처리 ...
+      String errorMsg = isSocial
+          ? '소셜 로그인에 실패했거나 취소되었습니다.'
+          : '이메일 또는 비밀번호가 일치하지 않습니다.';
       VipaSnackBar.show(context, errorMsg);
     }
   }
@@ -75,7 +95,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     // 혹시라도 셋 중 하나라도 로딩 중이면 전체 버튼 비활성화를 위해 사용
-    final bool isAnyLoading = _isNormalLoading || _isGoogleLoading || _isKakaoLoading;
+    final bool isAnyLoading =
+        _isNormalLoading || _isGoogleLoading || _isKakaoLoading;
 
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 245, 228, 173),
@@ -99,14 +120,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return const SizedBox(
-                        width: 100, height: 100,
-                        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        width: 100,
+                        height: 100,
+                        child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
                       );
                     },
                     errorBuilder: (context, error, stackTrace) => Container(
-                      width: 100, height: 100,
+                      width: 100,
+                      height: 100,
                       color: const Color(0xFFEDF0F3),
-                      child: const Icon(Icons.broken_image, color: Colors.black26),
+                      child: const Icon(
+                        Icons.broken_image,
+                        color: Colors.black26,
+                      ),
                     ),
                   ),
                 ),
@@ -170,13 +198,21 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.pushNamed(context, AppRoutes.signup),
-                      child: const Text('회원가입', style: TextStyle(color: Colors.black54)),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, AppRoutes.signup),
+                      child: const Text(
+                        '회원가입',
+                        style: TextStyle(color: Colors.black54),
+                      ),
                     ),
                     const Text('|', style: TextStyle(color: Colors.black12)),
                     TextButton(
-                      onPressed: () => Navigator.pushNamed(context, AppRoutes.resetPassword),
-                      child: const Text('비밀번호 찾기', style: TextStyle(color: Colors.black54)),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, AppRoutes.resetPassword),
+                      child: const Text(
+                        '비밀번호 찾기',
+                        style: TextStyle(color: Colors.black54),
+                      ),
                     ),
                   ],
                 ),
@@ -233,7 +269,9 @@ class _LoginScreenState extends State<LoginScreen> {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: hasBorder ? const BorderSide(color: Colors.black87) : BorderSide.none,
+            side: hasBorder
+                ? const BorderSide(color: Colors.black87)
+                : BorderSide.none,
           ),
         ),
         child: Text(
