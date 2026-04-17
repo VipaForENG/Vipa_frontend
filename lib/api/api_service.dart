@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 
 class ApiService {
   // [설정] 현재 사용할 서버 주소를 여기서 하나만 선택하세요.
-  static const String baseUrl = "http://192.168.0.46:8000/api/v1"; // 1. 엄인섭 집 개발 서버 (포트번호 확인!)
+  static const String baseUrl = "http://192.168.0.7:8000/api/v1"; // 1. 엄인섭 집 개발 서버 (포트번호 확인!)
   // static const String baseUrl =
       // "http://10.45.209.240:8000/api/v1"; // 2. 안드로이드 에뮬레이터 테스트용 IP
   // static const String baseUrl = "https://api.vipa.com/api/v1";     // 3. 배포 서버

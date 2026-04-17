@@ -156,7 +156,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // --- 로그인 로직 ---
   Future<void> _handleLogin() async {
     final email = _idController.text.trim();
     final password = _pwController.text.trim();
@@ -166,10 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     setState(() => _isNormalLoading = true);
     final result = await AuthController.login(email: email, password: password);
-    
-    // [수정] 비동기 작업 완료 후 위젯이 여전히 활성 상태인지 확인
     if (!mounted) return; 
-    
     setState(() => _isNormalLoading = false);
     _processLoginResult(result);
   }
@@ -177,10 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleGoogleLogin() async {
     setState(() => _isGoogleLoading = true);
     final result = await AuthController.loginWithGoogle();
-    
-    // [수정] 비동기 작업 완료 후 mounted 체크
     if (!mounted) return;
-
     setState(() => _isGoogleLoading = false);
     _processLoginResult(result, isSocial: true);
   }
@@ -188,42 +181,23 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleKakaoLogin() async {
     setState(() => _isKakaoLoading = true);
     final result = await AuthController.loginWithKakao();
-    
-    // [수정] 비동기 작업 완료 후 mounted 체크
     if (!mounted) return;
-
     setState(() => _isKakaoLoading = false);
     _processLoginResult(result, isSocial: true);
   }
 
-  /// [수정된 메서드] 로그인 결과 처리 및 네비게이션
   void _processLoginResult(Map<String, dynamic>? result, {bool isSocial = false}) async {
-    // 1. 함수 시작 시 mounted 체크
     if (!mounted) return; 
-
     if (result != null) {
       final String? token = result['access_token'];
       if (token != null) await AuthService.saveToken(token);
-      
-      // 2. Token 저장(비동기) 후 다시 한 번 mounted 체크 (Lint 에러 해결 핵심)
       if (!mounted) return;
 
       final bool isTested = result['is_tested'] ?? false;
-      
-      // 성공 피드백 제공
       VipaSnackBar.show(context, '성공적으로 로그인되었습니다!');
-      
-      // 경로 이동: 테스트 완료 여부에 따라 홈 또는 레벨 테스트로 이동
-      Navigator.pushReplacementNamed(
-        context, 
-        isTested ? AppRoutes.home : AppRoutes.levelTest
-      );
+      Navigator.pushReplacementNamed(context, isTested ? AppRoutes.home : AppRoutes.levelTest);
     } else {
-      // 실패 피드백 제공
-      VipaSnackBar.show(
-        context, 
-        isSocial ? '소셜 로그인에 실패했습니다.' : '이메일 또는 비밀번호를 확인해주세요.'
-      );
+      VipaSnackBar.show(context, isSocial ? '소셜 로그인에 실패했습니다.' : '이메일 또는 비밀번호를 확인해주세요.');
     }
   }
 
@@ -231,81 +205,83 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final bool isAnyLoading = _isNormalLoading || _isGoogleLoading || _isKakaoLoading;
     const Color bgColor = Color(0xFFF5E4AD); 
-    const Color waveColor = Color(0xFFFFF9E3); // 연한 크림색 파도
+    const Color waveColor = Color(0xFFFFF9E3);
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      resizeToAvoidBottomInset: false,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: WaveBackground(waveColor: waveColor, waveHeightFactor: _currentWaveHeight),
-          ),
-          SafeArea(
-            child: SingleChildScrollView(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 85),
-                    // 🟢 [복구됨] 로고 이미지 부분
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Image.asset(
-                        'assets/images/LOGO-Photoroom.png', 
-                        width: 95, 
-                        height: 95,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.image, size: 95),
+    return Container(
+      color: bgColor,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        resizeToAvoidBottomInset: false,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: WaveBackground(waveColor: waveColor, waveHeightFactor: _currentWaveHeight),
+            ),
+            SafeArea(
+              child: SingleChildScrollView(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 85),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.asset(
+                          'assets/images/LOGO-Photoroom.png', 
+                          width: 95, 
+                          height: 95,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.image, size: 95),
+                        ),
                       ),
-                    ),
-                    const Text(
-                      'VIPA',
-                      style: TextStyle(color: Color(0xFF8B6B23), fontSize: 45, fontWeight: FontWeight.w900, letterSpacing: -1),
-                    ),
-                    const SizedBox(height: 55),
-                    _buildUnderlineTextField(
-                      controller: _idController, focusNode: _idFocusNode, hintText: '이메일', icon: RemixIcons.mail_fill
-                    ),
-                    const SizedBox(height: 20),
-                    _buildUnderlineTextField(
-                      controller: _pwController, focusNode: _pwFocusNode, hintText: '비밀번호', icon: RemixIcons.lock_password_fill, isObscure: true
-                    ),
-                    const SizedBox(height: 40),
-                    _buildPrimaryButton(
-                      text: _isNormalLoading ? '로그인 중...' : '로그인',
-                      onPressed: isAnyLoading ? () {} : _handleLogin,
-                      color: Colors.black87, textColor: Colors.white
-                    ),
-                    const SizedBox(height: 25),
-                    _buildPrimaryButton(
-                      text: _isGoogleLoading ? '처리 중...' : '구글로 로그인',
-                      onPressed: isAnyLoading ? () {} : _handleGoogleLogin,
-                      color: Colors.white, textColor: Colors.black87, hasBorder: true
-                    ),
-                    const SizedBox(height: 10),
-                    _buildPrimaryButton(
-                      text: _isKakaoLoading ? '처리 중...' : '카카오로 로그인',
-                      onPressed: isAnyLoading ? () {} : _handleKakaoLogin,
-                      color: const Color(0xFFFEE500), textColor: Colors.black87
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TextButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.signup), child: const Text('회원가입', style: TextStyle(color: Colors.black54))),
-                        const Text('|', style: TextStyle(color: Colors.black12)),
-                        TextButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.resetPassword), child: const Text('비밀번호 찾기', style: TextStyle(color: Colors.black54))),
-                      ],
-                    ),
-                    const SizedBox(height: 50),
-                  ],
+                      const Text(
+                        'VIPA',
+                        style: TextStyle(color: Color(0xFF8B6B23), fontSize: 45, fontWeight: FontWeight.w900, letterSpacing: -1),
+                      ),
+                      const SizedBox(height: 55),
+                      _buildUnderlineTextField(
+                        controller: _idController, focusNode: _idFocusNode, hintText: '이메일', icon: RemixIcons.mail_fill
+                      ),
+                      const SizedBox(height: 20),
+                      _buildUnderlineTextField(
+                        controller: _pwController, focusNode: _pwFocusNode, hintText: '비밀번호', icon: RemixIcons.lock_password_fill, isObscure: true
+                      ),
+                      const SizedBox(height: 40),
+                      _buildPrimaryButton(
+                        text: _isNormalLoading ? '로그인 중...' : '로그인',
+                        onPressed: isAnyLoading ? () {} : _handleLogin,
+                        color: Colors.black87, textColor: Colors.white
+                      ),
+                      const SizedBox(height: 25),
+                      _buildPrimaryButton(
+                        text: _isGoogleLoading ? '처리 중...' : '구글로 로그인',
+                        onPressed: isAnyLoading ? () {} : _handleGoogleLogin,
+                        color: Colors.white, textColor: Colors.black87, hasBorder: true
+                      ),
+                      const SizedBox(height: 10),
+                      _buildPrimaryButton(
+                        text: _isKakaoLoading ? '처리 중...' : '카카오로 로그인',
+                        onPressed: isAnyLoading ? () {} : _handleKakaoLogin,
+                        color: const Color(0xFFFEE500), textColor: Colors.black87
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.signup), child: const Text('회원가입', style: TextStyle(color: Colors.black54))),
+                          const Text('|', style: TextStyle(color: Colors.black12)),
+                          TextButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.resetPassword), child: const Text('비밀번호 찾기', style: TextStyle(color: Colors.black54))),
+                        ],
+                      ),
+                      const SizedBox(height: 50),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
