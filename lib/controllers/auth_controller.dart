@@ -2,8 +2,12 @@ import 'package:dio/dio.dart';
 import '../api/api_service.dart';
 import 'package:flutter/foundation.dart'; // debugPrint를 위해 필요합니다.
 import '../services/auth_service.dart';
+import 'package:get_storage/get_storage.dart'; // [추가] 토큰 저장을 위해 추가
 
 class AuthController {
+  // [추가] 토큰 저장을 위한 인스턴스 추가
+  static final _storage = GetStorage();
+
   static Future<bool> signUp({
     required String email,
     required String password,
@@ -41,6 +45,9 @@ class AuthController {
       );
 
       if (response.statusCode == 200) {
+        // [추가] 로그인 성공 시 토큰 저장 로직 추가
+        final token = response.data['access_token'];
+        await _storage.write('access_token', token);
         // 성공 시 {"access_token": "...", "token_type": "bearer"} 반환
         return response.data;
       }
@@ -111,6 +118,9 @@ class AuthController {
       );
 
       if (response.statusCode == 200) {
+        // [추가] 구글 로그인 성공 시 토큰 저장 로직 추가
+        final token = response.data['access_token'];
+        await _storage.write('access_token', token);
         return response
             .data; // {"access_token": "VIPA_JWT...", "token_type": "bearer"} 반환
       }
@@ -135,6 +145,9 @@ class AuthController {
       );
 
       if (response.statusCode == 200) {
+        // [추가] 카카오 로그인 성공 시 토큰 저장 로직 추가
+        final token = response.data['access_token'];
+        await _storage.write('access_token', token);
         return response
             .data; // {"access_token": "VIPA_JWT...", "token_type": "bearer"} 반환
       }
