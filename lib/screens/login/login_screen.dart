@@ -7,7 +7,41 @@ import '../../design/snack_bar.dart';
 import '../../controllers/auth_controller.dart';
 import '../../services/auth_service.dart';
 
-/// [WaveBackground] 단색 파도 애니메이션 위젯
+// ----------------------------------------------------------------             
+// 1. 애니메이션 보조 위젯: _FadeSlideTransition
+// ----------------------------------------------------------------             
+class _FadeSlideTransition extends StatelessWidget {
+  final Widget child;
+  final double delay; // 시작 시점 지연
+
+  const _FadeSlideTransition({required this.child, required this.delay});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      // 시간을 1.2초로 늘려 더 천천히 나타나게 함
+      duration: const Duration(milliseconds: 1250), //<= 여기 숫자를 늘려주면 로그인 버튼 시간 지연됨
+      // 시작 시점을 더 명확하게 분리하기 위해 지연값 적용
+      curve: Interval(delay, 1.0, curve: Curves.easeOutExpo), 
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            // 시작 위치를 40px로 늘려 더 역동적으로 올라오게 설정
+            offset: Offset(0, 40 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+// ----------------------------------------------------------------             
+// 2. 배경 애니메이션: WaveBackground & WavePainter (기존과 동일)
+// ----------------------------------------------------------------             
 class WaveBackground extends StatelessWidget {
   final Color waveColor;
   final double waveHeightFactor;
@@ -22,8 +56,8 @@ class WaveBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.35, end: waveHeightFactor),
-      duration: const Duration(milliseconds: 700),
-      curve: Curves.easeOutCubic,
+      duration: const Duration(milliseconds: 1250), // 배경 변화도 조금 더 천천히
+      curve: Curves.easeInOutCubic,
       builder: (context, factor, child) {
         return _LoopingWave(
           waveColor: waveColor,
@@ -51,7 +85,7 @@ class _LoopingWaveState extends State<_LoopingWave> with SingleTickerProviderSta
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 4),
+      duration: const Duration(seconds: 5), // 파도 속도도 살짝 늦춰서 평온하게 변경
       vsync: this,
     )..repeat();
   }
@@ -96,7 +130,7 @@ class WavePainter extends CustomPainter {
     final Paint paint = Paint()..color = waveColor..style = PaintingStyle.fill;
     final Path path = Path();
     double baseHeight = size.height * (1.0 - heightFactor); 
-    double waveAmplitude = 18.0;
+    double waveAmplitude = 15.0; // 파도 높이를 살짝 낮춰서 정갈하게 수정
 
     path.moveTo(0, baseHeight);
     for (double i = 0; i <= size.width; i++) {
@@ -115,6 +149,9 @@ class WavePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
+// ----------------------------------------------------------------             
+// 3. 메인 화면: LoginScreen (애니메이션 시간차 대폭 수정)
+// ----------------------------------------------------------------             
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -225,54 +262,90 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     children: [
                       const SizedBox(height: 85),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: Image.asset(
-                          'assets/images/LOGO-Photoroom.png', 
-                          width: 95, 
-                          height: 95,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.image, size: 95),
+                      // 1. 로고 (지연 시간 0.0)
+                      _FadeSlideTransition(
+                        delay: 0.0,
+                        child: Column(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Image.asset(
+                                'assets/images/LOGO-Photoroom.png', 
+                                width: 95, height: 95, fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const Icon(Icons.image, size: 95),
+                              ),
+                            ),
+                            const Text(
+                              'VIPA',
+                              style: TextStyle(color: Color(0xFF8B6B23), fontSize: 45, fontWeight: FontWeight.w900, letterSpacing: -1),
+                            ),
+                          ],
                         ),
                       ),
-                      const Text(
-                        'VIPA',
-                        style: TextStyle(color: Color(0xFF8B6B23), fontSize: 45, fontWeight: FontWeight.w900, letterSpacing: -1),
-                      ),
                       const SizedBox(height: 55),
-                      _buildUnderlineTextField(
-                        controller: _idController, focusNode: _idFocusNode, hintText: '이메일', icon: RemixIcons.mail_fill
+                      
+                      // 2. 이메일 (지연 시간 0.2)
+                      _FadeSlideTransition(
+                        delay: 0.2,
+                        child: _buildUnderlineTextField(
+                          controller: _idController, focusNode: _idFocusNode, hintText: '이메일', icon: RemixIcons.mail_fill
+                        ),
                       ),
                       const SizedBox(height: 20),
-                      _buildUnderlineTextField(
-                        controller: _pwController, focusNode: _pwFocusNode, hintText: '비밀번호', icon: RemixIcons.lock_password_fill, isObscure: true
+                      
+                      // 3. 비밀번호 (지연 시간 0.3)
+                      _FadeSlideTransition(
+                        delay: 0.3,
+                        child: _buildUnderlineTextField(
+                          controller: _pwController, focusNode: _pwFocusNode, hintText: '비밀번호', icon: RemixIcons.lock_password_fill, isObscure: true
+                        ),
                       ),
                       const SizedBox(height: 40),
-                      _buildPrimaryButton(
-                        text: _isNormalLoading ? '로그인 중...' : '로그인',
-                        onPressed: isAnyLoading ? () {} : _handleLogin,
-                        color: Colors.black87, textColor: Colors.white
+                      
+                      // 4. 일반 로그인 (지연 시간 0.5 - 여기서부터 간격을 더 둠)
+                      _FadeSlideTransition(
+                        delay: 0.5,
+                        child: _buildPrimaryButton(
+                          text: _isNormalLoading ? '로그인 중...' : '로그인',
+                          onPressed: isAnyLoading ? () {} : _handleLogin,
+                          color: Colors.black87, textColor: Colors.white
+                        ),
                       ),
                       const SizedBox(height: 25),
-                      _buildPrimaryButton(
-                        text: _isGoogleLoading ? '처리 중...' : '구글로 로그인',
-                        onPressed: isAnyLoading ? () {} : _handleGoogleLogin,
-                        color: Colors.white, textColor: Colors.black87, hasBorder: true
+                      
+                      // 5. 구글 로그인 (지연 시간 0.6)
+                      _FadeSlideTransition(
+                        delay: 0.6,
+                        child: _buildPrimaryButton(
+                          text: _isGoogleLoading ? '처리 중...' : '구글로 로그인',
+                          onPressed: isAnyLoading ? () {} : _handleGoogleLogin,
+                          color: Colors.white, textColor: Colors.black87, hasBorder: true
+                        ),
                       ),
                       const SizedBox(height: 10),
-                      _buildPrimaryButton(
-                        text: _isKakaoLoading ? '처리 중...' : '카카오로 로그인',
-                        onPressed: isAnyLoading ? () {} : _handleKakaoLogin,
-                        color: const Color(0xFFFEE500), textColor: Colors.black87
+                      
+                      // 6. 카카오 로그인 (지연 시간 0.7)
+                      _FadeSlideTransition(
+                        delay: 0.7,
+                        child: _buildPrimaryButton(
+                          text: _isKakaoLoading ? '처리 중...' : '카카오로 로그인',
+                          onPressed: isAnyLoading ? () {} : _handleKakaoLogin,
+                          color: const Color(0xFFFEE500), textColor: Colors.black87
+                        ),
                       ),
                       const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          TextButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.signup), child: const Text('회원가입', style: TextStyle(color: Colors.black54))),
-                          const Text('|', style: TextStyle(color: Colors.black12)),
-                          TextButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.resetPassword), child: const Text('비밀번호 찾기', style: TextStyle(color: Colors.black54))),
-                        ],
+                      
+                      // 7. 하단 링크 (지연 시간 0.9)
+                      _FadeSlideTransition(
+                        delay: 0.9,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.signup), child: const Text('회원가입', style: TextStyle(color: Colors.black54))),
+                            const Text('|', style: TextStyle(color: Colors.black12)),
+                            TextButton(onPressed: () => Navigator.pushNamed(context, AppRoutes.resetPassword), child: const Text('비밀번호 찾기', style: TextStyle(color: Colors.black54))),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 50),
                     ],

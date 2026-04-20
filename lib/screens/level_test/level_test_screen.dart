@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../routes/app_routes.dart';
 import '../../Design/snack_bar.dart';
-import '../../controllers/auth_controller.dart'; // AuthController 임포트 확인
-
+import '../../controllers/level_test_controller.dart';
 class LevelTestScreen extends StatefulWidget {
   const LevelTestScreen({super.key});
 
@@ -25,12 +24,12 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
 
   /// 1. 문제 불러오기
   Future<void> _fetchQuestions() async {
-    final questions = await AuthController.getLevelTestQuestions();
+    final questions = await LevelTestController.getLevelTestQuestions();
 
     if (questions != null) {
       setState(() {
         //_questions = questions;
-        _questions = questions.take(2).toList();
+        _questions = questions.take(20).toList();
         _isLoading = false;
       });
     } else {
@@ -43,7 +42,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   /// 2. 결과 제출하기
   Future<void> _submitResults() async {
     setState(() => _isLoading = true);
-    final bool success = await AuthController.submitLevelTest(_userAnswers);
+    final bool success = await LevelTestController.submitLevelTest(_userAnswers);
 
     if (success) {
       if (!mounted) return;
