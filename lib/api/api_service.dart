@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_storage/get_storage.dart'; // 패키지 설치 필요: flutter pub add get_storage
 
 class ApiService {
-  static const String baseUrl = "http://192.168.0.46:8000/api/v1";
+  static const String baseUrl = "http://192.168.0.61:8000/api/v1";
   static final Dio dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
