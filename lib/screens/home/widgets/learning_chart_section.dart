@@ -1,63 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../../models/home_summary_model.dart';
 
 class LearningChartSection extends StatelessWidget {
-  const LearningChartSection({super.key});
+  final List<WeeklyData> weeklyData;
+
+  const LearningChartSection({super.key, required this.weeklyData});
 
   @override
   Widget build(BuildContext context) {
+    // 데이터 중 최대값 계산
+    double maxEnergy = weeklyData.map((e) => e.totalEnergy.toDouble()).fold(20.0, (a, b) => a > b ? a : b);
+    double dynamicMaxY = maxEnergy * 1.2;
+
     return Padding(
-      // Card_Container 내부 여백만 줍니다. 테두리와 배경색은 지웠습니다.
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '학습정보',
-            style: TextStyle(
-              fontSize: 16, 
-              fontWeight: FontWeight.bold, 
-              color: Color(0xFF2D3436)
-            ),
-          ),
+          const Text('학습정보', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3436))),
           const SizedBox(height: 20),
           Row(
             children: [
-              // 1. 차트 영역: 조금 더 넓고 시원하게 배치
               Expanded(
                 flex: 2,
                 child: SizedBox(
-                  height: 140, // 높이를 살짝 키웠습니다.
+                  height: 150,
                   child: Stack(
                     children: [
-                      BarChart(_barChartData()),
-                      LineChart(_lineChartData()),
+                      BarChart(_barChartData(dynamicMaxY)),
+                      LineChart(_lineChartData(dynamicMaxY)),
                     ],
                   ),
                 ),
               ),
               const SizedBox(width: 20),
-              // 2. 성취율 영역: 가독성 강조
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const Text(
-                    '학습 성취율',
-                    style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    '90%',
-                    style: TextStyle(
-                      fontSize: 32, // 숫자를 더 크게!
-                      fontWeight: FontWeight.bold, 
-                      color: Colors.blueAccent,
-                      letterSpacing: -1,
-                    ),
-                  ),
-                ],
-              ),
+              _buildTotalEnergySummary(),
             ],
           ),
         ],
@@ -65,72 +43,74 @@ class LearningChartSection extends StatelessWidget {
     );
   }
 
-  BarChartData _barChartData() {
+  BarChartData _barChartData(double maxY) {
     return BarChartData(
       alignment: BarChartAlignment.spaceAround,
-      maxY: 10,
+      maxY: maxY,
       barTouchData: BarTouchData(enabled: false),
       titlesData: const FlTitlesData(show: false),
       gridData: const FlGridData(show: false),
       borderData: FlBorderData(show: false),
-      barGroups: [
-        _makeBar(0, 7),
-        _makeBar(1, 4),
-        _makeBar(2, 9),
-        _makeBar(3, 6),
+      barGroups: weeklyData.asMap().entries.map((entry) {
+        return BarChartGroupData(
+          x: entry.key,
+          barRods: [
+            BarChartRodData(
+              toY: entry.value.totalEnergy.toDouble(),
+              width: 16,
+              borderRadius: BorderRadius.circular(8),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFE0EAFC), Color(0xFFB3CDE0)],
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+              ),
+            ),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  LineChartData _lineChartData(double maxY) {
+    return LineChartData(
+      lineTouchData: const LineTouchData(enabled: false),
+      gridData: const FlGridData(show: false),
+      titlesData: const FlTitlesData(show: false),
+      borderData: FlBorderData(show: false),
+      minX: 0,
+      maxX: 6, // [수정] 데이터 인덱스가 0~6이므로 maxX를 6으로 고정하여 꺾임 방지
+      minY: 0,
+      maxY: maxY,
+      lineBarsData: [
+        LineChartBarData(
+          // [수정] 0.5를 더하지 않고 인덱스 그대로 사용 (가운데 정렬이 필요하면 BarChart와 동일하게)
+          spots: weeklyData.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.totalEnergy.toDouble())).toList(),
+          isCurved: true,
+          color: Colors.blueAccent,
+          barWidth: 4,
+          isStrokeCapRound: true,
+          dotData: const FlDotData(show: true),
+          belowBarData: BarAreaData(
+            show: true,
+            gradient: LinearGradient(
+              colors: [Colors.blueAccent.withValues(alpha: 0.2), Colors.transparent],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  LineChartData _lineChartData() {
-  return LineChartData(
-    lineTouchData: const LineTouchData(enabled: false),
-    gridData: const FlGridData(show: false),
-    titlesData: const FlTitlesData(show: false),
-    borderData: FlBorderData(show: false),
-    minY: 0,
-    maxY: 10,
-    lineBarsData: [
-      LineChartBarData(
-        spots: const [
-          FlSpot(0.5, 5),
-          FlSpot(1.5, 8),
-          FlSpot(2.5, 4),
-          FlSpot(3.5, 7),
-        ],
-        isCurved: true, // 곡선 활성화
-        // curveSize 대신 아래의 속성들을 사용하여 부드러움을 조절합니다.
-        preventCurveOverShooting: true, 
-        color: Colors.orangeAccent, 
-        barWidth: 3, 
-        isStrokeCapRound: true,
-        dotData: FlDotData(
-          show: true,
-          getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-            radius: 4,
-            color: Colors.white,
-            strokeWidth: 2,
-            strokeColor: Colors.orangeAccent,
-          ),
-        ),
-        belowBarData: BarAreaData(
-          show: true,
-          color: Colors.orangeAccent.withValues(alpha: 0.1), 
-        ),
-      ),
-    ],
-  );
-}
-
-  BarChartGroupData _makeBar(int x, double y) {
-    return BarChartGroupData(
-      x: x,
-      barRods: [
-        BarChartRodData(
-          toY: y,
-          color: const Color(0xFFF1F2F6), // 막대 색상을 연한 회색으로 변경 (선이 돋보이게)
-          width: 18,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+  Widget _buildTotalEnergySummary() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        const Text('총 학습 에너지', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
+        Text(
+          '${weeklyData.isNotEmpty ? weeklyData.last.totalEnergy : 0}',
+          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.blueAccent, letterSpacing: -1),
         ),
       ],
     );

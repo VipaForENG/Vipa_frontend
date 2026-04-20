@@ -13,6 +13,7 @@ import 'screens/conversation/conversation_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // [임포트] 카카오 소셜 로그인을 사용하기 위한 SDK 패키지입니다.
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
+<<<<<<< HEAD
 
 /// [함수] main
 /// 앱의 실행이 시작되는 가장 첫 번째 지점입니다.
@@ -20,6 +21,14 @@ import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 void main() async {
   // [초기화 보장] Flutter 엔진과 위젯 트리가 완전히 준비될 때까지 기다립니다.
   // 비동기 데이터를 다루기 전 반드시 실행해야 하는 필수 코드입니다.
+=======
+import 'package:get_storage/get_storage.dart';
+// [함수] main
+// 목적: 앱의 실행을 시작하는 진입점(Entry Point)입니다.
+void main() async {
+  
+  // [로직] Flutter 엔진과 위젯 트리가 바인딩되기 전에 초기화를 보장합니다.
+>>>>>>> 7c6ca13d0a49054d8fca4360d7ff7c834d3099b7
   WidgetsFlutterBinding.ensureInitialized();
 
   // [환경 변수 로드] 프로젝트 루트에 있는 .env 파일을 읽어와서 앱 내에서 쓸 준비를 합니다.
@@ -29,8 +38,13 @@ void main() async {
   // [카카오 SDK 초기화] .env 파일에서 가져온 'KAKAO_NATIVE_APP_KEY'를 사용하여
   // 카카오 로그인 기능을 사용할 수 있도록 초기화합니다. 만약 키가 없다면 빈 문자열을 전달합니다.
   KakaoSdk.init(nativeAppKey: dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '');
+<<<<<<< HEAD
   
   // [앱 실행] 최상위 위젯인 VipaApp을 실행하여 화면을 띄웁니다.
+=======
+  // [로직] runApp은 Flutter 앱을 구동하고 최상위 위젯을 화면에 띄웁니다.
+  await GetStorage.init();
+>>>>>>> 7c6ca13d0a49054d8fca4360d7ff7c834d3099b7
   runApp(const VipaApp());
 }
 
@@ -40,6 +54,13 @@ class VipaApp extends StatelessWidget {
   // 생성자: 위젯을 고유하게 식별하기 위한 Key를 부모 클래스에 전달합니다.
   const VipaApp({super.key});
 
+<<<<<<< HEAD
+=======
+  // [함수] build
+  // 목적: 앱의 전체 구조인 MaterialApp을 설계합니
+  
+  // 인자: context - 위젯 트리의 위치 정보
+>>>>>>> 7c6ca13d0a49054d8fca4360d7ff7c834d3099b7
   @override
   Widget build(BuildContext context) {
     // [위젯] MultiProvider: 여러 개의 상태 관리 객체(Provider)를 앱 전체에 주입합니다.
