@@ -1,37 +1,36 @@
-import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:vipa/api/api_service.dart';
 
-class ApiService {
-  // 서버 설정
-  static const String baseUrl = "http://192.168.0.61:8000/api/v1";
-  static final Dio dio = Dio(
-    BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-      contentType: 'application/json',
-    ),
-  );
+class AiController extends ChangeNotifier {
+  String _recognizedText = "AI가 말하는 내용이 실시간 번역됩니다.";
+  String _aiFeedback = "";
+  int? _currentSessionId;
+  bool _isLoading = false;
 
-  // 🔴 여기가 핵심입니다. 이 부분이 정의되어 있어야 합니다!
-  static Future<Map<String, dynamic>> talkToAi({
-    required String userMessage,
-    int? sessionId,
-  }) async {
+  String get recognizedText => _recognizedText;
+  String get aiFeedback => _aiFeedback;
+  bool get isLoading => _isLoading;
+
+  Future<void> sendToAi(String userMessage) async {
+    _isLoading = true;
+    notifyListeners();
+
     try {
-      final response = await dio.post(
-        "/talk", // 백엔드 경로 확인 (필요시 /chat/talk 로 변경)
-        data: {"user_message": userMessage, "session_id": sessionId},
+      final response = await ApiService.talkToAi(
+        userMessage: userMessage,
+        sessionId: _currentSessionId,
       );
 
-      if (response.statusCode == 200) {
-        return response.data as Map<String, dynamic>;
-      } else {
-        throw Exception("서버 응답 오류: ${response.statusCode}");
-      }
+      _currentSessionId = response['session_id'];
+      _recognizedText =
+          "${response['en_content']}\n\n[번역] ${response['ko_content']}";
+      _aiFeedback = response['feedback'] ?? "";
     } catch (e) {
-      debugPrint("ApiService Error: $e");
-      rethrow;
+      _recognizedText = "통신 중 오류가 발생했습니다.";
+      debugPrint("Controller Error: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

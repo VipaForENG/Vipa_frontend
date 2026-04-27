@@ -141,7 +141,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
             Expanded(
               child: ListView.separated(
                 itemCount: options.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   String option = options[index].toString();
                   bool isSelected = _selectedAnswer == option;
