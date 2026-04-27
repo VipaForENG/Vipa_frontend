@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 class ApiService {
-  static const String baseUrl = "http://192.168.0.77:8000/api/v1";
+  static const String baseUrl = "http://192.168.0.61:8000/api/v1";
 
   static final Dio dio =
       Dio(
