@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:get_storage/get_storage.dart'; // 패키지 설치 필요: flutter pub add get_storage
+
 
 class ApiService {
   // [설정] 현재 사용할 서버 주소를 여기서 하나만 선택하세요.
