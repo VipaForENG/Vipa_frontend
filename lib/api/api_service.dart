@@ -13,8 +13,8 @@ class ApiService {
       Dio(
           BaseOptions(
             baseUrl: baseUrl,
-            connectTimeout: const Duration(seconds: 30),
-            receiveTimeout: const Duration(seconds: 30),
+            connectTimeout: const Duration(seconds: 60),
+            receiveTimeout: const Duration(seconds: 60),
             contentType: 'application/json',
 
             validateStatus: (status) => status! < 500,

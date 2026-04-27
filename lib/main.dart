@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 // [임포트] 우리가 정의한 화면 이동 경로와 전환 애니메이션 설정 파일입니다.
 import 'routes/app_routes.dart'; 
-
+import 'package:get/get.dart';
 // [임포트] 문법 학습 관련 데이터와 상태를 관리하는 프로바이더입니다.
 import 'screens/grammar/grammar_provider.dart';
 // [임포트] 회화 연습 관련 데이터와 상태를 관리하는 프로바이더입니다.
@@ -14,10 +14,13 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 // [임포트] 카카오 소셜 로그인을 사용하기 위한 SDK 패키지입니다.
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 
+import 'package:get_storage/get_storage.dart'; // [추가] 간단한 로컬 저장소 패키지입니다. 토큰 저장 등에 사용됩니다.
+
 /// [함수] main
 /// 앱의 실행이 시작되는 가장 첫 번째 지점입니다.
 /// 비동기 작업(await)이 포함되므로 async 키워드가 붙습니다.
 void main() async {
+  await GetStorage.init(); // 👈 이 줄이 반드시 있어야 합니다!
   // [초기화 보장] Flutter 엔진과 위젯 트리가 완전히 준비될 때까지 기다립니다.
   // 비동기 데이터를 다루기 전 반드시 실행해야 하는 필수 코드입니다.
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,10 +55,9 @@ class VipaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ConversationProvider()),
       ],
       // [위젯] MaterialApp: 구글의 Material 디자인을 기반으로 앱의 전반적인 설정을 담당합니다.
-      child: MaterialApp(
+      child: GetMaterialApp(
         title: 'vipa', // 앱의 시스템상 제목 (최근 앱 목록 등에 표시)
         debugShowCheckedModeBanner: false, // 화면 오른쪽 상단의 'DEBUG' 마크를 제거합니다.
-        
         // [테마 설정] 앱의 전체적인 색상, 폰트, 스타일을 정의합니다.
         theme: ThemeData(
           // 파란색 계열을 기준으로 앱의 전체 색상 조합을 자동으로 생성합니다.
@@ -69,7 +71,7 @@ class VipaApp extends StatelessWidget {
         initialRoute: AppRoutes.login,
 
         // [경로 설정 2] 화면 이동(Routing) 시 적용될 규칙을 설정합니다.
-        // 단순히 화면을 바꾸는 대신, 우리가 app_routes.dart에서 만든 
+        // 단순히 화면을 바꾸는 대신, 우리가 app_routes.dart에서 만든
         // 페이드(Fade) 애니메이션을 사용하여 화이트 스크린 깜빡임을 방지합니다.
         onGenerateRoute: AppRoutes.onGenerateRoute,
       ),

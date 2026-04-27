@@ -100,15 +100,17 @@ class _HomeContent extends StatelessWidget {
                 nickname: data.nickname,
                 tier: data.tier,
                 topPercent: data.topPercent,
+                studyAchievementRate: data.studyAchievementRate,
               ),
             ),
             cardContainer(
               child: LearningChartSection(weeklyData: data.weeklyData),
             ),
             cardContainer(
-              height: 120,
+              height: 155,
               child: AttendanceSection(
                 attendanceList: controller.summary.value!.attendance,
+                streakCount: controller.summary.value!.continuousAttendanceCount,
               ),
             ),
             const Padding(

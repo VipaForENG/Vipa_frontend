@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import '../api/api_service.dart';
 import 'package:flutter/foundation.dart'; // debugPrint를 위해 필요합니다.
 import '../services/auth_service.dart';
-
+import '../models/level_test_model.dart';
 
 class LevelTestController {
   /// 1. 레벨 테스트 문제 가져오기
@@ -20,53 +20,34 @@ class LevelTestController {
     }
   }
 
-  /// 2. 레벨 테스트 결과 제출 및 평가
-  static Future<bool> submitLevelTest(List<String> answers) async {
+ /// 2. 레벨 테스트 결과 제출 및 평가 (수정됨)
+  static Future<LevelTestResult?> submitLevelTest(List<String> answers) async {
     try {
-      // 1. 저장된 토큰 가져오기
       final String? token = await AuthService.getToken();
+      if (token == null || token.isEmpty) return null;
 
-      // 토큰이 없으면 로그인이 안 된 상태이거나 저장이 안 된 것임
-      if (token == null || token.isEmpty) {
-        debugPrint("🚨 [AuthController] 토큰이 없습니다! 다시 로그인하세요.");
-        return false;
-      }
-
-      debugPrint("🚀 [AuthController] 토큰을 가지고 제출 시도 중...");
-
-      // 2. POST 요청 전송
       final response = await ApiService.dio.post(
         "/level-test/evaluate",
         data: {"user_answers": answers},
         options: Options(
-          // ⭐ 헤더 설정을 여기에 직접, 명확하게 넣습니다.
           headers: {
             "Authorization": "Bearer $token",
             "Content-Type": "application/json",
           },
-          // 401 에러가 나도 DioException을 던지지 않도록 설정 (로그 확인용)
           validateStatus: (status) => status! < 500,
         ),
       );
 
-      debugPrint("✅ [AuthController] 서버 응답 코드: ${response.statusCode}");
-
       if (response.statusCode == 200) {
-        return true;
-      } else if (response.statusCode == 401) {
-        debugPrint("❌ [AuthController] 인증 실패(401): 토큰이 만료되었거나 잘못되었습니다.");
-        return false;
-      }
-
-      return false;
-    } on DioException catch (e) {
-      debugPrint(
-        "❌ [AuthController] Dio 에러: ${e.response?.statusCode} - ${e.message}",
-      );
-      return false;
+        // 🔥 성공 시 서버 데이터를 모델로 변환하여 반환
+        debugPrint("✅ [LevelTest] 평가 완료 데이터: ${response.data}");
+        return LevelTestResult.fromJson(response.data);
+      } 
+      
+      return null;
     } catch (e) {
-      debugPrint("❌ [AuthController] 알 수 없는 에러: $e");
-      return false;
+      debugPrint("❌ [LevelTest] 제출 에러: $e");
+      return null;
     }
   }
 }
