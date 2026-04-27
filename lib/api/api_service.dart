@@ -1,26 +1,20 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-
 class ApiService {
-  // [설정] 현재 사용할 서버 주소를 여기서 하나만 선택하세요.
-  static const String baseUrl = "http://192.168.0.77:8000/api/v1"; // 1. 엄인섭 집 개발 서버 (포트번호 확인!)
-  // static const String baseUrl =
-      // "http://10.45.209.240:8000/api/v1"; // 2. 안드로이드 에뮬레이터 테스트용 IP
-  // static const String baseUrl = "https://api.vipa.com/api/v1";     // 3. 배포 서버
-  //static const String baseUrl = "http://192.168.45.77:8000/api/v1";
+  static const String baseUrl = "http://192.168.0.77:8000/api/v1";
+
   static final Dio dio =
       Dio(
           BaseOptions(
             baseUrl: baseUrl,
-            connectTimeout: const Duration(seconds: 60),
-            receiveTimeout: const Duration(seconds: 60),
+            connectTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(seconds: 30),
             contentType: 'application/json',
-
-            validateStatus: (status) => status! < 500,
+            // validateStatus는 함수형태로 정확하게 작성해야 합니다.
+            validateStatus: (status) => status != null && status < 500,
           ),
         )
-        // [중요] 개발 중에는 터미널에 통신 로그가 찍혀야 디버깅이 됩니다.
         ..interceptors.add(
           LogInterceptor(
             requestBody: true,
@@ -28,4 +22,25 @@ class ApiService {
             logPrint: (obj) => debugPrint("🌐 [DIO LOG] $obj"),
           ),
         );
+
+  static Future<Map<String, dynamic>> talkToAi({
+    required String userMessage,
+    int? sessionId,
+  }) async {
+    try {
+      final response = await dio.post(
+        "/talk",
+        data: {"user_message": userMessage, "session_id": sessionId},
+      );
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception("서버 응답 오류: ${response.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("ApiService Error: $e");
+      rethrow;
+    }
+  }
 }
