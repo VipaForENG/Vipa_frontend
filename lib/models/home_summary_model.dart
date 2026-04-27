@@ -3,7 +3,9 @@ class HomeSummary {
   final String tier;
   final double topPercent;
   final List<WeeklyData> weeklyData;
-  final List<String> attendance; // [수정] bool -> String 리스트로 변경
+  final List<String> attendance;
+  final int continuousAttendanceCount;
+  final int studyAchievementRate; // 목표 대비 달성률
 
   HomeSummary({
     required this.nickname,
@@ -11,18 +13,21 @@ class HomeSummary {
     required this.topPercent,
     required this.weeklyData,
     required this.attendance,
+    required this.continuousAttendanceCount,
+    required this.studyAchievementRate,
   });
 
   factory HomeSummary.fromJson(Map<String, dynamic> json) {
     return HomeSummary(
-      nickname: json['nickname'],
-      tier: json['tier'],
-      topPercent: (json['top_percent'] as num).toDouble(),
-      weeklyData: (json['weekly_data'] as List)
-          .map((i) => WeeklyData.fromJson(i))
-          .toList(),
-      // [수정] 백엔드에서 주는 "attendance" 키를 사용하고 String 리스트로 파싱
+      nickname: json['nickname'] ?? "사용자",
+      tier: json['tier'] ?? "BRONZE",
+      topPercent: (json['top_percent'] ?? 0).toDouble(),
+      weeklyData: (json['weekly_data'] as List?)
+              ?.map((i) => WeeklyData.fromJson(i))
+              .toList() ?? [],
       attendance: List<String>.from(json['attendance'] ?? []),
+      continuousAttendanceCount: json['continuous_attendance_count'] ?? 0, // 🔥 매핑
+      studyAchievementRate: json['study_achievement_rate'] ?? 0,
     );
   }
 }
@@ -42,10 +47,11 @@ class WeeklyData {
 
   factory WeeklyData.fromJson(Map<String, dynamic> json) {
     return WeeklyData(
-      date: json['date'],
-      convEnergy: json['conv_energy'],
-      vocabEnergy: json['vocab_energy'],
-      totalEnergy: json['total_energy'],
+      date: json['date'] ?? "",
+      // 4. [중요] 각 에너지가 null일 때 0으로 치환하여 int 타입 보장
+      convEnergy: (json['conv_energy'] ?? 0) as int,
+      vocabEnergy: (json['vocab_energy'] ?? 0) as int,
+      totalEnergy: (json['total_energy'] ?? 0) as int,
     );
   }
 }

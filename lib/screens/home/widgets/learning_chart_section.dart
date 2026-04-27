@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart'; // 날짜 포맷팅을 위해 추가 (pubspec.yaml 확인)
 import '../../../models/home_summary_model.dart';
 
 class LearningChartSection extends StatelessWidget {
@@ -9,9 +10,9 @@ class LearningChartSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 데이터 중 최대값 계산
+    // 데이터 중 최대값 계산 (최소 20으로 설정하여 0일 때도 차트 높이 유지)
     double maxEnergy = weeklyData.map((e) => e.totalEnergy.toDouble()).fold(20.0, (a, b) => a > b ? a : b);
-    double dynamicMaxY = maxEnergy * 1.2;
+    double dynamicMaxY = maxEnergy * 1.3; // 상단 여유 공간
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -23,18 +24,22 @@ class LearningChartSection extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                flex: 2,
+                flex: 3,
                 child: SizedBox(
-                  height: 150,
+                  height: 180, // 라벨 공간을 위해 높이 살짝 상향
                   child: Stack(
                     children: [
                       BarChart(_barChartData(dynamicMaxY)),
-                      LineChart(_lineChartData(dynamicMaxY)),
+                      // 라인 차트는 바 차트의 중앙에 위치하도록 정렬 패딩 확인 필요
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 22), // 하단 타이틀 높이만큼 띄움
+                        child: LineChart(_lineChartData(dynamicMaxY)),
+                      ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 15),
               _buildTotalEnergySummary(),
             ],
           ),
@@ -48,19 +53,45 @@ class LearningChartSection extends StatelessWidget {
       alignment: BarChartAlignment.spaceAround,
       maxY: maxY,
       barTouchData: BarTouchData(enabled: false),
-      titlesData: const FlTitlesData(show: false),
       gridData: const FlGridData(show: false),
       borderData: FlBorderData(show: false),
+      titlesData: FlTitlesData(
+        show: true,
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            getTitlesWidget: (value, meta) {
+              int index = value.toInt();
+              if (index < 0 || index >= weeklyData.length) return const SizedBox();
+              // "2026-04-27" -> "27" 또는 요일로 변환
+              String dateStr = weeklyData[index].date.split('-').last;
+              return Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(dateStr, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              );
+            },
+          ),
+        ),
+      ),
       barGroups: weeklyData.asMap().entries.map((entry) {
         return BarChartGroupData(
           x: entry.key,
           barRods: [
             BarChartRodData(
               toY: entry.value.totalEnergy.toDouble(),
-              width: 16,
-              borderRadius: BorderRadius.circular(8),
+              width: 14,
+              borderRadius: BorderRadius.circular(4),
+              // 🔥 배경 막대 추가: 데이터가 0일 때도 슬롯이 보이게 함
+              backDrawRodData: BackgroundBarChartRodData(
+                show: true,
+                toY: maxY * 0.8,
+                color: Colors.grey.withValues(alpha: 0.05),
+              ),
               gradient: const LinearGradient(
-                colors: [Color(0xFFE0EAFC), Color(0xFFB3CDE0)],
+                colors: [Color(0xFFE0EAFC), Color(0xFF4A90E2)],
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
               ),
@@ -77,41 +108,42 @@ class LearningChartSection extends StatelessWidget {
       gridData: const FlGridData(show: false),
       titlesData: const FlTitlesData(show: false),
       borderData: FlBorderData(show: false),
-      minX: 0,
-      maxX: 6, // [수정] 데이터 인덱스가 0~6이므로 maxX를 6으로 고정하여 꺾임 방지
+      minX: -0.2, // 바 차트와 중앙 정렬을 맞추기 위한 미세 조정
+      maxX: 6.2,
       minY: 0,
       maxY: maxY,
       lineBarsData: [
         LineChartBarData(
-          // [수정] 0.5를 더하지 않고 인덱스 그대로 사용 (가운데 정렬이 필요하면 BarChart와 동일하게)
           spots: weeklyData.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.totalEnergy.toDouble())).toList(),
           isCurved: true,
-          color: Colors.blueAccent,
-          barWidth: 4,
+          color: Colors.blueAccent.withValues(alpha: 0.8),
+          barWidth: 3,
           isStrokeCapRound: true,
           dotData: const FlDotData(show: true),
-          belowBarData: BarAreaData(
-            show: true,
-            gradient: LinearGradient(
-              colors: [Colors.blueAccent.withValues(alpha: 0.2), Colors.transparent],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
+          belowBarData: BarAreaData(show: false),
         ),
       ],
     );
   }
 
   Widget _buildTotalEnergySummary() {
+    int todayEnergy = weeklyData.isNotEmpty ? weeklyData.last.totalEnergy : 0;
     return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        const Text('총 학습 에너지', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
+        const Text('오늘 획득 에너지', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
         Text(
-          '${weeklyData.isNotEmpty ? weeklyData.last.totalEnergy : 0}',
-          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.blueAccent, letterSpacing: -1),
+          '$todayEnergy',
+          style: TextStyle(
+            fontSize: 28, 
+            fontWeight: FontWeight.bold, 
+            color: todayEnergy > 0 ? Colors.blueAccent : Colors.grey[400],
+            letterSpacing: -1
+          ),
         ),
+        if (todayEnergy == 0)
+          const Text('학습이 필요해요! 🏃', style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold)),
       ],
     );
   }

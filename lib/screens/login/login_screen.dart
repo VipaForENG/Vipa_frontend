@@ -232,7 +232,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final bool isTested = result['is_tested'] ?? false;
       VipaSnackBar.show(context, '성공적으로 로그인되었습니다!');
-      Navigator.pushReplacementNamed(context, isTested ? AppRoutes.home : AppRoutes.levelTest);
+        Navigator.pushNamedAndRemoveUntil(
+        context, 
+        isTested ? AppRoutes.home : AppRoutes.levelTest, 
+        (route) => false, // 이 조건이 false면 기존의 모든 페이지를 스택에서 제거합니다.
+      );
     } else {
       VipaSnackBar.show(context, isSocial ? '소셜 로그인에 실패했습니다.' : '이메일 또는 비밀번호를 확인해주세요.');
     }
