@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 // [임포트] 우리가 정의한 화면 이동 경로와 전환 애니메이션 설정 파일입니다.
 import 'routes/app_routes.dart'; 
-
+import 'package:get/get.dart';
 // [임포트] 문법 학습 관련 데이터와 상태를 관리하는 프로바이더입니다.
 import 'screens/grammar/grammar_provider.dart';
 // [임포트] 회화 연습 관련 데이터와 상태를 관리하는 프로바이더입니다.
@@ -54,7 +54,7 @@ class VipaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ConversationProvider()),
       ],
       // [위젯] MaterialApp: 구글의 Material 디자인을 기반으로 앱의 전반적인 설정을 담당합니다.
-      child: MaterialApp(
+      child: GetMaterialApp(
         title: 'vipa', // 앱의 시스템상 제목 (최근 앱 목록 등에 표시)
         debugShowCheckedModeBanner: false, // 화면 오른쪽 상단의 'DEBUG' 마크를 제거합니다.
         

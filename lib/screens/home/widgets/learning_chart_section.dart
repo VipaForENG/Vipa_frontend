@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart'; // 날짜 포맷팅을 위해 추가 (pubspec.yaml 확인)
 import '../../../models/home_summary_model.dart';
 
 class LearningChartSection extends StatelessWidget {

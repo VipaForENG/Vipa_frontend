@@ -12,6 +12,8 @@ import '../screens/changepw/change_password_screen.dart';
 import '../screens/mypage/subscription_screen.dart';
 import '../screens/mypage/subscription_history_screen.dart';
 import '../screens/level_test/level_test_screen.dart';
+import '../screens/level_test/level_test_result_screen.dart';
+import '../models/level_test_model.dart';
 
 /// [클래스] AppRoutes
 /// 앱 내의 모든 경로 설정 및 전환 애니메이션을 담당하는 클래스입니다.
@@ -29,7 +31,8 @@ class AppRoutes {
   static const String subscription = '/subscription';
   static const String subscriptionHistory = '/subscription-history';
   static const String levelTest = '/level-test';
-
+  static const String levelTestResult = '/level-test-result';
+  
   /// [함수] onGenerateRoute
   /// 설정된 이름(name)에 따라 해당되는 페이지 위젯을 생성하고 애니메이션을 입힙니다.
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -62,7 +65,15 @@ class AppRoutes {
         return _buildFadeRoute(const SubscriptionHistoryScreen());
       case levelTest:
         return _buildFadeRoute(const LevelTestScreen());
-        
+      case levelTestResult:
+        // 1. 매개변수(args)가 우리가 원하는 모델 타입인지 확인
+        if (args is LevelTestResult) {
+          // 2. 맞다면 생성자를 통해 데이터를 직접 전달
+          return _buildFadeRoute(LevelTestResultScreen(result: args));
+        }
+        // 3. 데이터가 비정상적일 때의 예외 처리 (이게 없으면 아래가 dead_code가 될 수 있음)
+        return _buildFadeRoute(const Scaffold(body: Center(child: Text("결과 데이터가 없습니다."))));
+
       default:
         // 정의되지 않은 경로인 경우 표시할 예외 화면
         return MaterialPageRoute(

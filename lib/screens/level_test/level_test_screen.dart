@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../routes/app_routes.dart';
 import '../../Design/snack_bar.dart';
 import '../../controllers/level_test_controller.dart';
+import '../../models/level_test_model.dart';
+import 'package:get/get.dart';
 
 class LevelTestScreen extends StatefulWidget {
   const LevelTestScreen({super.key});
@@ -36,24 +38,26 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   }
 
   Future<void> _submitResults() async {
-    setState(() => _isLoading = true);
-    final bool success = await LevelTestController.submitLevelTest(
-      _userAnswers,
-    );
+  setState(() => _isLoading = true);
+  
+  // 1. 서버에 답변 제출 후 결과(LevelTestResult) 받기
+  final LevelTestResult? result = await LevelTestController.submitLevelTest(_userAnswers);
 
-    if (success) {
-      if (!mounted) return;
-      VipaSnackBar.show(context, '테스트가 완료되었습니다!');
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        AppRoutes.home,
-        (route) => false,
-      );
-    } else {
-      setState(() => _isLoading = false);
-      if (mounted) VipaSnackBar.show(context, '제출 중 오류가 발생했습니다.');
-    }
+  if (result != null) {
+    if (!mounted) return;
+    VipaSnackBar.show(context, '테스트가 완료되었습니다!');
+
+    // 2. 🔥 GetX 전용 명령어로 이동 (arguments에 데이터를 실어 보냄)
+    // offAllNamed는 이전의 모든 스택(테스트 화면 등)을 비우고 이동합니다.
+    Get.offAllNamed(
+      AppRoutes.levelTestResult, 
+      arguments: result, 
+    );
+  } else {
+    setState(() => _isLoading = false);
+    if (mounted) VipaSnackBar.show(context, '제출 중 오류가 발생했습니다.');
   }
+}
 
   void _onOptionSelected(String answer) {
     setState(() {
@@ -141,7 +145,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
             Expanded(
               child: ListView.separated(
                 itemCount: options.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                separatorBuilder: (context, index) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   String option = options[index].toString();
                   bool isSelected = _selectedAnswer == option;
