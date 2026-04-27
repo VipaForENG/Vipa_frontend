@@ -15,6 +15,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 
 import 'package:get_storage/get_storage.dart'; // [추가] 간단한 로컬 저장소 패키지입니다. 토큰 저장 등에 사용됩니다.
+
 /// [함수] main
 /// 앱의 실행이 시작되는 가장 첫 번째 지점입니다.
 /// 비동기 작업(await)이 포함되므로 async 키워드가 붙습니다.
@@ -31,7 +32,7 @@ void main() async {
   // [카카오 SDK 초기화] .env 파일에서 가져온 'KAKAO_NATIVE_APP_KEY'를 사용하여
   // 카카오 로그인 기능을 사용할 수 있도록 초기화합니다. 만약 키가 없다면 빈 문자열을 전달합니다.
   KakaoSdk.init(nativeAppKey: dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '');
-  
+
   // [앱 실행] 최상위 위젯인 VipaApp을 실행하여 화면을 띄웁니다.
   runApp(const VipaApp());
 }
@@ -57,7 +58,6 @@ class VipaApp extends StatelessWidget {
       child: GetMaterialApp(
         title: 'vipa', // 앱의 시스템상 제목 (최근 앱 목록 등에 표시)
         debugShowCheckedModeBanner: false, // 화면 오른쪽 상단의 'DEBUG' 마크를 제거합니다.
-        
         // [테마 설정] 앱의 전체적인 색상, 폰트, 스타일을 정의합니다.
         theme: ThemeData(
           // 파란색 계열을 기준으로 앱의 전체 색상 조합을 자동으로 생성합니다.
@@ -71,7 +71,7 @@ class VipaApp extends StatelessWidget {
         initialRoute: AppRoutes.login,
 
         // [경로 설정 2] 화면 이동(Routing) 시 적용될 규칙을 설정합니다.
-        // 단순히 화면을 바꾸는 대신, 우리가 app_routes.dart에서 만든 
+        // 단순히 화면을 바꾸는 대신, 우리가 app_routes.dart에서 만든
         // 페이드(Fade) 애니메이션을 사용하여 화이트 스크린 깜빡임을 방지합니다.
         onGenerateRoute: AppRoutes.onGenerateRoute,
       ),
