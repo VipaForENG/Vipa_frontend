@@ -14,10 +14,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 // [임포트] 카카오 소셜 로그인을 사용하기 위한 SDK 패키지입니다.
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 
+import 'package:get_storage/get_storage.dart'; // [추가] 간단한 로컬 저장소 패키지입니다. 토큰 저장 등에 사용됩니다.
 /// [함수] main
 /// 앱의 실행이 시작되는 가장 첫 번째 지점입니다.
 /// 비동기 작업(await)이 포함되므로 async 키워드가 붙습니다.
 void main() async {
+  await GetStorage.init(); // 👈 이 줄이 반드시 있어야 합니다!
   // [초기화 보장] Flutter 엔진과 위젯 트리가 완전히 준비될 때까지 기다립니다.
   // 비동기 데이터를 다루기 전 반드시 실행해야 하는 필수 코드입니다.
   WidgetsFlutterBinding.ensureInitialized();

@@ -9,23 +9,40 @@ class ApiService {
       // "http://10.45.209.240:8000/api/v1"; // 2. 안드로이드 에뮬레이터 테스트용 IP
   // static const String baseUrl = "https://api.vipa.com/api/v1";     // 3. 배포 서버
   //static const String baseUrl = "http://192.168.45.77:8000/api/v1";
-  static final Dio dio =
-      Dio(
-          BaseOptions(
-            baseUrl: baseUrl,
-            connectTimeout: const Duration(seconds: 30),
-            receiveTimeout: const Duration(seconds: 30),
-            contentType: 'application/json',
+  
+  static final Dio dio = Dio(
+    BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      contentType: 'application/json',
+      validateStatus: (status) => status! < 500,
+    ),
+  )
+    // 1. [추가] 인증 인터셉터: 요청 보낼 때마다 토큰이 있으면 헤더에 부착
+    ..interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          final storage = GetStorage();
+          final String? token = storage.read('access_token');
 
-            validateStatus: (status) => status! < 500,
-          ),
-        )
-        // [중요] 개발 중에는 터미널에 통신 로그가 찍혀야 디버깅이 됩니다.
-        ..interceptors.add(
-          LogInterceptor(
-            requestBody: true,
-            responseBody: true,
-            logPrint: (obj) => debugPrint("🌐 [DIO LOG] $obj"),
-          ),
-        );
+          if (token != null && token.isNotEmpty) {
+            // 헤더에 Authorization 추가
+            options.headers['Authorization'] = 'Bearer $token';
+            debugPrint("🗝️ [AUTH] 토큰을 헤더에 부착했습니다.");
+          } else {
+            debugPrint("⚠️ [AUTH] 저장된 토큰이 없어 빈 헤더로 요청합니다.");
+          }
+          return handler.next(options); // 다음 단계로 진행
+        },
+      ),
+    )
+    // 2. 로그 인터셉터 (기존 유지)
+    ..interceptors.add(
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        logPrint: (obj) => debugPrint("🌐 [DIO LOG] $obj"),
+      ),
+    );
 }
