@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../design/card_design.dart';
+import '../../controllers/ai_controller.dart'; // 컨트롤러 임포트
 import 'widgets/voice_wave.dart';
 
 class AiScreen extends StatefulWidget {
@@ -8,8 +9,25 @@ class AiScreen extends StatefulWidget {
   @override
   State<AiScreen> createState() => _AiScreenState();
 }
+
 class _AiScreenState extends State<AiScreen> {
-  String _recognizedText = "AI가 말하는 내용이 실시간 번역됩니다.";
+  final AiController _controller = AiController();
+
+  @override
+  void initState() {
+    super.initState();
+    // 데이터가 변할 때마다 화면을 새로고침
+    _controller.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -20,39 +38,65 @@ class _AiScreenState extends State<AiScreen> {
           child: Column(
             children: [
               const SizedBox(height: 10),
-              // 1. 상단 카드
+
+              // 1. AI 응답 출력 영역
               Expanded(
                 flex: 5,
                 child: cardContainer(
-                  height: double.infinity, // 👈 여기에 double.infinity를 넣으세요!
+                  height: double.infinity,
                   child: Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Container(width: 30, height: 30, decoration: const BoxDecoration(color: Colors.grey, shape: BoxShape.circle)),
-                            const SizedBox(width: 10),
-                            const Text('English', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: SingleChildScrollView(
-                              child: Text(
-                                _recognizedText,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+                    child: _controller.isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(),
+                          ) // 로딩 중 표시
+                        : Column(
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(
+                                    Icons.smart_toy,
+                                    color: Colors.blueAccent,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'VIPA AI',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
+                              Expanded(
+                                child: Center(
+                                  child: SingleChildScrollView(
+                                    child: Text(
+                                      _controller.recognizedText,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (_controller.aiFeedback.isNotEmpty &&
+                                  _controller.aiFeedback != "N/A")
+                                Text(
+                                  "💡 Feedback: ${_controller.aiFeedback}",
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ),
+
               const SizedBox(height: 15),
+
+              // 2. 음성 입력 영역 (VoiceWaveView)
               Expanded(
                 flex: 4,
                 child: cardContainer(
@@ -60,7 +104,7 @@ class _AiScreenState extends State<AiScreen> {
                   child: Center(
                     child: VoiceWaveView(
                       onTextRecognized: (text) {
-                        setState(() => _recognizedText = text);
+                        _controller.sendToAi(text);
                       },
                     ),
                   ),

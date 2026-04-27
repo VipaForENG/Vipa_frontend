@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../routes/app_routes.dart';
 import '../../Design/snack_bar.dart';
 import '../../controllers/level_test_controller.dart';
+
 class LevelTestScreen extends StatefulWidget {
   const LevelTestScreen({super.key});
 
@@ -14,7 +15,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   final List<String> _userAnswers = [];
   int _currentIndex = 0;
   bool _isLoading = true;
-  final TextEditingController _answerController = TextEditingController();
+  String? _selectedAnswer; // 선택된 답변 저장용 변수
 
   @override
   void initState() {
@@ -22,27 +23,23 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     _fetchQuestions();
   }
 
-  /// 1. 문제 불러오기
   Future<void> _fetchQuestions() async {
     final questions = await LevelTestController.getLevelTestQuestions();
-
     if (questions != null) {
       setState(() {
-        //_questions = questions;
         _questions = questions.take(20).toList();
         _isLoading = false;
       });
     } else {
-      if (mounted) {
-        VipaSnackBar.show(context, '문제를 불러오지 못했습니다.');
-      }
+      if (mounted) VipaSnackBar.show(context, '문제를 불러오지 못했습니다.');
     }
   }
 
-  /// 2. 결과 제출하기
   Future<void> _submitResults() async {
     setState(() => _isLoading = true);
-    final bool success = await LevelTestController.submitLevelTest(_userAnswers);
+    final bool success = await LevelTestController.submitLevelTest(
+      _userAnswers,
+    );
 
     if (success) {
       if (!mounted) return;
@@ -54,21 +51,24 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       );
     } else {
       setState(() => _isLoading = false);
-      if (mounted) {
-        VipaSnackBar.show(context, '제출 중 오류가 발생했습니다.');
-      }
+      if (mounted) VipaSnackBar.show(context, '제출 중 오류가 발생했습니다.');
     }
   }
 
+  void _onOptionSelected(String answer) {
+    setState(() {
+      _selectedAnswer = answer;
+    });
+  }
+
   void _onNextPressed() {
-    final answer = _answerController.text.trim();
-    if (answer.isEmpty) {
-      VipaSnackBar.show(context, '답변을 입력해주세요.');
+    if (_selectedAnswer == null) {
+      VipaSnackBar.show(context, '답변을 선택해주세요.');
       return;
     }
 
-    _userAnswers.add(answer);
-    _answerController.clear();
+    _userAnswers.add(_selectedAnswer!);
+    _selectedAnswer = null; // 다음 문제 위해 초기화
 
     if (_currentIndex < _questions.length - 1) {
       setState(() => _currentIndex++);
@@ -85,18 +85,14 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       );
     }
 
-    // 🔴 [수정 포인트] 에러 해결 로직
-    // 서버에서 온 데이터가 Map일 경우 'question' 키값을 추출합니다.
     final dynamic currentData = _questions[_currentIndex];
-    String displayQuestion = "";
-
-    if (currentData is String) {
-      displayQuestion = currentData;
-    } else if (currentData is Map) {
-      // 백엔드 gpt5.py에서 정의한 키값('question' 혹은 'text')에 맞춰야 합니다.
-      displayQuestion =
-          currentData['question'] ?? currentData['text'] ?? "문제를 표시할 수 없습니다.";
-    }
+    // 서버 데이터 형식에 맞춰 수정 (예: {'question': '...', 'options': ['A', 'B', 'C', 'D']})
+    String displayQuestion = currentData is Map
+        ? currentData['question'] ?? ""
+        : "문제를 표시할 수 없습니다.";
+    List<dynamic> options = currentData is Map
+        ? (currentData['options'] ?? [])
+        : [];
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -108,13 +104,13 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
-        automaticallyImplyLeading: false,
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
           children: [
             const SizedBox(height: 20),
+            // 질문 영역
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -123,85 +119,73 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black54),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'Q${_currentIndex + 1}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                  Center(
-                    child: Text(
-                      displayQuestion, // 👈 추출한 문자열 표시
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                  TextField(
-                    controller: _answerController,
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      hintText: '답변을 영어로 입력하세요',
-                      prefixText: '답변 : ',
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.black, width: 2),
-                      ),
-                    ),
-                    onSubmitted: (_) => _onNextPressed(),
+                  Text(
+                    'Q${_currentIndex + 1}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      '${_currentIndex + 1} / ${_questions.length}',
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  Text(
+                    displayQuestion,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 20),
+            // 객관식 보기 버튼들
+            Expanded(
+              child: ListView.separated(
+                itemCount: options.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  String option = options[index].toString();
+                  bool isSelected = _selectedAnswer == option;
+                  return OutlinedButton(
+                    onPressed: () => _onOptionSelected(option),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: isSelected
+                          ? Colors.black87
+                          : Colors.white,
+                      side: BorderSide(
+                        color: isSelected ? Colors.black87 : Colors.black12,
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      option,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            // 하단 버튼
             Padding(
-              padding: const EdgeInsets.only(bottom: 40.0),
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
               child: SizedBox(
                 width: double.infinity,
                 height: 56,
-                child: OutlinedButton(
+                child: ElevatedButton(
                   onPressed: _onNextPressed,
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.black87, width: 1.5),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black87,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    backgroundColor: Colors.black87,
                   ),
                   child: Text(
                     _currentIndex < _questions.length - 1 ? '다음 문제' : '제출하기',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
               ),
