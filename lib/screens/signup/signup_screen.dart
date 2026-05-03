@@ -65,21 +65,31 @@ class _SignupScreenState extends State<SignupScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final success = await AuthController.signUp(
+      // 1. AuthController.signUp이 결과 메시지를 String으로 반환하도록 리팩토링 필요
+      // 성공하면 null, 실패하면 서버의 detail 메시지 반환
+      final String? errorDetail = await AuthController.signUp(
         email: _emailController.text.trim(),
         password: _pwController.text.trim(),
         nickname: _nickController.text.trim(),
       );
 
       if (!mounted) return;
-      if (success) {
+
+      if (errorDetail == null) {
         VipaSnackBar.show(context, '회원가입 성공! 로그인해주세요.');
         Navigator.pushReplacementNamed(context, AppRoutes.login);
       } else {
-        setState(() => _emailError = '이미 사용 중인 이메일이거나 서버 에러입니다.');
-        VipaSnackBar.show(context, '가입 정보를 확인해주세요.', isError: true);
+        // 🔥 [UX 개선] 서버가 보내준 "이미 사용 중인 닉네임입니다."를 그대로 보여줌
+        VipaSnackBar.show(context, errorDetail, isError: true);
+        
+        // 특정 필드 에러 가이드 표시
+        setState(() {
+          if (errorDetail.contains('이메일')) _emailError = errorDetail;
+          // 닉네임 에러일 경우에도 필드 하단에 메시지를 띄우고 싶다면 여기에 추가
+        });
       }
     } catch (e) {
+      // 통신 자체 실패 (네트워크 에러 등)
       if (mounted) VipaSnackBar.show(context, '서버 연결에 실패했습니다.', isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
