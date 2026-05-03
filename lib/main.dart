@@ -40,39 +40,25 @@ void main() async {
 /// [클래스] VipaApp
 /// 앱의 뼈대를 형성하는 최상위 위젯입니다.
 class VipaApp extends StatelessWidget {
-  // 생성자: 위젯을 고유하게 식별하기 위한 Key를 부모 클래스에 전달합니다.
   const VipaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // [위젯] MultiProvider: 여러 개의 상태 관리 객체(Provider)를 앱 전체에 주입합니다.
-    // 이렇게 등록해두면 앱 어디에서든 문법이나 회화 데이터를 꺼내 쓸 수 있습니다.
     return MultiProvider(
       providers: [
-        // GrammarProvider를 생성하고 하위 위젯들이 접근할 수 있게 합니다.
         ChangeNotifierProvider(create: (_) => GrammarProvider()),
-        // ConversationProvider를 생성하고 하위 위젯들이 접근할 수 있게 합니다.
         ChangeNotifierProvider(create: (_) => ConversationProvider()),
       ],
-      // [위젯] MaterialApp: 구글의 Material 디자인을 기반으로 앱의 전반적인 설정을 담당합니다.
+      // [위젯] GetMaterialApp: GetX의 기능을 사용하기 위한 최상위 위젯입니다.
       child: GetMaterialApp(
-        title: 'vipa', // 앱의 시스템상 제목 (최근 앱 목록 등에 표시)
-        debugShowCheckedModeBanner: false, // 화면 오른쪽 상단의 'DEBUG' 마크를 제거합니다.
-        // [테마 설정] 앱의 전체적인 색상, 폰트, 스타일을 정의합니다.
+        title: 'vipa',
+        debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          // 파란색 계열을 기준으로 앱의 전체 색상 조합을 자동으로 생성합니다.
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
-          // 최신 Material 3 디자인 시스템을 적용합니다.
           useMaterial3: true,
         ),
-
-        // [경로 설정 1] 앱이 처음 켜졌을 때 이동할 기본 화면 경로를 설정합니다.
-        // AppRoutes 클래스에 정의된 '/login' 경로로 시작하게 됩니다.
         initialRoute: AppRoutes.login,
-
-        // [경로 설정 2] 화면 이동(Routing) 시 적용될 규칙을 설정합니다.
-        // 단순히 화면을 바꾸는 대신, 우리가 app_routes.dart에서 만든
-        // 페이드(Fade) 애니메이션을 사용하여 화이트 스크린 깜빡임을 방지합니다.
+        // GetX를 사용하므로 AppRoutes.onGenerateRoute를 통해 경로를 관리합니다.
         onGenerateRoute: AppRoutes.onGenerateRoute,
       ),
     );
