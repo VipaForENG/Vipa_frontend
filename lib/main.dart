@@ -8,7 +8,7 @@ import 'package:get/get.dart';
 // [임포트] 문법 학습 관련 데이터와 상태를 관리하는 프로바이더입니다.
 import 'screens/grammar/grammar_provider.dart';
 // [임포트] 회화 연습 관련 데이터와 상태를 관리하는 프로바이더입니다.
-import 'screens/conversation/conversation_provider.dart';
+import 'screens/conversation/chat/conversation_provider.dart';
 // [임포트] 보안이 필요한 키(API KEY 등)를 .env 파일에서 불러오기 위한 패키지입니다.
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // [임포트] 카카오 소셜 로그인을 사용하기 위한 SDK 패키지입니다.

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../design/button_design.dart';
 import '../../../design/section_header.dart'; // SectionHeader 사용을 위해 추가
 // 화면 이동 대상 임포트
-import '../../conversation/conversation_screen.dart';
+import '../../conversation/category/category_selection_screen.dart';
 import '../../grammar/grammar_screen.dart';
 
 class QuickMenuSection extends StatelessWidget {
@@ -33,7 +33,7 @@ class QuickMenuSection extends StatelessWidget {
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ConversationScreen(),
+                    builder: (context) => const CategorySelectionScreen(),
                   ),
                 ),
               ),
