@@ -17,6 +17,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   final List<String> _userAnswers = [];
   int _currentIndex = 0;
   bool _isLoading = true;
+  String _loadingMessage = 'AI가 문제를 만드는 중입니다';
   String? _selectedAnswer; // 선택된 답변 저장용 변수
 
   @override
@@ -26,6 +27,11 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   }
 
   Future<void> _fetchQuestions() async {
+    setState(() {
+      _isLoading = true;
+      _loadingMessage = 'AI가 맞춤형 문제를 생성 중입니다';
+    });
+
     final questions = await LevelTestController.getLevelTestQuestions();
     if (questions != null) {
       setState(() {
@@ -38,7 +44,10 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   }
 
   Future<void> _submitResults() async {
-  setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _loadingMessage = 'AI가 당신의 답변을 정밀 분석하여\n상세 결과를 생성하고 있습니다';
+    });
   
   // 1. 서버에 답변 제출 후 결과(LevelTestResult) 받기
   final LevelTestResult? result = await LevelTestController.submitLevelTest(_userAnswers);
@@ -81,11 +90,48 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     }
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: Colors.black87)),
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(
+                color: Colors.black87,
+                strokeWidth: 3,
+              ),
+              const SizedBox(height: 30),
+              
+              // 🔥 [수정] 하드코딩된 'AI가 맞춤형 문제를 생성 중입니다' 대신 변수 사용
+              Text(
+                _loadingMessage, 
+                textAlign: TextAlign.center, // 두 줄 이상일 때를 대비해 중앙 정렬
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              // [팁] 메인 메시지가 바뀔 때 서브 문구도 적절히 어울리도록 수정
+              Text(
+                _loadingMessage.contains('분석') 
+                    ? '잠시만 기다려주세요.\n당신을 위한 맞춤 학습 리포트를 작성 중입니다.' 
+                    : '잠시만 기다려주세요.\n당신의 실력에 딱 맞는 문제를 준비하고 있어요.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black54,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
