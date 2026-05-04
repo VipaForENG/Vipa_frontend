@@ -1,157 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
-import 'dart:math' as math;
 
 import '../../routes/app_routes.dart';
 import '../../design/snack_bar.dart';
 import '../../controllers/auth_controller.dart';
 import '../../services/auth_service.dart';
+// 공용 애니메이션 임포트
+import '../../design/animation_design.dart'; 
 
-// ----------------------------------------------------------------             
-// 1. 애니메이션 보조 위젯: _FadeSlideTransition
-// ----------------------------------------------------------------             
-class _FadeSlideTransition extends StatelessWidget {
-  final Widget child;
-  final double delay; // 시작 시점 지연
-
-  const _FadeSlideTransition({required this.child, required this.delay});
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      // 시간을 1.2초로 늘려 더 천천히 나타나게 함
-      duration: const Duration(milliseconds: 1250), //<= 여기 숫자를 늘려주면 로그인 버튼 시간 지연됨
-      // 시작 시점을 더 명확하게 분리하기 위해 지연값 적용
-      curve: Interval(delay, 1.0, curve: Curves.easeOutExpo), 
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            // 시작 위치를 40px로 늘려 더 역동적으로 올라오게 설정
-            offset: Offset(0, 40 * (1 - value)),
-            child: child,
-          ),
-        );
-      },
-      child: child,
-    );
-  }
-}
-
-// ----------------------------------------------------------------             
-// 2. 배경 애니메이션: WaveBackground & WavePainter (기존과 동일)
-// ----------------------------------------------------------------             
-class WaveBackground extends StatelessWidget {
-  final Color waveColor;
-  final double waveHeightFactor;
-
-  const WaveBackground({
-    super.key,
-    required this.waveColor,
-    required this.waveHeightFactor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.35, end: waveHeightFactor),
-      duration: const Duration(milliseconds: 1250), // 배경 변화도 조금 더 천천히
-      curve: Curves.easeInOutCubic,
-      builder: (context, factor, child) {
-        return _LoopingWave(
-          waveColor: waveColor,
-          heightFactor: factor,
-        );
-      },
-    );
-  }
-}
-
-class _LoopingWave extends StatefulWidget {
-  final Color waveColor;
-  final double heightFactor;
-
-  const _LoopingWave({required this.waveColor, required this.heightFactor});
-
-  @override
-  State<_LoopingWave> createState() => _LoopingWaveState();
-}
-
-class _LoopingWaveState extends State<_LoopingWave> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 5), // 파도 속도도 살짝 늦춰서 평온하게 변경
-      vsync: this,
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return CustomPaint(
-          size: Size.infinite,
-          painter: WavePainter(
-            waveAnimation: _controller.value,
-            waveColor: widget.waveColor,
-            heightFactor: widget.heightFactor,
-          ),
-        );
-      },
-    );
-  }
-}
-
-class WavePainter extends CustomPainter {
-  final double waveAnimation;
-  final Color waveColor;
-  final double heightFactor;
-
-  WavePainter({
-    required this.waveAnimation,
-    required this.waveColor,
-    required this.heightFactor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()..color = waveColor..style = PaintingStyle.fill;
-    final Path path = Path();
-    double baseHeight = size.height * (1.0 - heightFactor); 
-    double waveAmplitude = 15.0; // 파도 높이를 살짝 낮춰서 정갈하게 수정
-
-    path.moveTo(0, baseHeight);
-    for (double i = 0; i <= size.width; i++) {
-      path.lineTo(
-        i,
-        baseHeight + math.sin((i / size.width * 2 * math.pi) + (waveAnimation * 2 * math.pi)) * waveAmplitude,
-      );
-    }
-    path.lineTo(size.width, size.height + 100);
-    path.lineTo(0, size.height + 100);
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-// ----------------------------------------------------------------             
-// 3. 메인 화면: LoginScreen (애니메이션 시간차 대폭 수정)
-// ----------------------------------------------------------------             
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -193,6 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // --- 로그인 로직 (변화 없음) ---
   Future<void> _handleLogin() async {
     final email = _idController.text.trim();
     final password = _pwController.text.trim();
@@ -232,10 +89,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final bool isTested = result['is_tested'] ?? false;
       VipaSnackBar.show(context, '성공적으로 로그인되었습니다!');
-        Navigator.pushNamedAndRemoveUntil(
+      Navigator.pushNamedAndRemoveUntil(
         context, 
         isTested ? AppRoutes.home : AppRoutes.levelTest, 
-        (route) => false, // 이 조건이 false면 기존의 모든 페이지를 스택에서 제거합니다.
+        (route) => false,
       );
     } else {
       VipaSnackBar.show(context, isSocial ? '소셜 로그인에 실패했습니다.' : '이메일 또는 비밀번호를 확인해주세요.');
@@ -256,6 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
         body: Stack(
           children: [
             Positioned.fill(
+              // 🔥 리팩토링된 공용 배경 위젯 사용
               child: WaveBackground(waveColor: waveColor, waveHeightFactor: _currentWaveHeight),
             ),
             SafeArea(
@@ -266,8 +124,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     children: [
                       const SizedBox(height: 85),
-                      // 1. 로고 (지연 시간 0.0)
-                      _FadeSlideTransition(
+                      // 🔥 리팩토링된 공용 페이드 위젯 사용 (delay 값 유지)
+                      FadeSlideTransition(
                         delay: 0.0,
                         child: Column(
                           children: [
@@ -287,27 +145,21 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 55),
-                      
-                      // 2. 이메일 (지연 시간 0.2)
-                      _FadeSlideTransition(
+                      FadeSlideTransition(
                         delay: 0.2,
                         child: _buildUnderlineTextField(
                           controller: _idController, focusNode: _idFocusNode, hintText: '이메일', icon: RemixIcons.mail_fill
                         ),
                       ),
                       const SizedBox(height: 20),
-                      
-                      // 3. 비밀번호 (지연 시간 0.3)
-                      _FadeSlideTransition(
+                      FadeSlideTransition(
                         delay: 0.3,
                         child: _buildUnderlineTextField(
                           controller: _pwController, focusNode: _pwFocusNode, hintText: '비밀번호', icon: RemixIcons.lock_password_fill, isObscure: true
                         ),
                       ),
                       const SizedBox(height: 40),
-                      
-                      // 4. 일반 로그인 (지연 시간 0.5 - 여기서부터 간격을 더 둠)
-                      _FadeSlideTransition(
+                      FadeSlideTransition(
                         delay: 0.5,
                         child: _buildPrimaryButton(
                           text: _isNormalLoading ? '로그인 중...' : '로그인',
@@ -316,9 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 25),
-                      
-                      // 5. 구글 로그인 (지연 시간 0.6)
-                      _FadeSlideTransition(
+                      FadeSlideTransition(
                         delay: 0.6,
                         child: _buildPrimaryButton(
                           text: _isGoogleLoading ? '처리 중...' : '구글로 로그인',
@@ -327,9 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      
-                      // 6. 카카오 로그인 (지연 시간 0.7)
-                      _FadeSlideTransition(
+                      FadeSlideTransition(
                         delay: 0.7,
                         child: _buildPrimaryButton(
                           text: _isKakaoLoading ? '처리 중...' : '카카오로 로그인',
@@ -338,9 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      
-                      // 7. 하단 링크 (지연 시간 0.9)
-                      _FadeSlideTransition(
+                      FadeSlideTransition(
                         delay: 0.9,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -363,6 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // --- UI Helper Methods (로그인 페이지에서만 사용하므로 유지) ---
   Widget _buildUnderlineTextField({
     required TextEditingController controller,
     required FocusNode focusNode,

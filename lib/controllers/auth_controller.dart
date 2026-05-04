@@ -24,7 +24,7 @@ class AuthController {
   }
   
 
-  static Future<bool> signUp({
+  static Future<String?> signUp({
     required String email,
     required String password,
     required String nickname,
@@ -36,16 +36,27 @@ class AuthController {
           "email": email,
           "password": password,
           "nickname": nickname,
-          "is_social": 0, // 백엔드 DB 설계에 맞춘 정수값
+          "is_social": 0,
           "social_role": 0,
         },
       );
 
-      return response.statusCode == 200 || response.statusCode == 201;
+      // 성공(200, 201) 시 에러가 없다는 의미로 null 반환
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return null;
+      }
+      return "알 수 없는 오류가 발생했습니다.";
     } on DioException catch (e) {
-      // 에러 발생 시 로그 확인용
-      debugPrint("❌ 회원가입 API 에러: ${e.response?.data ?? e.message}");
-      return false;
+      // 🔥 서버에서 보낸 구체적인 에러 메시지("detail")가 있으면 반환, 없으면 기본 메시지
+      final String? serverMessage = e.response?.data is Map 
+          ? e.response?.data['detail'] 
+          : e.message;
+      
+      debugPrint("❌ 회원가입 API 에러: $serverMessage");
+      return serverMessage ?? "회원가입 요청 중 오류가 발생했습니다.";
+    } catch (e) {
+      debugPrint("❌ 시스템 에러: $e");
+      return "시스템 오류가 발생했습니다.";
     }
   }
 

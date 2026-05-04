@@ -18,33 +18,38 @@ class QuickMenuSection extends StatelessWidget {
         const SectionHeader(
           title: '학습 바로가기',
           icon: Icons.rocket_launch_rounded, // 섹션의 성격에 맞는 아이콘
-          color: Color(0xFF2D3436), // 프로젝트 메인 컬러
+          color: Color.fromARGB(255, 44, 50, 51), // 프로젝트 메인 컬러
         ),
 
         const SizedBox(height: 16), // 헤더와 버튼 사이 간격 최적화
 
         Row(
           children: [
-            // 2. 실전회화 버튼
-            vipaPrimaryButton(
-              title: "실전회화",
-              icon: Icons.chat_bubble_outline,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ConversationScreen(),
+            // [수정] 첫 번째 버튼을 Expanded로 감싸 남은 공간의 절반을 차지하게 함
+            Expanded(
+              child: vipaPrimaryButton(
+                title: "실전회화",
+                icon: Icons.chat_bubble_outline,
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ConversationScreen(),
+                  ),
                 ),
               ),
             ),
 
-            const SizedBox(width: 12), // 버튼 사이 간격 유지
-            // 3. 오늘의 어휘 버튼
-            vipaPrimaryButton(
-              title: "오늘의 어휘",
-              icon: Icons.auto_awesome,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const GrammarScreen()),
+            const SizedBox(width: 12), // 버튼 사이 간격 유지 (절대값)
+
+            // [수정] 두 번째 버튼도 Expanded로 감싸 남은 공간의 절반을 차지하게 함
+            Expanded(
+              child: vipaPrimaryButton(
+                title: "오늘의 어휘",
+                icon: Icons.auto_awesome,
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const GrammarScreen()),
+                ),
               ),
             ),
           ],

@@ -100,11 +100,11 @@ class LearningChartSection extends StatelessWidget {
               toY: entry.value.totalEnergy.toDouble(),
               width: 14,
               borderRadius: BorderRadius.circular(4),
-              // 🔥 배경 막대 추가: 데이터가 0일 때도 슬롯이 보이게 함
+              //  배경 막대 추가: 데이터가 0일 때도 슬롯이 보이게 함
               backDrawRodData: BackgroundBarChartRodData(
                 show: true,
                 toY: maxY * 0.8,
-                color: Colors.grey.withValues(alpha: 0.05),
+                color: const Color.fromARGB(255, 200, 200, 200),
               ),
               gradient: const LinearGradient(
                 colors: [Color(0xFFE0EAFC), Color(0xFF4A90E2)],
@@ -138,7 +138,7 @@ class LearningChartSection extends StatelessWidget {
               )
               .toList(),
           isCurved: true,
-          color: Colors.blueAccent.withValues(alpha: 0.8),
+          color: const Color.fromARGB(255, 74, 144, 226).withValues(alpha: 0.8),
           barWidth: 3,
           isStrokeCapRound: true,
           dotData: const FlDotData(show: true),
@@ -149,7 +149,17 @@ class LearningChartSection extends StatelessWidget {
   }
 
   Widget _buildTotalEnergySummary() {
-    int todayEnergy = weeklyData.isNotEmpty ? weeklyData.last.totalEnergy : 0;
+    // 1. 휴대폰의 오늘 날짜(YYYY-MM-DD)를 가져옵니다.
+    String todayStr = DateTime.now().toIso8601String().split('T').first;
+    
+    // 2. 백엔드에서 받은 데이터 중 '진짜 오늘 날짜'와 일치하는 것을 찾습니다.
+    int todayEnergy = 0;
+    try {
+      todayEnergy = weeklyData.firstWhere((e) => e.date == todayStr).totalEnergy;
+    } catch (e) {
+      todayEnergy = 0; // 안전 장치
+    }
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -158,7 +168,7 @@ class LearningChartSection extends StatelessWidget {
           '오늘 획득 에너지',
           style: TextStyle(
             fontSize: 11,
-            color: Colors.grey,
+            color: Colors.blueGrey,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -167,7 +177,7 @@ class LearningChartSection extends StatelessWidget {
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: todayEnergy > 0 ? Colors.blueAccent : Colors.grey[400],
+            color: todayEnergy > 0 ? const Color.fromARGB(255, 74, 144, 226) : const Color.fromARGB(255, 192, 192, 192),
             letterSpacing: -1,
           ),
         ),
