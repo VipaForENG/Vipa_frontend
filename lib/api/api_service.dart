@@ -56,7 +56,7 @@ class ApiService {
   }) async {
     try {
       final response = await dio.post(
-        "/talk",
+        "/chat/talk",
         data: {"user_message": userMessage, "session_id": sessionId},
       );
 
