@@ -19,6 +19,28 @@ class AiController extends ChangeNotifier {
   bool get isLimitReached => _isLimitReached;
   bool get isLoading => _isLoading;
 
+
+ static Future<Map<String, dynamic>> talkToAi({
+    required String userMessage,
+    int? sessionId,
+  }) async {
+    try {
+      final response = await ApiService.dio.post(
+        "/chat/talk",
+        data: {"user_message": userMessage, "session_id": sessionId},
+      );
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception("서버 응답 오류: ${response.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("ApiService Error: $e");
+      rethrow;
+    }
+  }
+
   // 3. 메인 비즈니스 로직
   Future<void> sendToAi(String userMessage) async {
     if (userMessage.isEmpty || _isLoading) return;
@@ -28,7 +50,7 @@ class AiController extends ChangeNotifier {
 
     try {
       // API 호출
-      final response = await ApiService.talkToAi(
+      final response = await talkToAi(
         userMessage: userMessage,
         sessionId: _currentSessionId, // 요청 시에는 기존 세션 ID 전송
       );

@@ -1,13 +1,27 @@
+// lib/screens/conversation/chat/conversation_chat_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+// 주의: 경로가 바뀌었으므로 provider와 widgets의 import 경로도 확인해야 합니다.
 import 'conversation_provider.dart';
 import 'widgets/conversation_widgets.dart';
 
-class ConversationScreen extends StatelessWidget {
-  const ConversationScreen({super.key});
+// [수정 1] 클래스명 변경: ConversationScreen -> ConversationChatScreen
+class ConversationChatScreen extends StatelessWidget {
+  // [수정 2] 이전 화면에서 넘겨받을 카테고리 ID 선언
+  final int mainCatId;
+
+  // [수정 3] 생성자에 required this.mainCatId 추가
+  const ConversationChatScreen({
+    super.key,
+    required this.mainCatId,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // 디버깅: 데이터가 정상적으로 도착했는지 로그 출력 (L3 흐름 체크)
+    debugPrint('🏁 [ChatScreen 진입] 전달받은 카테고리 ID: $mainCatId');
+
     final provider = Provider.of<ConversationProvider>(context);
 
     return Scaffold(
@@ -45,6 +59,7 @@ class ConversationScreen extends StatelessWidget {
     );
   }
 
+  // ... (이하 _buildBackground, _buildBottomCard 등 기존 헬퍼 메서드 코드 100% 동일 유지)
   Widget _buildBackground() {
     return Container(color: Colors.grey[300], child: const Center(child: Text("배경 준비 중")));
   }
@@ -97,7 +112,6 @@ class ConversationScreen extends StatelessWidget {
     ];
   }
 
-  // 작은 헬퍼 위젯들...
   Widget _micButton(VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
