@@ -78,11 +78,22 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     if (isVerified) {
       if (!mounted) return;
-      Navigator.pop(context); 
-      Navigator.pushNamed(
-        context,
+
+      // 🔥 [해결] Navigator 상태를 미리 변수에 할당하여 다이얼로그가 팝(pop)된 후에도 
+      // context가 유효하도록 방어합니다.
+      final navigator = Navigator.of(context);
+
+      // 1. 인증번호 입력 다이얼로그를 먼저 닫습니다.
+      navigator.pop(); 
+
+      // 2. 확보한 navigator 인스턴스를 사용하여 다음 화면으로 이동합니다.
+      // arguments의 타입을 <String, dynamic>으로 명시하여 캐스팅 에러를 방지합니다.
+      navigator.pushNamed(
         AppRoutes.changePassword,
-        arguments: {'email': email, 'code': code},
+        arguments: <String, dynamic>{
+          'email': email,
+          'code': code,
+        },
       );
     } else {
       if (!mounted) return;

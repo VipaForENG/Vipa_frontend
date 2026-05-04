@@ -38,41 +38,40 @@ class AppRoutes {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     // 이동 시 전달된 데이터가 있다면 저장합니다.
     // ignore: unused_local_variable
-    final args = settings.arguments;
-
+  final args = settings.arguments;
     switch (settings.name) {
       case login:
-        return _buildFadeRoute(const LoginScreen());
+        return _buildFadeRoute(const LoginScreen(), settings);
       case signup:
-        return _buildFadeRoute(const SignupScreen());
+        return _buildFadeRoute(const SignupScreen(), settings);
       case resetPassword:
-        return _buildFadeRoute(const ResetPasswordScreen());
+        return _buildFadeRoute(const ResetPasswordScreen(), settings);
       case changePassword:
         // [에러 해결] 만약 ChangePasswordScreen에 arguments 매개변수가 없다면
         // 아래와 같이 기본 호출 방식으로 수정해야 합니다.
-        return _buildFadeRoute(const ChangePasswordScreen());
+        return _buildFadeRoute(const ChangePasswordScreen(), settings);
       case home:
-        return _buildFadeRoute(const HomeScreen());
+        return _buildFadeRoute(const HomeScreen(), settings);
       case history:
-        return _buildFadeRoute(const LearningHistoryScreen());
+        return _buildFadeRoute(const LearningHistoryScreen(), settings);
       case conversation:
-        return _buildFadeRoute(const ConversationScreen());
+        return _buildFadeRoute(const ConversationScreen(), settings);
       case grammar:
-        return _buildFadeRoute(const GrammarScreen());
+        return _buildFadeRoute(const GrammarScreen(), settings);
       case subscription:
-        return _buildFadeRoute(const SubscriptionScreen());
+        return _buildFadeRoute(const SubscriptionScreen(), settings);
       case subscriptionHistory:
-        return _buildFadeRoute(const SubscriptionHistoryScreen());
+        return _buildFadeRoute(const SubscriptionHistoryScreen(), settings);
       case levelTest:
-        return _buildFadeRoute(const LevelTestScreen());
+        return _buildFadeRoute(const LevelTestScreen(), settings);
       case levelTestResult:
         // 1. 매개변수(args)가 우리가 원하는 모델 타입인지 확인
         if (args is LevelTestResult) {
           // 2. 맞다면 생성자를 통해 데이터를 직접 전달
-          return _buildFadeRoute(LevelTestResultScreen(result: args));
+          return _buildFadeRoute(LevelTestResultScreen(result: args), settings);
         }
         // 3. 데이터가 비정상적일 때의 예외 처리 (이게 없으면 아래가 dead_code가 될 수 있음)
-        return _buildFadeRoute(const Scaffold(body: Center(child: Text("결과 데이터가 없습니다."))));
+        return _buildFadeRoute(const Scaffold(body: Center(child: Text("결과 데이터가 없습니다."))), settings);
 
       default:
         // 정의되지 않은 경로인 경우 표시할 예외 화면
@@ -87,9 +86,10 @@ class AppRoutes {
   /// [함수] _buildFadeRoute
   /// 페이지 전환 시 배경색 깜빡임을 방지하기 위해 
   /// 화면이 부드럽게 겹치며 나타나는 Fade(페이드) 애니메이션을 적용합니다.
-  static PageRouteBuilder _buildFadeRoute(Widget page) {
+  static PageRouteBuilder _buildFadeRoute(Widget page, RouteSettings settings) {
     return PageRouteBuilder(
       // [설정] 목적지 페이지 위젯
+      settings: settings,
       pageBuilder: (context, animation, secondaryAnimation) => page,
       // [설정] 애니메이션 효과 (투명도 조절)
       transitionsBuilder: (context, animation, secondaryAnimation, child) {

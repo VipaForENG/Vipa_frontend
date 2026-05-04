@@ -33,8 +33,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     }
 
     // 2. 이전 화면에서 전달받은 Arguments 꺼내기 (email, code)
-    final args =
-        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
     if (args == null && !widget.isFromMyPage) {
       VipaSnackBar.show(context, "잘못된 접근입니다.");
       return;
