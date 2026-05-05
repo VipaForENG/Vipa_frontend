@@ -5,7 +5,7 @@ import '../../routes/app_routes.dart';
 import '../../controllers/auth_controller.dart';
 import '../../design/snack_bar.dart';
 // 공용 애니메이션 모듈 임포트
-import '../../design/animation_design.dart'; 
+import '../../design/animation_design.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -16,7 +16,7 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _inputController = TextEditingController(); 
+  final TextEditingController _inputController = TextEditingController();
   final FocusNode _emailFocusNode = FocusNode();
 
   bool _isLoading = false;
@@ -79,21 +79,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     if (isVerified) {
       if (!mounted) return;
 
-      // 🔥 [해결] Navigator 상태를 미리 변수에 할당하여 다이얼로그가 팝(pop)된 후에도 
+      // 🔥 [해결] Navigator 상태를 미리 변수에 할당하여 다이얼로그가 팝(pop)된 후에도
       // context가 유효하도록 방어합니다.
       final navigator = Navigator.of(context);
 
       // 1. 인증번호 입력 다이얼로그를 먼저 닫습니다.
-      navigator.pop(); 
+      navigator.pop();
 
       // 2. 확보한 navigator 인스턴스를 사용하여 다음 화면으로 이동합니다.
       // arguments의 타입을 <String, dynamic>으로 명시하여 캐스팅 에러를 방지합니다.
       navigator.pushNamed(
         AppRoutes.changePassword,
-        arguments: <String, dynamic>{
-          'email': email,
-          'code': code,
-        },
+        arguments: <String, dynamic>{'email': email, 'code': code},
       );
     } else {
       if (!mounted) return;
@@ -107,25 +104,42 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFFFFF9E5),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: const Text('인증번호 입력', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          '인증번호 입력',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xfff75f0b),
+          ),
+        ),
         content: TextField(
           controller: _inputController,
           keyboardType: TextInputType.number,
           maxLength: 6,
           decoration: const InputDecoration(
             hintText: '인증번호 6자리',
-            counterText: "", 
+            hintStyle: TextStyle(color: Color(0xFFffa370)),
+            counterText: "",
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFFffa370), width: 1),
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('취소', style: TextStyle(color: Colors.grey)),
+            child: const Text('취소', style: TextStyle(color: Color(0xFFffa370))),
           ),
           TextButton(
             onPressed: _handleVerifyCode,
-            child: const Text('인증확인', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            child: const Text(
+              '인증확인',
+              style: TextStyle(
+                color: Color(0xfff75f0b),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -134,8 +148,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const Color bgColor = Color(0xFFF5E4AD); 
-    const Color waveColor = Color(0xFFFFF9E3);
+    const Color bgColor = Color(0xFFFFF9E5);
+    const Color waveColor = Color(0xFFffcbae);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -144,8 +158,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         children: [
           Positioned.fill(
             child: WaveBackground(
-              waveColor: waveColor, 
-              waveHeightFactor: _currentWaveHeight
+              waveColor: waveColor,
+              waveHeightFactor: _currentWaveHeight,
             ),
           ),
           SafeArea(
@@ -155,7 +169,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   alignment: Alignment.centerLeft,
                   child: IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(RemixIcons.arrow_left_line, color: Colors.black87),
+                    icon: const Icon(
+                      RemixIcons.arrow_left_line,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
                 Expanded(
@@ -172,7 +189,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             child: const Icon(
                               RemixIcons.lock_password_line,
                               size: 80,
-                              color: Color(0xFF8B6B23),
+                              color: Color(0xfff75f0b),
                             ),
                           ),
                           const SizedBox(height: 30),
@@ -181,7 +198,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             child: const Text(
                               '가입 시 사용한 이메일을 입력해주세요.\n인증번호를 보내드립니다.',
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 16, color: Colors.black87, height: 1.5),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.black87,
+                                height: 1.5,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 50),
@@ -216,12 +237,20 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         controller: _emailController,
         focusNode: _emailFocusNode,
         decoration: const InputDecoration(
-          prefixIcon: Icon(RemixIcons.mail_fill, size: 20, color: Colors.black45),
+          prefixIcon: Icon(
+            RemixIcons.mail_fill,
+            size: 20,
+            color: Color(0xFFffa370),
+          ),
           prefixIconConstraints: BoxConstraints(minWidth: 35),
           hintText: '이메일 주소',
           hintStyle: TextStyle(color: Colors.black38),
-          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black12, width: 1)),
-          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black87, width: 2)),
+          enabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Color(0xFFffa370), width: 1),
+          ),
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Color(0xFFffa370), width: 2),
+          ),
         ),
       ),
     );
@@ -234,13 +263,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleSendCode,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black87,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: Color(0xfff75f0b),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 0,
         ),
         child: Text(
           _isLoading ? '전송 중...' : '인증요청',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       ),
     );

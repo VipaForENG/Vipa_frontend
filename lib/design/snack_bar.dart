@@ -91,7 +91,7 @@ class _MessageSnackBarWidgetState extends State<_MessageSnackBarWidget>
                 // [수정 포인트] Vipa 프로젝트 표준 색상 적용 제안
                 color: widget.isError
                     ? const Color(0xFFFF4757)
-                    : const Color(0xFF2D3436),
+                    : const Color(0xfff75f0b),
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: const [
                   BoxShadow(

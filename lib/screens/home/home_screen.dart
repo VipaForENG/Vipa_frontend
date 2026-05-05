@@ -38,22 +38,36 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5E4AD),
+      backgroundColor: Color(0xFFFFF9E5),
       appBar: _selectedIndex == 0
           ? AppBar(
               backgroundColor: const Color(0xFFF5E4AD),
               elevation: 0,
-              title: const Text('홈',
-                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              title: const Text(
+                '홈',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.smart_toy_outlined, color: Colors.black),
+                  icon: const Icon(
+                    Icons.smart_toy_outlined,
+                    color: Colors.black,
+                  ),
                   onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const RobotSetupScreen())),
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RobotSetupScreen(),
+                    ),
+                  ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.settings_outlined, color: Colors.black),
+                  icon: const Icon(
+                    Icons.settings_outlined,
+                    color: Colors.black,
+                  ),
                   onPressed: () => debugPrint("설정 클릭"),
                 ),
               ],
@@ -84,10 +98,11 @@ class _HomeContent extends StatefulWidget {
   State<_HomeContent> createState() => _HomeContentState();
 }
 
-class _HomeContentState extends State<_HomeContent> with SingleTickerProviderStateMixin {
+class _HomeContentState extends State<_HomeContent>
+    with SingleTickerProviderStateMixin {
   late AnimationController _waveUpController;
   late Animation<double> _heightAnimation;
-  
+
   // 🎯 [수정] Get.put을 사용하여 컨트롤러를 확실히 주입합니다.
   final HomeController controller = Get.put(HomeController());
 
@@ -136,7 +151,7 @@ class _HomeContentState extends State<_HomeContent> with SingleTickerProviderSta
 
   @override
   Widget build(BuildContext context) {
-    const Color waveColor = Color(0xFFFFF9E3);
+    const Color waveColor = Color(0xFFFFF9E5);
 
     return Obx(() {
       // 로딩 중일 때 표시
@@ -152,7 +167,9 @@ class _HomeContentState extends State<_HomeContent> with SingleTickerProviderSta
         builder: (context, child) {
           return Container(
             // 물결이 다 차오르면 배경색을 물결색과 맞춤
-            color: _heightAnimation.value > 0.95 ? waveColor : const Color(0xFFF5E4AD),
+            color: _heightAnimation.value > 0.95
+                ? waveColor
+                : const Color(0xFFF5E4AD),
             child: Stack(
               children: [
                 // 🌊 아래에서 위로 차오르는 물결
@@ -184,7 +201,9 @@ class _HomeContentState extends State<_HomeContent> with SingleTickerProviderSta
                         FadeSlideTransition(
                           delay: 0.6,
                           child: cardContainer(
-                            child: LearningChartSection(weeklyData: data.weeklyData),
+                            child: LearningChartSection(
+                              weeklyData: data.weeklyData,
+                            ),
                           ),
                         ),
                         FadeSlideTransition(
@@ -199,7 +218,10 @@ class _HomeContentState extends State<_HomeContent> with SingleTickerProviderSta
                         const FadeSlideTransition(
                           delay: 1.0,
                           child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 20,
+                            ),
                             child: QuickMenuSection(),
                           ),
                         ),
