@@ -1,28 +1,56 @@
-// lib/screens/conversation/chat/conversation_chat_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// 주의: 경로가 바뀌었으므로 provider와 widgets의 import 경로도 확인해야 합니다.
 import 'conversation_provider.dart';
+import 'conversation_result_screen.dart';
 import 'widgets/conversation_widgets.dart';
+import 'evaluation_detail_view.dart';
 
-// [수정 1] 클래스명 변경: ConversationScreen -> ConversationChatScreen
-class ConversationChatScreen extends StatelessWidget {
-  // [수정 2] 이전 화면에서 넘겨받을 카테고리 ID 선언
+class ConversationChatScreen extends StatefulWidget {
   final int mainCatId;
+  const ConversationChatScreen({super.key, required this.mainCatId});
 
-  // [수정 3] 생성자에 required this.mainCatId 추가
-  const ConversationChatScreen({
-    super.key,
-    required this.mainCatId,
-  });
+  @override
+  State<ConversationChatScreen> createState() => _ConversationChatScreenState();
+}
+
+class _ConversationChatScreenState extends State<ConversationChatScreen> {
+  final TextEditingController _textController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<ConversationProvider>(
+        context,
+        listen: false,
+      );
+      provider.reset();
+      provider.initializeScenario(widget.mainCatId, 1);
+    });
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 디버깅: 데이터가 정상적으로 도착했는지 로그 출력 (L3 흐름 체크)
-    debugPrint('🏁 [ChatScreen 진입] 전달받은 카테고리 ID: $mainCatId');
-
     final provider = Provider.of<ConversationProvider>(context);
+
+    if (provider.completionResult != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final result = provider.completionResult!;
+        provider.completionResult = null;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ConversationResultScreen(result: result),
+          ),
+        );
+      });
+    }
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -39,18 +67,31 @@ class ConversationChatScreen extends StatelessWidget {
         children: [
           _buildBackground(),
           SafeArea(
-            bottom: false,
-            child: Stack(
+            child: Column(
               children: [
-                Positioned(
-                  top: MediaQuery.of(context).size.height * 0.35,
-                  left: 20, right: 40,
-                  child: AiSpeechBubble(en: provider.aiEnglish, ko: provider.aiKorean),
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        AiSpeechBubble(
+                          en: provider.aiEnglish,
+                          ko: provider.aiKorean,
+                        ),
+                        const SizedBox(height: 30),
+                        _buildMissionBox(provider.userTargetSentence),
+                        if (provider.hints.isNotEmpty && !provider.isAnswered)
+                          ...provider.hints
+                              .map((hint) => _buildHintItem(hint))
+                              .toList(),
+                        const SizedBox(height: 100),
+                      ],
+                    ),
+                  ),
                 ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: _buildBottomCard(provider),
-                ),
+                _buildBottomArea(provider),
               ],
             ),
           ),
@@ -59,76 +100,228 @@ class ConversationChatScreen extends StatelessWidget {
     );
   }
 
-  // ... (이하 _buildBackground, _buildBottomCard 등 기존 헬퍼 메서드 코드 100% 동일 유지)
   Widget _buildBackground() {
-    return Container(color: Colors.grey[300], child: const Center(child: Text("배경 준비 중")));
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF263238), Color(0xFF1E1E2C)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+    );
   }
 
-  Widget _buildBottomCard(ConversationProvider provider) {
+  Widget _buildHintItem(String text) {
+    bool isWarning = text.contains("⚠️");
+    bool isAnswer = text.contains("정답:");
+    Color color = isWarning
+        ? Colors.redAccent
+        : (isAnswer ? Colors.greenAccent : const Color(0xFFB3A9FF));
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isWarning
+                ? Icons.warning_amber_rounded
+                : (isAnswer ? Icons.check_circle_outline : Icons.lightbulb),
+            color: color,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: color,
+                fontSize: 15,
+                fontWeight: (isWarning || isAnswer)
+                    ? FontWeight.bold
+                    : FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✨ 하단 컨트롤 분기 영역
+  Widget _buildBottomArea(ConversationProvider provider) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+      child: provider.isAnswered
+          ? ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.5,
+              ),
+              child: EvaluationDetailView(provider: provider),
+            )
+          : _buildInputArea(provider),
+    );
+  }
+
+  Widget _buildInputArea(ConversationProvider provider) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (provider.isRecording)
+          _buildUserSpeechPreview(provider.userSpokenText),
+        const SizedBox(height: 15),
+        // ✨ 키보드 모드 분기
+        provider.isTextMode
+            ? _buildTextFieldInput(provider)
+            : _buildInputButtons(provider),
+      ],
+    );
+  }
+
+  // ✨ 텍스트 입력 UI
+  Widget _buildTextFieldInput(ConversationProvider provider) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.mic_none, color: Colors.white70),
+            onPressed: () => provider.toggleTextMode(),
+          ),
+          Expanded(
+            child: TextField(
+              controller: _textController,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                hintText: "Type your answer...",
+                hintStyle: TextStyle(color: Colors.white38),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 15),
+              ),
+              onSubmitted: (value) => _handleTextSubmit(provider),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.send, color: Color(0xFF8877FF)),
+            onPressed: () => _handleTextSubmit(provider),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleTextSubmit(ConversationProvider provider) {
+    if (_textController.text.trim().isNotEmpty) {
+      provider.evaluateSpeech(_textController.text.trim());
+      _textController.clear();
+    }
+  }
+
+  Widget _buildInputButtons(ConversationProvider provider) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _circleButton(
+          Icons.lightbulb_outline,
+          () => provider.requestHintStepByStep(),
+        ),
+        _micButton(provider),
+        _circleButton(
+          Icons.keyboard_alt_outlined,
+          () => provider.toggleTextMode(),
+        ), // ✨ 모드 전환 버튼
+      ],
+    );
+  }
+
+  Widget _buildUserSpeechPreview(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: Colors.white, fontSize: 16),
+      ),
+    );
+  }
+
+  Widget _micButton(ConversationProvider provider) {
+    double scale = provider.dbScale;
+    return GestureDetector(
+      onTap: () => provider.toggleRecording(),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        padding: const EdgeInsets.all(26),
+        decoration: BoxDecoration(
+          color: provider.isRecording
+              ? Colors.redAccent
+              : const Color(0xFF8877FF),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color:
+                  (provider.isRecording
+                          ? Colors.redAccent
+                          : const Color(0xFF8877FF))
+                      .withOpacity(0.3 + (scale * 0.5)),
+              blurRadius: 15 + (scale * 60),
+              spreadRadius: 2 + (scale * 25),
+            ),
+          ],
+        ),
+        child: Icon(
+          provider.isRecording ? Icons.stop : Icons.mic,
+          color: Colors.white,
+          size: 42,
+        ),
+      ),
+    );
+  }
+
+  Widget _circleButton(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.white, size: 28),
+      ),
+    );
+  }
+
+  Widget _buildMissionBox(String text) {
+    return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20, offset: const Offset(0, -5))],
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: provider.isAnswered 
-          ? _buildResultView(provider) 
-          : _buildInputView(provider),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 18,
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
       ),
-    );
-  }
-
-  List<Widget> _buildInputView(ConversationProvider provider) {
-    return [
-      Text(provider.userTargetSentence, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18)),
-      const SizedBox(height: 30),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _miniIconButton(Icons.help_outline, "힌트"),
-          _micButton(() => provider.setAnswered(true)),
-          _miniIconButton(Icons.keyboard_alt_outlined, "키보드"),
-        ],
-      ),
-    ];
-  }
-
-  List<Widget> _buildResultView(ConversationProvider provider) {
-    return [
-      const Text("Perfect!!", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF8877FF))),
-      const SizedBox(height: 15),
-      Row(
-        children: [
-          Expanded(child: ActionButton(icon: Icons.refresh, label: "재도전", onTap: () => provider.setAnswered(false))),
-          const SizedBox(width: 8),
-          Expanded(child: ActionButton(icon: Icons.play_arrow, label: "다음 문제", isPrimary: true, onTap: () => provider.nextStep())),
-        ],
-      )
-    ];
-  }
-
-  Widget _micButton(VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: const BoxDecoration(color: Color(0xFF8877FF), shape: BoxShape.circle),
-        child: const Icon(Icons.mic, color: Colors.white, size: 38),
-      ),
-    );
-  }
-
-  Widget _miniIconButton(IconData icon, String label) {
-    return Column(
-      children: [
-        Icon(icon, color: const Color(0xFF8877FF).withValues(alpha: 0.6), size: 28),
-        Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF8877FF))),
-      ],
     );
   }
 }
