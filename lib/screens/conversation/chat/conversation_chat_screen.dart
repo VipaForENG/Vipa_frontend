@@ -122,9 +122,9 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -188,7 +188,7 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
@@ -248,7 +248,7 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(25),
       ),
       child: Text(
@@ -277,7 +277,7 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
                   (provider.isRecording
                           ? Colors.redAccent
                           : const Color(0xFF8877FF))
-                      .withOpacity(0.3 + (scale * 0.5)),
+                      .withValues(alpha: 0.3 + (scale * 0.5)),
               blurRadius: 15 + (scale * 60),
               spreadRadius: 2 + (scale * 25),
             ),
@@ -299,7 +299,7 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: Colors.white, size: 28),
@@ -311,7 +311,7 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(

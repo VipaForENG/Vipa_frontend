@@ -1,18 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'dart:async';
+import '../../../api/api_service.dart';
 
 class ConversationProvider with ChangeNotifier {
   final stt.SpeechToText _speech = stt.SpeechToText();
 
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: "http://192.168.45.77:8000/api/v1/scenario",
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-    ),
-  );
 
   // --- 상태 변수 ---
   bool _isRecording = false;
@@ -90,8 +83,8 @@ class ConversationProvider with ChangeNotifier {
   // 시나리오 로드
   Future<void> initializeScenario(int subCatId, int testId) async {
     try {
-      final response = await _dio.post(
-        "/generate",
+      final response = await ApiService.dio.post(
+        "/scenario/generate",
         data: {"user_id": 1, "sub_cat_id": subCatId, "test_id": testId},
       );
       if (response.statusCode == 200) {
@@ -163,8 +156,8 @@ class ConversationProvider with ChangeNotifier {
   Future<void> evaluateSpeech(String userInput) async {
     try {
       setUserSpokenText(userInput);
-      final response = await _dio.post(
-        "/evaluate",
+      final response = await ApiService.dio.post(
+        "/scenario/evaluate",
         data: {
           "session_id": sessionId,
           "scenario_id": scenarioId,
@@ -207,8 +200,8 @@ class ConversationProvider with ChangeNotifier {
 
   Future<void> _fetchAndAddHint(int level, String prefix) async {
     try {
-      final response = await _dio.post(
-        "/hint",
+      final response = await ApiService.dio.post(
+        "/scenario/hint",
         data: {
           "scenario_id": scenarioId,
           "turn_index": _currentTurnIndex,
@@ -242,7 +235,7 @@ class ConversationProvider with ChangeNotifier {
 
   Future<void> _completeSession() async {
     try {
-      final response = await _dio.post(
+      final response = await ApiService.dio.post(
         "/complete",
         data: {"session_id": sessionId},
       );

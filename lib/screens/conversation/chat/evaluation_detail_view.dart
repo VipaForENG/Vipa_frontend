@@ -11,9 +11,9 @@ class EvaluationDetailView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
+        color: Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -107,8 +107,8 @@ class EvaluationDetailView extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: isPass
-            ? Colors.greenAccent.withOpacity(0.2)
-            : Colors.orangeAccent.withOpacity(0.2),
+            ? Colors.greenAccent.withValues(alpha: 0.2)
+            : Colors.orangeAccent.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -127,7 +127,7 @@ class EvaluationDetailView extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.greenAccent.withOpacity(0.05),
+        color: Colors.greenAccent.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -170,7 +170,7 @@ class EvaluationDetailView extends StatelessWidget {
           decoration: BoxDecoration(
             color: isPrimary
                 ? const Color(0xFF8877FF)
-                : Colors.white.withOpacity(0.1),
+                : Colors.white.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
