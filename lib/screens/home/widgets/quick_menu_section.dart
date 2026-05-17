@@ -4,7 +4,7 @@ import '../../../design/button_design.dart';
 import '../../../design/section_header.dart'; // SectionHeader 사용을 위해 추가
 // 화면 이동 대상 임포트
 import '../../conversation/category/category_selection_screen.dart';
-import '../../grammar/grammar_screen.dart';
+import '../../vocabulary/vocabulary_dashboard_screen.dart';
 
 class QuickMenuSection extends StatelessWidget {
   const QuickMenuSection({super.key});
@@ -48,7 +48,7 @@ class QuickMenuSection extends StatelessWidget {
                 icon: Icons.auto_awesome,
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const GrammarScreen()),
+                  MaterialPageRoute(builder: (context) => const VocabularyDashboardScreen()),
                 ),
               ),
             ),

@@ -6,7 +6,7 @@ import '../screens/login/login_screen.dart';
 import '../screens/signup/signup_screen.dart';
 import '../screens/history/learning_history_screen.dart';
 import '../screens/conversation/chat/conversation_chat_screen.dart';
-import '../screens/grammar/grammar_screen.dart';
+
 import '../screens/login/reset_password_screen.dart';
 import '../screens/changepw/change_password_screen.dart';
 import '../screens/mypage/subscription_screen.dart';
@@ -15,6 +15,9 @@ import '../screens/level_test/level_test_screen.dart';
 import '../screens/level_test/level_test_result_screen.dart';
 import '../models/level_test_model.dart';
 import '../screens/conversation/category/sub_category_selection_screen.dart';
+import '../screens/vocabulary/vocabulary_dashboard_screen.dart';
+import '../screens/vocabulary/vocabulary_screen.dart';
+import '../screens/vocabulary/vocabulary_result_screen.dart';
 
 /// [클래스] AppRoutes
 /// 앱 내의 모든 경로 설정 및 전환 애니메이션을 담당하는 클래스입니다.
@@ -25,8 +28,7 @@ class AppRoutes {
   static const String home = '/';
   static const String history = '/history';
   static const String conversation = '/conversation';
-  static const String vocabulary = '/vocabulary';
-  static const String grammar = '/grammar';
+
   static const String resetPassword = '/reset-password';
   static const String changePassword = '/change-password';
   static const String subscription = '/subscription';
@@ -34,6 +36,10 @@ class AppRoutes {
   static const String levelTest = '/level-test';
   static const String levelTestResult = '/level-test-result';
   static const String subCategory = '/sub-category'; // [추가] 소분류 선택 화면
+  static const String vocabularyDashboard = '/vocabulary-dashboard';
+  static const String vocabulary = '/vocabulary';
+  static const String vocabularyResult = '/vocabulary-result';
+
   /// [함수] onGenerateRoute
   /// 설정된 이름(name)에 따라 해당되는 페이지 위젯을 생성하고 애니메이션을 입힙니다.
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -72,14 +78,25 @@ class AppRoutes {
         // 데이터가 누락된 경우를 대비한 방어 코드 (Default: 1)
         debugPrint('🚨 [Routing Error] subCategory 경로에 ID가 누락되었습니다.');
         return _buildFadeRoute(const SubCategorySelectionScreen(mainCatId: 1), settings);
-      case grammar:
-        return _buildFadeRoute(const GrammarScreen(), settings);
+
+      case vocabularyDashboard:
+        return _buildFadeRoute(const VocabularyDashboardScreen(), settings);
+
+      case vocabulary:
+        return _buildFadeRoute(const VocabularyScreen(), settings);
+
+        case vocabularyResult:
+        return _buildFadeRoute(const VocabularyResultScreen(), settings);
+
       case subscription:
         return _buildFadeRoute(const SubscriptionScreen(), settings);
+
       case subscriptionHistory:
         return _buildFadeRoute(const SubscriptionHistoryScreen(), settings);
+
       case levelTest:
         return _buildFadeRoute(const LevelTestScreen(), settings);
+        
       case levelTestResult:
         // 1. 매개변수(args)가 우리가 원하는 모델 타입인지 확인
         if (args is LevelTestResult) {
@@ -88,6 +105,8 @@ class AppRoutes {
         }
         // 3. 데이터가 비정상적일 때의 예외 처리 (이게 없으면 아래가 dead_code가 될 수 있음)
         return _buildFadeRoute(const Scaffold(body: Center(child: Text("결과 데이터가 없습니다."))), settings);
+
+      
 
       default:
         // 정의되지 않은 경로인 경우 표시할 예외 화면

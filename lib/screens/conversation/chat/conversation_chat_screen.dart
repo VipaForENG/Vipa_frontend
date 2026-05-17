@@ -84,8 +84,7 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
                         _buildMissionBox(provider.userTargetSentence),
                         if (provider.hints.isNotEmpty && !provider.isAnswered)
                           ...provider.hints
-                              .map((hint) => _buildHintItem(hint))
-                              .toList(),
+                              .map((hint) => _buildHintItem(hint)),
                         const SizedBox(height: 100),
                       ],
                     ),

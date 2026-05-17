@@ -6,7 +6,10 @@ import 'package:provider/provider.dart';
 import 'routes/app_routes.dart'; 
 import 'package:get/get.dart';
 // [임포트] 문법 학습 관련 데이터와 상태를 관리하는 프로바이더입니다.
-import 'screens/grammar/grammar_provider.dart';
+import 'screens/vocabulary/vocabulary_provider.dart';
+
+import 'screens/vocabulary/vocabulary_dashboard_provider.dart';
+
 // [임포트] 회화 연습 관련 데이터와 상태를 관리하는 프로바이더입니다.
 import 'screens/conversation/chat/conversation_provider.dart';
 // [임포트] 보안이 필요한 키(API KEY 등)를 .env 파일에서 불러오기 위한 패키지입니다.
@@ -48,6 +51,7 @@ class VipaApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => GrammarProvider()),
         ChangeNotifierProvider(create: (_) => ConversationProvider()),
+        ChangeNotifierProvider(create: (_) => VocabularyDashboardProvider()),
       ],
       // [위젯] GetMaterialApp: GetX의 기능을 사용하기 위한 최상위 위젯입니다.
       child: GetMaterialApp(

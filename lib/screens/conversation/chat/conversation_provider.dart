@@ -6,7 +6,6 @@ import '../../../api/api_service.dart';
 class ConversationProvider with ChangeNotifier {
   final stt.SpeechToText _speech = stt.SpeechToText();
 
-
   // --- 상태 변수 ---
   bool _isRecording = false;
   bool _isAnswered = false;
@@ -101,17 +100,20 @@ class ConversationProvider with ChangeNotifier {
 
   // 🎙️ 음성 인식 제어
   Future<void> toggleRecording() async {
-    if (_isRecording)
+    if (_isRecording) {
       await stopRecording();
-    else
+    } else {
       await startRecording();
+    }
   }
 
   Future<void> startRecording() async {
     bool available = await _speech.initialize(
       onStatus: (status) {
         if (status == 'done' || status == 'notListening') {
-          if (_isRecording) stopRecording();
+          if (_isRecording) {
+            stopRecording();
+          }
         }
       },
     );
@@ -132,14 +134,17 @@ class ConversationProvider with ChangeNotifier {
           notifyListeners();
         },
         localeId: "en_US",
-        listenMode: stt.ListenMode.confirmation,
+        // 🚨 Deprecated 경고 해결: listenMode 대신 listenOptions 사용
+        listenOptions: stt.SpeechListenOptions(listenMode: stt.ListenMode.confirmation),
         pauseFor: const Duration(seconds: 3),
       );
     }
   }
 
   Future<void> stopRecording() async {
-    if (!_isRecording) return;
+    if (!_isRecording) {
+      return;
+    }
     _isRecording = false;
     _currentSoundLevel = 0.0;
     notifyListeners();
@@ -179,7 +184,9 @@ class ConversationProvider with ChangeNotifier {
 
   // 💡 힌트 단계 제어
   Future<void> requestHintStepByStep() async {
-    if (_currentHintLevel >= 4) return;
+    if (_currentHintLevel >= 4) {
+      return;
+    }
     _currentHintLevel++;
 
     if (_currentHintLevel == 1) {
@@ -226,10 +233,11 @@ class ConversationProvider with ChangeNotifier {
     _currentHintLevel = 0;
     _hints = [];
 
-    if (_progress >= 1.0)
+    if (_progress >= 1.0) {
       _completeSession();
-    else
+    } else {
       _updateTurnUI();
+    }
     notifyListeners();
   }
 
