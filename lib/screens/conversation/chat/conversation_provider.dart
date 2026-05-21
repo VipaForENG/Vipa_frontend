@@ -29,6 +29,14 @@ class ConversationProvider with ChangeNotifier {
   List<String> _hints = [];
   Map<String, dynamic>? completionResult;
 
+  int get _totalUserTurns {
+    final turns = generatedScript?['turns'];
+    if (turns is List && turns.isNotEmpty) {
+      return (turns.length / 2).floor().clamp(1, 999);
+    }
+    return 1;
+  }
+
   // --- Getters ---
   bool get isRecording => _isRecording;
   bool get isAnswered => _isAnswered;
@@ -135,7 +143,9 @@ class ConversationProvider with ChangeNotifier {
         },
         localeId: "en_US",
         // 🚨 Deprecated 경고 해결: listenMode 대신 listenOptions 사용
-        listenOptions: stt.SpeechListenOptions(listenMode: stt.ListenMode.confirmation),
+        listenOptions: stt.SpeechListenOptions(
+          listenMode: stt.ListenMode.confirmation,
+        ),
         pauseFor: const Duration(seconds: 3),
       );
     }
@@ -201,7 +211,7 @@ class ConversationProvider with ChangeNotifier {
       _userSpokenText = "정답 확인 중... 잠시 후 이동합니다.";
       notifyListeners();
       await Future.delayed(const Duration(seconds: 3));
-      nextStep();
+      await nextStep();
     }
   }
 
@@ -223,9 +233,9 @@ class ConversationProvider with ChangeNotifier {
     } catch (_) {}
   }
 
-  void nextStep() {
+  Future<void> nextStep() async {
     _currentTurnIndex++;
-    _progress = (_currentTurnIndex / 8).clamp(0.0, 1.0);
+    _progress = (_currentTurnIndex / _totalUserTurns).clamp(0.0, 1.0);
     _isAnswered = false;
     _isTextMode = false; // ✨ 다음 단계 시 키보드 모드 초기화
     _userSpokenText = "";
@@ -234,7 +244,7 @@ class ConversationProvider with ChangeNotifier {
     _hints = [];
 
     if (_progress >= 1.0) {
-      _completeSession();
+      await _completeSession();
     } else {
       _updateTurnUI();
     }
@@ -244,7 +254,7 @@ class ConversationProvider with ChangeNotifier {
   Future<void> _completeSession() async {
     try {
       final response = await ApiService.dio.post(
-        "/complete",
+        "/scenario/complete",
         data: {"session_id": sessionId},
       );
       if (response.statusCode == 200) {

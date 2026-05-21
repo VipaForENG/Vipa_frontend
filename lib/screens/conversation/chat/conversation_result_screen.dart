@@ -61,7 +61,6 @@ class ConversationResultScreen extends StatelessWidget {
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
         color: const Color(0xFF8877FF).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(15),
         shape: BoxShape.circle,
       ),
       child: const Icon(

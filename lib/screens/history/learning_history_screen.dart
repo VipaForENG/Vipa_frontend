@@ -103,16 +103,18 @@ class _LearningHistoryView extends StatelessWidget {
                 onTap: () => _openDetail(
                   context,
                   '최근 대화한 상황별 세션',
-                  provider.recentSessions
-                      .map(
-                        (item) => _HistoryTileData(
-                          icon: Icons.forum_rounded,
-                          title: item.scenarioTitle,
-                          subtitle:
-                              '${item.category} · ${_formatDate(item.createdAt)}',
-                        ),
-                      )
-                      .toList(),
+                  _singleGroup(
+                    provider.recentSessions
+                        .map(
+                          (item) => _HistoryTileData(
+                            icon: Icons.forum_rounded,
+                            title: item.scenarioTitle,
+                            subtitle:
+                                '${item.category} · ${_formatDateTime(item.createdAt)}',
+                          ),
+                        )
+                        .toList(),
+                  ),
                   '최근 대화 세션이 없습니다.',
                 ),
               ),
@@ -123,17 +125,7 @@ class _LearningHistoryView extends StatelessWidget {
                 onTap: () => _openDetail(
                   context,
                   'AI 교정 받은 문장 리스트',
-                  provider.aiCorrections
-                      .map(
-                        (item) => _HistoryTileData(
-                          icon: Icons.spellcheck_rounded,
-                          title: item.correctedEnglish,
-                          subtitle: item.userInput.isEmpty
-                              ? item.feedbackKorean
-                              : item.userInput,
-                        ),
-                      )
-                      .toList(),
+                  _groupAiCorrections(provider.aiCorrections),
                   'AI 교정 문장이 없습니다.',
                 ),
               ),
@@ -144,15 +136,17 @@ class _LearningHistoryView extends StatelessWidget {
                 onTap: () => _openDetail(
                   context,
                   '카테고리 별 학습 현황',
-                  provider.categoryProgress
-                      .map(
-                        (item) => _HistoryTileData(
-                          icon: Icons.bar_chart_rounded,
-                          title: item.category,
-                          subtitle: '${item.completedSessions}회 완료',
-                        ),
-                      )
-                      .toList(),
+                  _singleGroup(
+                    provider.categoryProgress
+                        .map(
+                          (item) => _HistoryTileData(
+                            icon: Icons.bar_chart_rounded,
+                            title: item.category,
+                            subtitle: '${item.completedSessions}회 완료',
+                          ),
+                        )
+                        .toList(),
+                  ),
                   '카테고리 학습 현황이 없습니다.',
                 ),
               ),
@@ -172,7 +166,7 @@ class _LearningHistoryView extends StatelessWidget {
                 onTap: () => _openDetail(
                   context,
                   '일별 퀴즈 완료 기록',
-                  _dailyStatsItems(provider.dailyStats),
+                  _singleGroup(_dailyStatsItems(provider.dailyStats)),
                   '오늘 완료한 퀴즈 기록이 없습니다.',
                 ),
               ),
@@ -183,17 +177,19 @@ class _LearningHistoryView extends StatelessWidget {
                 onTap: () => _openDetail(
                   context,
                   '오답 단어 리스트',
-                  provider.wrongWords
-                      .map(
-                        (item) => _HistoryTileData(
-                          icon: Icons.refresh_rounded,
-                          title: item.targetWord,
-                          subtitle: item.meaning.isEmpty
-                              ? '오답 ${item.incorrectCount}회'
-                              : '${item.meaning} · 오답 ${item.incorrectCount}회',
-                        ),
-                      )
-                      .toList(),
+                  _singleGroup(
+                    provider.wrongWords
+                        .map(
+                          (item) => _HistoryTileData(
+                            icon: Icons.refresh_rounded,
+                            title: item.targetWord,
+                            subtitle: item.meaning.isEmpty
+                                ? '오답 ${item.incorrectCount}회'
+                                : '${item.meaning} · 오답 ${item.incorrectCount}회',
+                          ),
+                        )
+                        .toList(),
+                  ),
                   '누적 오답 단어가 없습니다.',
                 ),
               ),
@@ -204,17 +200,19 @@ class _LearningHistoryView extends StatelessWidget {
                 onTap: () => _openDetail(
                   context,
                   '즐겨찾기한 문장',
-                  provider.bookmarkedSentences
-                      .map(
-                        (item) => _HistoryTileData(
-                          icon: Icons.star_rounded,
-                          title: item.expression.isEmpty
-                              ? item.targetWord
-                              : item.expression,
-                          subtitle: item.meaning,
-                        ),
-                      )
-                      .toList(),
+                  _singleGroup(
+                    provider.bookmarkedSentences
+                        .map(
+                          (item) => _HistoryTileData(
+                            icon: Icons.star_rounded,
+                            title: item.expression.isEmpty
+                                ? item.targetWord
+                                : item.expression,
+                            subtitle: item.meaning,
+                          ),
+                        )
+                        .toList(),
+                  ),
                   '즐겨찾기한 문장이 없습니다.',
                 ),
               ),
@@ -228,7 +226,7 @@ class _LearningHistoryView extends StatelessWidget {
   void _openDetail(
     BuildContext context,
     String title,
-    List<_HistoryTileData> items,
+    List<_HistoryGroup> groups,
     String emptyText,
   ) {
     Navigator.push(
@@ -236,7 +234,7 @@ class _LearningHistoryView extends StatelessWidget {
       MaterialPageRoute(
         builder: (_) => _HistoryDetailScreen(
           title: title,
-          items: items,
+          groups: groups,
           emptyText: emptyText,
         ),
       ),
@@ -348,17 +346,19 @@ class _HistoryMenuButton extends StatelessWidget {
 
 class _HistoryDetailScreen extends StatelessWidget {
   final String title;
-  final List<_HistoryTileData> items;
+  final List<_HistoryGroup> groups;
   final String emptyText;
 
   const _HistoryDetailScreen({
     required this.title,
-    required this.items,
+    required this.groups,
     required this.emptyText,
   });
 
   @override
   Widget build(BuildContext context) {
+    final visibleGroups = groups.where((group) => group.items.isNotEmpty);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -386,7 +386,7 @@ class _HistoryDetailScreen extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
-          if (items.isEmpty)
+          if (visibleGroups.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 120),
               child: Center(
@@ -397,20 +397,43 @@ class _HistoryDetailScreen extends StatelessWidget {
               ),
             )
           else
-            cardContainer(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  children: items
-                      .map((item) => _HistoryTile(item: item))
-                      .toList(),
+            ...visibleGroups.map((group) {
+              return cardContainer(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (group.title != null) ...[
+                        Text(
+                          group.title!,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Divider(height: 1, color: Color(0xFFEAEAEA)),
+                        const SizedBox(height: 8),
+                      ],
+                      ...group.items.map((item) => _HistoryTile(item: item)),
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            }),
         ],
       ),
     );
   }
+}
+
+class _HistoryGroup {
+  final String? title;
+  final List<_HistoryTileData> items;
+
+  const _HistoryGroup({required this.title, required this.items});
 }
 
 class _HistoryTileData {
@@ -467,6 +490,34 @@ class _HistoryTile extends StatelessWidget {
   }
 }
 
+List<_HistoryGroup> _singleGroup(List<_HistoryTileData> items) {
+  return [if (items.isNotEmpty) _HistoryGroup(title: null, items: items)];
+}
+
+List<_HistoryGroup> _groupAiCorrections(List<AiCorrectionSentence> items) {
+  final grouped = <String, List<_HistoryTileData>>{};
+
+  for (final item in items) {
+    final key = _formatDateGroup(item.createdAt);
+    grouped.putIfAbsent(key, () => []);
+    grouped[key]!.add(
+      _HistoryTileData(
+        icon: Icons.spellcheck_rounded,
+        title: item.correctedEnglish,
+        subtitle: [
+          if (item.userInput.isNotEmpty) '내 문장: ${item.userInput}',
+          if (item.feedbackKorean.isNotEmpty) '피드백: ${item.feedbackKorean}',
+          '시간: ${_formatTime(item.createdAt)}',
+        ].join('\n'),
+      ),
+    );
+  }
+
+  return grouped.entries
+      .map((entry) => _HistoryGroup(title: entry.key, items: entry.value))
+      .toList();
+}
+
 String _dailyCountText(DailyVocabularyStats? stats) {
   if (stats == null || stats.totalQuizzesToday == 0) {
     return '0개';
@@ -489,7 +540,17 @@ List<_HistoryTileData> _dailyStatsItems(DailyVocabularyStats? stats) {
   ];
 }
 
-String _formatDate(DateTime? date) {
+String _formatDateTime(DateTime? date) {
   if (date == null) return '날짜 없음';
   return DateFormat('yyyy.MM.dd HH:mm').format(date.toLocal());
+}
+
+String _formatDateGroup(DateTime? date) {
+  if (date == null) return '날짜 없음';
+  return DateFormat('yyyy년 MM월 dd일').format(date.toLocal());
+}
+
+String _formatTime(DateTime? date) {
+  if (date == null) return '시간 없음';
+  return DateFormat('HH:mm').format(date.toLocal());
 }

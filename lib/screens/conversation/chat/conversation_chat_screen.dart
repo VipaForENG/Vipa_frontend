@@ -6,8 +6,8 @@ import 'widgets/conversation_widgets.dart';
 import 'evaluation_detail_view.dart';
 
 class ConversationChatScreen extends StatefulWidget {
-  final int mainCatId;
-  const ConversationChatScreen({super.key, required this.mainCatId});
+  final int subCatId;
+  const ConversationChatScreen({super.key, required this.subCatId});
 
   @override
   State<ConversationChatScreen> createState() => _ConversationChatScreenState();
@@ -25,7 +25,7 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
         listen: false,
       );
       provider.reset();
-      provider.initializeScenario(widget.mainCatId, 1);
+      provider.initializeScenario(widget.subCatId, 1);
     });
   }
 
@@ -83,8 +83,7 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
                         const SizedBox(height: 30),
                         _buildMissionBox(provider.userTargetSentence),
                         if (provider.hints.isNotEmpty && !provider.isAnswered)
-                          ...provider.hints
-                              .map((hint) => _buildHintItem(hint)),
+                          ...provider.hints.map((hint) => _buildHintItem(hint)),
                         const SizedBox(height: 100),
                       ],
                     ),

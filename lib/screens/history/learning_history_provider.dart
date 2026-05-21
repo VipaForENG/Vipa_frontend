@@ -131,6 +131,7 @@ class AiCorrectionSentence {
   final String userInput;
   final String correctedEnglish;
   final String feedbackKorean;
+  final DateTime? createdAt;
 
   AiCorrectionSentence({
     required this.turnId,
@@ -138,6 +139,7 @@ class AiCorrectionSentence {
     required this.userInput,
     required this.correctedEnglish,
     required this.feedbackKorean,
+    required this.createdAt,
   });
 
   factory AiCorrectionSentence.fromJson(Map<String, dynamic> json) {
@@ -147,6 +149,7 @@ class AiCorrectionSentence {
       userInput: json['user_input'] ?? '',
       correctedEnglish: json['corrected_en'] ?? '',
       feedbackKorean: json['feedback_ko'] ?? '',
+      createdAt: _parseDate(json['created_at']),
     );
   }
 }
