@@ -68,13 +68,14 @@ class VocabularyController extends GetxController {
     return response.data;
   }
 
-  // 2) 단일 문제 즉석 체크 및 GPT 힌트 수신 API
-  Future<Map<String, dynamic>> checkQuizAnswer(int sentenceId, String userAnswer) async {
+  // 2) 🌟 단일 문제 즉석 체크 및 GPT 힌트 수신 API (attemptCount 파라미터 추가 완료!)
+  Future<Map<String, dynamic>> checkQuizAnswer(int sentenceId, String userAnswer, int attemptCount) async {
     final response = await ApiService.dio.post(
       '/vocabulary/quiz/check',
       data: {
         'sentence_id': sentenceId,
         'user_answer': userAnswer,
+        'attempt_count': attemptCount, // 🔥 백엔드로 시도 횟수 전송!
       },
     );
     return response.data;

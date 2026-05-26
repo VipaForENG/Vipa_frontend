@@ -141,16 +141,17 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     );
   }
 
-  // 🌟 수정: GrammarProvider로 타입 변경!
+  // 🌟 수정: 텍스트 필드 제어 (기회가 없으면 입력 불가)
   Widget _buildTextField(GrammarProvider provider) {
     return Container(
       width: 120, 
       margin: const EdgeInsets.symmetric(horizontal: 8),
       child: TextField(
         controller: _answerController,
-        onSubmitted: (_) => _handleCheck(provider),
+        onSubmitted: (_) => _handleAction(provider),
         textAlign: TextAlign.center,
-        enabled: !provider.isChecking,
+        // 기회가 없으면 텍스트 필드 잠금
+        enabled: !provider.isChecking && provider.canRetry,
         style: TextStyle(
           fontSize: 20, 
           color: provider.isWrong ? const Color(0xFFFF4757) : const Color(0xFF7B61FF),
@@ -166,35 +167,63 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     );
   }
 
+  // 🌟 수정: 제출 및 다음으로 넘어가기 통합 핸들러
+  void _handleAction(GrammarProvider provider) {
+    // 1. 이미 기회를 다 쓴 상태에서 버튼을 눌렀다면 -> 정답 제출하지 않고 바로 다음 문제로 패스!
+    if (!provider.canRetry) {
+      _answerController.clear();
+      provider.forceNextQuestion(
+        () {}, // 화면만 전환되므로 별도 스낵바 불필요
+        () => _finishQuiz(provider)
+      );
+      return;
+    }
 
- void _handleCheck(GrammarProvider provider) {
+    // 2. 정상적인 답안 제출 로직
     provider.checkAnswer(
       _answerController.text,
       () {
-        // [정답 콜백] 텍스트 필드를 비우고 Vipa 커스텀 스낵바 노출
+        // [정답 콜백] 
         _answerController.clear();
         VipaSnackBar.show(context, "정답입니다! 다음 문제로 갑니다! 🎉");
       },
       () {
-        // ✨ [종료 콜백] 마지막 문제까지 모두 통과하여 submitSession 완료 시 호출됨
-        _answerController.clear();
-        
-        // 프로바이더가 백엔드 서버로부터 가로채 보관 중인 일괄 채점 리포트를 Arguments로 바인딩
-        Get.offNamed(
-          AppRoutes.vocabularyResult, 
-          arguments: provider.completionResult ?? {
-            'total_count': provider.totalCount,
-            'correct_count': provider.totalCount, // 폴백용 방어 데이터 세팅
-            'score_percentage': 100.0,
-            'results': []
-          }
-        );
+        // [종료 콜백]
+        _finishQuiz(provider);
+      },
+      () {
+        // ✨ [신규 추가] 2회 오답으로 기회 소진 콜백
+        VipaSnackBar.show(context, "기회를 모두 소진했습니다. 정답을 확인하세요!");
+        // 텍스트 필드에 진짜 정답을 채워넣어 보여줌
+        _answerController.text = provider.targetWord ?? "알 수 없음"; 
       }
     );
   }
 
-  // 🌟 수정: GrammarProvider로 타입 변경!
+  // 중복 코드 분리용
+  void _finishQuiz(GrammarProvider provider) {
+    _answerController.clear();
+    Get.offNamed(
+      AppRoutes.vocabularyResult, 
+      arguments: provider.completionResult ?? {
+        'total_count': provider.totalCount,
+        'correct_count': provider.totalCount, 
+        'score_percentage': 100.0,
+        'results': []
+      }
+    );
+  }
+
+  // 🌟 수정: 버튼 라벨 동적 변경
   Widget _buildConfirmButton(GrammarProvider provider) {
+    // 상황에 맞는 버튼 텍스트 설정
+    String btnText = "확인";
+    if (!provider.canRetry) {
+      btnText = "다음 문제로 넘어가기";
+    } else if (provider.currentCount == provider.totalCount) {
+      btnText = "결과 보기";
+    }
+
     return SafeArea( 
       child: Container(
         width: double.infinity,
@@ -203,7 +232,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         child: SizedBox(
           height: 56, 
           child: ElevatedButton(
-            onPressed: provider.isChecking ? null : () => _handleCheck(provider),
+            onPressed: provider.isChecking ? null : () => _handleAction(provider),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF7B61FF),
               disabledBackgroundColor: Colors.grey.shade300, 
@@ -211,10 +240,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             ),
             child: provider.isChecking 
               ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-              : Text(provider.currentCount == provider.totalCount ? "결과 보기" : "확인", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              : Text(btnText, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
           ),
         ),
       ),
     );
-  }
-}
+  }}
