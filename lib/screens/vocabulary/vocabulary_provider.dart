@@ -19,10 +19,18 @@ class GrammarProvider extends ChangeNotifier {
   int currentAttempt = 1;      // 현재 문제 시도 횟수
   bool canRetry = true;        // 재시도 가능 여부
   String? targetWord;          // 백엔드가 알려준 진짜 정답
-
+  
   // ✨ 백엔드 최종 성적표 리포트를 화면단에 전달하기 위한 공유 레퍼런스
   Map<String, dynamic>? completionResult;
 
+  // ✨ [신규 추가] 이번 퀴즈 세션에서 즐겨찾기한 단어들의 ID를 모아두는 Set
+  final Set<int> _bookmarkedIds = {};
+
+
+  bool get isCurrentBookmarked {
+    if (currentQuiz == null) return false;
+    return _bookmarkedIds.contains(currentQuiz!['sentence_id']);
+  }
   int get currentCount => _currentIndex + 1;
   int get totalCount => quizList.isEmpty ? 10 : quizList.length;
   bool get isWrong => _isWrong;
@@ -109,7 +117,7 @@ class GrammarProvider extends ChangeNotifier {
       _currentIndex++;
       _resetTurnStats();
       notifyListeners();
-      
+
       onCorrect();
     } else {
       await submitSession(onFinish);
@@ -125,6 +133,37 @@ class GrammarProvider extends ChangeNotifier {
       onFinish(); 
     } catch (e) {
       debugPrint("최종 제출 실패: $e");
+    }
+  }
+
+  // ✨ [신규 추가] 즐겨찾기 토글 로직 (낙관적 UI 업데이트 적용)
+  Future<void> toggleBookmark() async {
+    if (currentQuiz == null) return;
+    
+    final int vocabId = currentQuiz!['sentence_id'];
+    final bool currentState = _bookmarkedIds.contains(vocabId);
+    final bool newState = !currentState;
+
+    // 1. 서버 통신 전에 화면(UI)부터 즉시 변경 (낙관적 업데이트)
+    if (newState) {
+      _bookmarkedIds.add(vocabId);
+    } else {
+      _bookmarkedIds.remove(vocabId);
+    }
+    notifyListeners(); 
+
+    try {
+      // 2. 백엔드 API 호출
+      await _vocabularyController.toggleBookmark(vocabId, newState);
+    } catch (e) {
+      debugPrint("즐겨찾기 토글 실패: $e");
+      // 3. 만약 서버 통신이 실패하면 원래 상태로 롤백(복구)
+      if (currentState) {
+        _bookmarkedIds.add(vocabId);
+      } else {
+        _bookmarkedIds.remove(vocabId);
+      }
+      notifyListeners();
     }
   }
 }

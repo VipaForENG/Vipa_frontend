@@ -89,4 +89,14 @@ class VocabularyController extends GetxController {
     );
     return response.data;
   }
+
+  // 4) 즐겨찾기 토글 API
+  Future<Map<String, dynamic>> toggleBookmark(int vocabId, bool isBookmarked) async {
+    final response = await ApiService.dio.put(
+      '/vocabulary/$vocabId/bookmark',
+      data: {'is_bookmarked': isBookmarked},
+    );
+    return response.data;
+  }
+  
 }

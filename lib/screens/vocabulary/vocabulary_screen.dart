@@ -27,7 +27,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = Get.arguments ?? {'new_count': 5, 'review_count': 10, 'retry_count': 10};
-      // 🌟 수정: GrammarProvider로 타입 변경!
+      
       Provider.of<GrammarProvider>(context, listen: false).fetchQuiz(
         args['new_count'], 
         args['review_count'], 
@@ -44,7 +44,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 🌟 수정: GrammarProvider로 타입 변경!
     final provider = Provider.of<GrammarProvider>(context);
 
     return Scaffold(
@@ -74,7 +73,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     );
   }
 
-  // 🌟 수정: GrammarProvider로 타입 변경!
   Widget _buildQuizBody(GrammarProvider provider) {
     final quiz = provider.currentQuiz;
     if (quiz == null) return const SizedBox.shrink();
@@ -100,7 +98,32 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                   children: [
                     const Text('CEFR 등급 퀴즈', style: TextStyle(color: Colors.grey)),
                     const SizedBox(height: 20),
-                    Text(quiz['korean_hint'] ?? '', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+                    
+                    // 🌟 수정: 한국어 힌트 텍스트와 즐겨찾기 아이콘을 Row로 묶어서 나란히 배치
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            quiz['korean_hint'] ?? '', 
+                            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)
+                          ),
+                        ),
+                        // ✨ [신규 추가] 즐겨찾기(북마크) 토글 버튼
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(
+                            provider.isCurrentBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
+                            color: provider.isCurrentBookmarked ? const Color(0xFFFFC107) : Colors.grey.shade400,
+                            size: 32,
+                          ),
+                          onPressed: () {
+                            provider.toggleBookmark();
+                          },
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 25),
                     
                     if (provider.isWrong && provider.currentHint != null)
@@ -119,7 +142,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     );
   }
 
-  // 🌟 수정: GrammarProvider로 타입 변경!
   Widget _buildInputArea(GrammarProvider provider, String maskedSentence) {
     final parts = maskedSentence.split('____');
     final engBefore = parts.isNotEmpty ? parts[0] : '';
@@ -245,4 +267,5 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         ),
       ),
     );
-  }}
+  }
+}
