@@ -10,7 +10,8 @@ import 'package:get/get.dart';
 class AuthController {
   // [추가] 토큰 저장을 위한 인스턴스 추가
   static final _storage = GetStorage();
-
+  static const String _tokenKey = 'access_token';
+  
   // [추가] 홈 데이터를 다시 불러오도록 지시하는 공통 메서드
   static void _refreshHomeData() {
     try {
@@ -189,6 +190,35 @@ class AuthController {
     } on DioException catch (e) {
       debugPrint("❌ 백엔드 카카오 로그인 API 에러: ${e.response?.data ?? e.message}");
       return null;
+    }
+  }
+
+
+// --- 회원 탈퇴 ---
+  static Future<bool> withdrawUser() async {
+    try {
+      final response = await ApiService.dio.delete("/users/withdraw");
+      if (response.statusCode == 200) {
+        await _storage.remove(_tokenKey); // StorageService 대신 _storage 직접 사용
+        await _storage.remove('user_data');
+        return true;
+      }
+      return false;
+    } on DioException catch (e) {
+      debugPrint("❌ 탈퇴 API 에러: ${e.response?.data}");
+      return false;
+    }
+  }
+
+  // --- 비밀번호 변경 ---
+  static Future<bool> changePassword(String oldPassword, String newPassword) async {
+    try {
+      final response = await ApiService.dio.patch("/user/mypage/change-password", 
+          data: {"old_password": oldPassword, "new_password": newPassword});
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      debugPrint("❌ 비번 변경 API 에러: ${e.response?.data}");
+      return false;
     }
   }
 }

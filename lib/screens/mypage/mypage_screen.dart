@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../design/card_design.dart';
-import '../changepw/change_password_screen.dart';
 import '../mypage/profile_setting_screen.dart';
 import '../mypage/subscription_screen.dart'; // 구독 화면 임포트
 import '../../routes/app_routes.dart';
+import '../../controllers/auth_controller.dart';
+import 'package:get_storage/get_storage.dart';
+import '../../api/api_service.dart'; // API 서비스 임포트
 
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
@@ -12,11 +14,52 @@ class MyPageScreen extends StatefulWidget {
   State<MyPageScreen> createState() => _MyPageScreenState();
 }
 
+
+
 class _MyPageScreenState extends State<MyPageScreen> {
   // 상태로 관리할 변수들
   String currentPlan = 'PRO'; 
   String nextBillingDate = '2024.06.20';
   final String loginType = 'email';
+
+  // 💡 소셜 유저인지 판단하는 불리언 변수
+  bool isSocialUser = false;
+
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
+  }
+
+  Future<void> _loadUserInfo() async {
+  final storage = GetStorage();
+  
+  // 1. 먼저 스토리지에서 시도
+  var userData = storage.read('user_data');
+
+  // 2. 스토리지에 없으면 API 호출해서 가져오기 (가장 확실함)
+  if (userData == null) {
+    try {
+      userData = await ApiService.getMyProfile();
+      // 가져온 정보를 스토리지에 저장 (다음부터는 캐시 사용 가능)
+      await storage.write('user_data', userData);
+    } catch (e) {
+      debugPrint("❌ 프로필 조회 실패: $e");
+      return; // 데이터 로드 실패 시 종료
+    }
+  }
+
+  // 3. 상태 업데이트
+  if (userData != null) {
+    setState(() {
+      // 이제 여기서 is_social 값을 안전하게 읽을 수 있습니다.
+      final isSocial = userData['is_social'] ?? 0;
+      isSocialUser = (isSocial is int ? isSocial : int.tryParse(isSocial.toString()) ?? 0) > 0;
+    });
+    debugPrint("✅ isSocialUser 설정 완료: $isSocialUser");
+  }
+}
 
   // [핵심] 구독 화면으로 이동하고 결과를 받아오는 함수
   Future<void> _navigateToSubscription() async {
@@ -32,6 +75,79 @@ class _MyPageScreenState extends State<MyPageScreen> {
         // 실제 서비스라면 여기서 서버 데이터를 다시 불러오는 로직이 들어갑니다.
       });
     }
+  }
+
+ 
+
+  // --- [회원 탈퇴] ---
+  void _showWithdrawalDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('회원 탈퇴'),
+        content: const Text('탈퇴 시 모든 데이터가 삭제됩니다.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+          TextButton(
+            onPressed: () async {
+              final success = await AuthController.withdrawUser();
+              
+              // [핵심] dialog의 context를 사용하여 체크합니다.
+              if (!context.mounted) return; 
+              
+              if (success) {
+                Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('탈퇴 실패')));
+              }
+            },
+            child: const Text('탈퇴', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- [비밀번호 변경] ---
+  void _showChangePasswordDialog(BuildContext context) {
+    final oldPwController = TextEditingController();
+    final newPwController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('비밀번호 변경'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: oldPwController, decoration: const InputDecoration(labelText: '현재 비밀번호'), obscureText: true),
+            TextField(controller: newPwController, decoration: const InputDecoration(labelText: '새 비밀번호'), obscureText: true),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+          TextButton(
+            onPressed: () async {
+              final success = await AuthController.changePassword(
+                oldPwController.text, 
+                newPwController.text
+              );
+              
+              // [핵심] dialog의 context를 사용하여 체크합니다.
+              if (!context.mounted) return;
+
+              if (success) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('변경 완료')));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('변경 실패')));
+              }
+            },
+            child: const Text('변경'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -83,21 +199,14 @@ class _MyPageScreenState extends State<MyPageScreen> {
             cardContainer(
               child: Column(
                 children: [
-                  if (loginType == 'email')
+                  // 💡 3. 소셜 유저가 아닐 때만 비밀번호 변경 표시
+                  if (!isSocialUser)
                     _buildMenuItem(
                       icon: Icons.lock_outline,
                       title: '비밀번호 변경',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ChangePasswordScreen(isFromMyPage: true)),
-                      ),
+                      onTap: () => _showChangePasswordDialog(context),
                     ),
-                  const Divider(height: 1, indent: 20, endIndent: 20),
-                  _buildMenuItem(
-                    icon: Icons.email_outlined,
-                    title: '이메일 변경',
-                    onTap: () => debugPrint("이메일 변경 시도"),
-                  ),
+        
                   if (currentPlan != 'FREE') ...[
                     const Divider(height: 1, indent: 20, endIndent: 20),
                     _buildMenuItem(
@@ -207,21 +316,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
       child: TextButton(
         onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
         child: const Text('로그아웃', style: TextStyle(color: Colors.grey, fontSize: 14, decoration: TextDecoration.underline)),
-      ),
-    );
-  }
-
-  void _showWithdrawalDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('회원 탈퇴', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('탈퇴 시 모든 학습 데이터가 삭제되며 복구할 수 없습니다.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소', style: TextStyle(color: Colors.grey))),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('탈퇴', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
-        ],
       ),
     );
   }

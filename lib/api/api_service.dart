@@ -48,4 +48,10 @@ class ApiService {
         logPrint: (obj) => debugPrint("🌐 [DIO LOG] $obj"),
       ),
     ]);
+
+    static Future<Map<String, dynamic>> getMyProfile() async {
+    // 인증 인터셉터가 설정되어 있다면 헤더는 자동 포함됩니다.
+    final response = await dio.get('/users/me'); 
+    return response.data; 
+  }
 }
