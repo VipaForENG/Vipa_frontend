@@ -1,15 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-
 import '../../api/api_service.dart';
+import '../../models/learning_history_models.dart'; // ✨ 분리한 모델과 유틸리티 함수 임포트
 
 class LearningHistoryProvider extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
 
   List<RecentConversationSession> recentSessions = [];
-  List<AiCorrectionSentence> aiCorrections = [];
-  List<CategoryLearningProgress> categoryProgress = [];
   DailyVocabularyStats? dailyStats;
   List<WrongVocabularyItem> wrongWords = [];
   List<BookmarkedSentenceItem> bookmarkedSentences = [];
@@ -47,195 +45,37 @@ class LearningHistoryProvider extends ChangeNotifier {
   }
 
   Future<void> _loadConversationHistory() async {
-    final response = await ApiService.dio.get(
-      '/conversation/dashboard/history',
-    );
-    final data = _asMap(response.data);
+    final response = await ApiService.dio.get('/conversation/dashboard/history');
+    final data = asMap(response.data); // ✨ 이제 public 함수로 호출
 
-    recentSessions = _asList(
-      data['recent_sessions'],
-    ).map((item) => RecentConversationSession.fromJson(_asMap(item))).toList();
-    aiCorrections = _asList(
-      data['ai_corrections'],
-    ).map((item) => AiCorrectionSentence.fromJson(_asMap(item))).toList();
-    categoryProgress = _asList(
-      data['category_progress'],
-    ).map((item) => CategoryLearningProgress.fromJson(_asMap(item))).toList();
+    recentSessions = asList(data['recent_sessions']) 
+        .map((item) => RecentConversationSession.fromJson(asMap(item))).toList();
+  }
+
+  Future<ConversationScriptDetail?> fetchSessionScript(int sessionId) async {
+    try {
+      final response = await ApiService.dio.get('/conversation/dashboard/history/$sessionId');
+      return ConversationScriptDetail.fromJson(asMap(response.data));
+    } catch (e) {
+      debugPrint('스크립트 상세 로드 에러: $e');
+      return null;
+    }
   }
 
   Future<void> _loadVocabularyHistory() async {
     final response = await ApiService.dio.get('/vocabulary/history/today');
-    final data = _asMap(response.data);
+    final data = asMap(response.data);
 
-    dailyStats = DailyVocabularyStats.fromJson(_asMap(data['daily_stats']));
-    wrongWords = _asList(
-      data['wrong_vocab_list'],
-    ).map((item) => WrongVocabularyItem.fromJson(_asMap(item))).toList();
+    dailyStats = DailyVocabularyStats.fromJson(asMap(data['daily_stats']));
+    wrongWords = asList(data['wrong_vocab_list'])
+        .map((item) => WrongVocabularyItem.fromJson(asMap(item))).toList();
   }
 
   Future<void> _loadBookmarkedSentences() async {
     final response = await ApiService.dio.get('/vocabulary/bookmarks');
-    final data = _asMap(response.data);
+    final data = asMap(response.data);
 
-    bookmarkedSentences = _asList(
-      data['items'],
-    ).map((item) => BookmarkedSentenceItem.fromJson(_asMap(item))).toList();
-  }
-}
-
-Map<String, dynamic> _asMap(dynamic value) {
-  if (value is Map<String, dynamic>) return value;
-  if (value is Map) return Map<String, dynamic>.from(value);
-  return <String, dynamic>{};
-}
-
-List<dynamic> _asList(dynamic value) {
-  if (value is List) return value;
-  return const [];
-}
-
-DateTime? _parseDate(dynamic value) {
-  if (value == null) return null;
-  return DateTime.tryParse(value.toString());
-}
-
-class RecentConversationSession {
-  final int sessionId;
-  final String scenarioTitle;
-  final String category;
-  final DateTime? createdAt;
-  final String? audioUrl;
-
-  RecentConversationSession({
-    required this.sessionId,
-    required this.scenarioTitle,
-    required this.category,
-    required this.createdAt,
-    required this.audioUrl,
-  });
-
-  factory RecentConversationSession.fromJson(Map<String, dynamic> json) {
-    return RecentConversationSession(
-      sessionId: json['session_id'] ?? 0,
-      scenarioTitle: json['scenario_title'] ?? '실전회화 세션',
-      category: json['category'] ?? '미분류',
-      createdAt: _parseDate(json['created_at']),
-      audioUrl: json['audio_url'],
-    );
-  }
-}
-
-class AiCorrectionSentence {
-  final int turnId;
-  final int sessionId;
-  final String userInput;
-  final String correctedEnglish;
-  final String feedbackKorean;
-  final DateTime? createdAt;
-
-  AiCorrectionSentence({
-    required this.turnId,
-    required this.sessionId,
-    required this.userInput,
-    required this.correctedEnglish,
-    required this.feedbackKorean,
-    required this.createdAt,
-  });
-
-  factory AiCorrectionSentence.fromJson(Map<String, dynamic> json) {
-    return AiCorrectionSentence(
-      turnId: json['turn_id'] ?? 0,
-      sessionId: json['session_id'] ?? 0,
-      userInput: json['user_input'] ?? '',
-      correctedEnglish: json['corrected_en'] ?? '',
-      feedbackKorean: json['feedback_ko'] ?? '',
-      createdAt: _parseDate(json['created_at']),
-    );
-  }
-}
-
-class CategoryLearningProgress {
-  final String category;
-  final int completedSessions;
-
-  CategoryLearningProgress({
-    required this.category,
-    required this.completedSessions,
-  });
-
-  factory CategoryLearningProgress.fromJson(Map<String, dynamic> json) {
-    return CategoryLearningProgress(
-      category: json['category'] ?? '미분류',
-      completedSessions: json['completed_sessions'] ?? 0,
-    );
-  }
-}
-
-class DailyVocabularyStats {
-  final int totalQuizzesToday;
-  final int correctQuizzesToday;
-  final double accuracyRate;
-
-  DailyVocabularyStats({
-    required this.totalQuizzesToday,
-    required this.correctQuizzesToday,
-    required this.accuracyRate,
-  });
-
-  factory DailyVocabularyStats.fromJson(Map<String, dynamic> json) {
-    return DailyVocabularyStats(
-      totalQuizzesToday: json['total_quizzes_today'] ?? 0,
-      correctQuizzesToday: json['correct_quizzes_today'] ?? 0,
-      accuracyRate: (json['accuracy_rate'] ?? 0).toDouble(),
-    );
-  }
-}
-
-class WrongVocabularyItem {
-  final int vocabId;
-  final String targetWord;
-  final String expression;
-  final String meaning;
-  final int incorrectCount;
-
-  WrongVocabularyItem({
-    required this.vocabId,
-    required this.targetWord,
-    required this.expression,
-    required this.meaning,
-    required this.incorrectCount,
-  });
-
-  factory WrongVocabularyItem.fromJson(Map<String, dynamic> json) {
-    return WrongVocabularyItem(
-      vocabId: json['vocab_id'] ?? 0,
-      targetWord: json['target_word'] ?? '',
-      expression: json['expression'] ?? '',
-      meaning: json['meaning'] ?? '',
-      incorrectCount: json['incorrect_count'] ?? 0,
-    );
-  }
-}
-
-class BookmarkedSentenceItem {
-  final int vocabId;
-  final String targetWord;
-  final String expression;
-  final String meaning;
-
-  BookmarkedSentenceItem({
-    required this.vocabId,
-    required this.targetWord,
-    required this.expression,
-    required this.meaning,
-  });
-
-  factory BookmarkedSentenceItem.fromJson(Map<String, dynamic> json) {
-    return BookmarkedSentenceItem(
-      vocabId: json['vocab_id'] ?? 0,
-      targetWord: json['target_word'] ?? '',
-      expression: json['expression'] ?? '',
-      meaning: json['meaning'] ?? '',
-    );
+    bookmarkedSentences = asList(data['items'])
+        .map((item) => BookmarkedSentenceItem.fromJson(asMap(item))).toList();
   }
 }

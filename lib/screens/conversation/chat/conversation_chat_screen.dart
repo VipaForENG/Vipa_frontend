@@ -231,7 +231,7 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
       children: [
         _circleButton(
           Icons.lightbulb_outline,
-          () => provider.requestHintStepByStep(),
+          () => provider.requestHintStepByStep(textController: _textController),
         ),
         _micButton(provider),
         _circleButton(
