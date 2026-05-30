@@ -51,9 +51,9 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
   Future<void> _saveProfile() async {
     final nickname = _nicknameController.text.trim();
     if (nickname.length < 2 || nickname.length > 15) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('닉네임은 2~15자로 입력해주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('닉네임은 2~15자로 입력해주세요.')));
       return;
     }
 
@@ -76,14 +76,14 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
 
       if (!mounted) return;
       Navigator.pop(context, updatedUser);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('프로필이 변경되었습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('프로필이 변경되었습니다.')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('프로필 변경 실패: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('프로필 변경 실패: $e')));
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -231,8 +231,6 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
       );
     }
 
-    return ClipOval(
-      child: SizedBox(width: 120, height: 120, child: image),
-    );
+    return ClipOval(child: SizedBox(width: 120, height: 120, child: image));
   }
 }
