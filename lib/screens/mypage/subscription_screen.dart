@@ -171,9 +171,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       _loadState();
 
       if (!mounted) return;
+      
+      // 1. 먼저 다이얼로그를 닫습니다.
       Navigator.pop(context);
-      _showSnack('카카오페이 구독 결제가 완료되었습니다.');
-      Navigator.pop(context, true);
+
+      // 💡 2. 다이얼로그가 닫히는 애니메이션 프레임이 끝난 후 안전하게 스낵바와 이전 화면 복귀를 실행합니다.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _showSnack('카카오페이 구독 결제가 완료되었습니다.');
+        Navigator.pop(context, true);
+      });
+
     } catch (error) {
       if (!mounted) return;
       _showSnack(PaymentService.describeError(error), isError: true);
