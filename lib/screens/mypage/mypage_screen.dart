@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../design/card_design.dart';
-import '../mypage/profile_setting_screen.dart';
-import '../mypage/subscription_screen.dart'; // 구독 화면 임포트
-import '../../routes/app_routes.dart';
-import '../../controllers/auth_controller.dart';
 import 'package:get_storage/get_storage.dart';
-import '../../api/api_service.dart'; // API 서비스 임포트
+import 'package:intl/intl.dart';
+
+import '../../api/api_service.dart';
+import '../../controllers/auth_controller.dart';
+import '../../design/card_design.dart';
+import '../../models/payment_models.dart';
+import '../../routes/app_routes.dart';
+import '../../services/payment_service.dart';
+import '../../services/subscription_storage.dart';
+import '../mypage/profile_setting_screen.dart';
+import '../mypage/subscription_screen.dart';
 
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
@@ -14,91 +19,123 @@ class MyPageScreen extends StatefulWidget {
   State<MyPageScreen> createState() => _MyPageScreenState();
 }
 
-
-
 class _MyPageScreenState extends State<MyPageScreen> {
-  // 상태로 관리할 변수들
-  String currentPlan = 'PRO'; 
-  String nextBillingDate = '2024.06.20';
-  final String loginType = 'email';
+  final GetStorage _storage = GetStorage();
+  final DateFormat _dateFormat = DateFormat('yyyy.MM.dd');
 
-  // 💡 소셜 유저인지 판단하는 불리언 변수
-  bool isSocialUser = false;
-
+  SubscriptionState _subscription = SubscriptionState.free;
+  bool _isSocialUser = false;
+  bool _isCancelling = false;
+  String _nickname = 'VIPA 사용자';
+  String _email = 'user@email.com';
 
   @override
   void initState() {
     super.initState();
     _loadUserInfo();
+    _loadSubscription();
   }
 
   Future<void> _loadUserInfo() async {
-  final storage = GetStorage();
-  
-  // 1. 먼저 스토리지에서 시도
-  var userData = storage.read('user_data');
+    var userData = _storage.read('user_data');
 
-  // 2. 스토리지에 없으면 API 호출해서 가져오기 (가장 확실함)
-  if (userData == null) {
-    try {
-      userData = await ApiService.getMyProfile();
-      // 가져온 정보를 스토리지에 저장 (다음부터는 캐시 사용 가능)
-      await storage.write('user_data', userData);
-    } catch (e) {
-      debugPrint("❌ 프로필 조회 실패: $e");
-      return; // 데이터 로드 실패 시 종료
+    if (userData == null) {
+      try {
+        userData = await ApiService.getMyProfile();
+        await _storage.write('user_data', userData);
+      } catch (error) {
+        debugPrint('프로필 조회 실패: $error');
+      }
     }
-  }
 
-  // 3. 상태 업데이트
-  if (userData != null) {
+    if (!mounted || userData is! Map) return;
+
+    final isSocial = userData['is_social'] ?? 0;
     setState(() {
-      // 이제 여기서 is_social 값을 안전하게 읽을 수 있습니다.
-      final isSocial = userData['is_social'] ?? 0;
-      isSocialUser = (isSocial is int ? isSocial : int.tryParse(isSocial.toString()) ?? 0) > 0;
+      _nickname = (userData['nickname'] ?? _nickname).toString();
+      _email = (userData['email'] ?? _email).toString();
+      _isSocialUser =
+          (isSocial is int
+              ? isSocial
+              : int.tryParse(isSocial.toString()) ?? 0) >
+          0;
     });
-    debugPrint("✅ isSocialUser 설정 완료: $isSocialUser");
   }
-}
 
-  // [핵심] 구독 화면으로 이동하고 결과를 받아오는 함수
+  void _loadSubscription() {
+    setState(() {
+      _subscription = SubscriptionStorage.getState();
+    });
+  }
+
   Future<void> _navigateToSubscription() async {
-    final result = await Navigator.push(
+    final changed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
     );
 
-    // 구독 화면에서 Navigator.pop(context, '플랜명')으로 넘겨준 값을 처리
-    if (result != null && result is String) {
-      setState(() {
-        currentPlan = result;
-        // 실제 서비스라면 여기서 서버 데이터를 다시 불러오는 로직이 들어갑니다.
-      });
+    if (changed == true && mounted) {
+      _loadSubscription();
     }
   }
 
- 
+  Future<void> _cancelSubscription() async {
+    final state = _subscription;
+    setState(() => _isCancelling = true);
 
-  // --- [회원 탈퇴] ---
+    try {
+      if (state.sid != null && state.sid!.isNotEmpty) {
+        await PaymentService.inactiveKakaoSubscription(sid: state.sid!);
+      }
+
+      await SubscriptionStorage.cancelSubscription(state: state);
+      if (!mounted) return;
+      Navigator.pop(context);
+      _loadSubscription();
+      _showSnack('구독이 해지되었습니다.');
+    } catch (error) {
+      if (!mounted) return;
+      _showSnack(PaymentService.describeError(error), isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _isCancelling = false);
+      }
+    }
+  }
+
+  void _showSnack(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.redAccent : Colors.blueAccent,
+      ),
+    );
+  }
+
   void _showWithdrawalDialog(BuildContext context) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('회원 탈퇴'),
-        content: const Text('탈퇴 시 모든 데이터가 삭제됩니다.'),
+        content: const Text('탈퇴하면 계정과 학습 데이터가 삭제됩니다. 계속할까요?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
           TextButton(
             onPressed: () async {
               final success = await AuthController.withdrawUser();
-              
-              // [핵심] dialog의 context를 사용하여 체크합니다.
-              if (!context.mounted) return; 
-              
+              if (!context.mounted) return;
+
               if (success) {
-                Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppRoutes.login,
+                  (route) => false,
+                );
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('탈퇴 실패')));
+                _showSnack('회원 탈퇴에 실패했습니다.', isError: true);
               }
             },
             child: const Text('탈퇴', style: TextStyle(color: Colors.redAccent)),
@@ -108,42 +145,83 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-  // --- [비밀번호 변경] ---
   void _showChangePasswordDialog(BuildContext context) {
     final oldPwController = TextEditingController();
     final newPwController = TextEditingController();
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('비밀번호 변경'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: oldPwController, decoration: const InputDecoration(labelText: '현재 비밀번호'), obscureText: true),
-            TextField(controller: newPwController, decoration: const InputDecoration(labelText: '새 비밀번호'), obscureText: true),
+            TextField(
+              controller: oldPwController,
+              decoration: const InputDecoration(labelText: '현재 비밀번호'),
+              obscureText: true,
+            ),
+            TextField(
+              controller: newPwController,
+              decoration: const InputDecoration(labelText: '새 비밀번호'),
+              obscureText: true,
+            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
           TextButton(
             onPressed: () async {
               final success = await AuthController.changePassword(
-                oldPwController.text, 
-                newPwController.text
+                oldPwController.text,
+                newPwController.text,
               );
-              
-              // [핵심] dialog의 context를 사용하여 체크합니다.
+
               if (!context.mounted) return;
 
               if (success) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('변경 완료')));
+                _showSnack('비밀번호가 변경되었습니다.');
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('변경 실패')));
+                _showSnack('비밀번호 변경에 실패했습니다.', isError: true);
               }
             },
             child: const Text('변경'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCancelSubscriptionDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          '구독 해지',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          '${_subscription.planName} 구독을 해지할까요?\n해지 후 다음 결제는 진행되지 않습니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: _isCancelling ? null : () => Navigator.pop(context),
+            child: const Text('취소', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: _isCancelling ? null : _cancelSubscription,
+            child: _isCancelling
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('해지하기', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
@@ -155,8 +233,13 @@ class _MyPageScreenState extends State<MyPageScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('마이페이지', 
-          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D3436))),
+        title: const Text(
+          '마이페이지',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2D3436),
+          ),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -165,14 +248,8 @@ class _MyPageScreenState extends State<MyPageScreen> {
         padding: const EdgeInsets.only(bottom: 40),
         child: Column(
           children: [
-            // [섹션 1] 프로필 및 구독 상태
-            cardContainer(
-              child: _buildProfileContent(context, currentPlan, nextBillingDate),
-            ),
-
+            cardContainer(child: _buildProfileContent(context)),
             const SizedBox(height: 24),
-
-            // [섹션 2] 멤버십 관리
             _buildSectionHeader('멤버십 관리'),
             cardContainer(
               child: Column(
@@ -180,38 +257,37 @@ class _MyPageScreenState extends State<MyPageScreen> {
                   _buildMenuItem(
                     icon: Icons.card_membership_outlined,
                     title: '멤버십 구독 및 변경',
-                    onTap: _navigateToSubscription, // 수정된 함수 연결
+                    onTap: _navigateToSubscription,
                   ),
                   const Divider(height: 1, indent: 20, endIndent: 20),
                   _buildMenuItem(
                     icon: Icons.receipt_long_outlined,
                     title: '구독 결제 내역',
-                    onTap: () => Navigator.pushNamed(context, AppRoutes.subscriptionHistory),
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.subscriptionHistory,
+                    ).then((_) => _loadSubscription()),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 24),
-
-            // [섹션 3] 내 정보 관리
-            _buildSectionHeader('내 정보 관리'),
+            _buildSectionHeader('계정 관리'),
             cardContainer(
               child: Column(
                 children: [
-                  // 💡 3. 소셜 유저가 아닐 때만 비밀번호 변경 표시
-                  if (!isSocialUser)
+                  if (!_isSocialUser)
                     _buildMenuItem(
                       icon: Icons.lock_outline,
                       title: '비밀번호 변경',
                       onTap: () => _showChangePasswordDialog(context),
                     ),
-        
-                  if (currentPlan != 'FREE') ...[
+                  if (_subscription.active) ...[
                     const Divider(height: 1, indent: 20, endIndent: 20),
                     _buildMenuItem(
                       icon: Icons.cancel_outlined,
                       title: '구독 해지',
+                      isDanger: true,
                       onTap: () => _showCancelSubscriptionDialog(context),
                     ),
                   ],
@@ -225,7 +301,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 32),
             _buildLogoutButton(context),
           ],
@@ -234,9 +309,12 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-  // --- 위젯 빌드 함수들 (이전과 동일하지만 currentPlan 변수를 동적으로 사용) ---
+  Widget _buildProfileContent(BuildContext context) {
+    final nextBillingDate = _subscription.nextBillingDate == null
+        ? null
+        : _dateFormat.format(_subscription.nextBillingDate!);
+    final planLabel = _subscription.active ? _subscription.planName : 'FREE';
 
-  Widget _buildProfileContent(BuildContext context, String plan, String nextDate) {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -249,43 +327,87 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 child: Icon(Icons.person, color: Colors.white, size: 30),
               ),
               const SizedBox(width: 16),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('닉네임', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3436))),
-                    Text('user@email.com', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                    Text(
+                      _nickname,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2D3436),
+                      ),
+                    ),
+                    Text(
+                      _email,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
                   ],
                 ),
               ),
               TextButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileSettingScreen())),
-                child: const Text('수정', style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileSettingScreen(),
+                  ),
+                ),
+                child: const Text(
+                  '수정',
+                  style: TextStyle(
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
-          const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider()),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Divider(),
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("나의 멤버십", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2D3436))),
-                  if (plan != 'FREE')
-                    Text("다음 결제: $nextDate", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  const Text(
+                    '나의 멤버십',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2D3436),
+                    ),
+                  ),
+                  if (nextBillingDate != null)
+                    Text(
+                      '다음 결제: $nextBillingDate',
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.blueAccent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(plan, style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+                child: Text(
+                  planLabel,
+                  style: const TextStyle(
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -296,17 +418,44 @@ class _MyPageScreenState extends State<MyPageScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
+        child: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildMenuItem({required IconData icon, required String title, required VoidCallback onTap, bool isDanger = false}) {
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isDanger = false,
+  }) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      leading: Icon(icon, color: isDanger ? Colors.redAccent : const Color(0xFF2D3436), size: 22),
-      title: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: isDanger ? Colors.redAccent : const Color(0xFF2D3436))),
-      trailing: const Icon(Icons.chevron_right, color: Color(0xFFDFE6E9), size: 20),
+      leading: Icon(
+        icon,
+        color: isDanger ? Colors.redAccent : const Color(0xFF2D3436),
+        size: 22,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: isDanger ? Colors.redAccent : const Color(0xFF2D3436),
+        ),
+      ),
+      trailing: const Icon(
+        Icons.chevron_right,
+        color: Color(0xFFDFE6E9),
+        size: 20,
+      ),
       onTap: onTap,
     );
   }
@@ -314,26 +463,16 @@ class _MyPageScreenState extends State<MyPageScreen> {
   Widget _buildLogoutButton(BuildContext context) {
     return Center(
       child: TextButton(
-        onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
-        child: const Text('로그아웃', style: TextStyle(color: Colors.grey, fontSize: 14, decoration: TextDecoration.underline)),
-      ),
-    );
-  }
-
-  void _showCancelSubscriptionDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('구독 해지', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('정말 구독을 해지하시겠습니까?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소', style: TextStyle(color: Colors.grey))),
-          TextButton(onPressed: () {
-            setState(() => currentPlan = 'FREE'); // 테스트용 즉시 해지 반영
-            Navigator.pop(context);
-          }, child: const Text('해지하기', style: TextStyle(color: Colors.redAccent))),
-        ],
+        onPressed: () =>
+            Navigator.pushReplacementNamed(context, AppRoutes.login),
+        child: const Text(
+          '로그아웃',
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+            decoration: TextDecoration.underline,
+          ),
+        ),
       ),
     );
   }

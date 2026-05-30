@@ -1,5 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../design/card_design.dart'; // 디자인 시스템 임포트
+import 'package:get_storage/get_storage.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../api/api_config.dart';
+import '../../design/card_design.dart';
+import '../../models/payment_models.dart';
+import '../../services/payment_service.dart';
+import '../../services/subscription_storage.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -9,74 +17,335 @@ class SubscriptionScreen extends StatefulWidget {
 }
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
-  String _selectedPlanId = 'pro';
+  final TextEditingController _pgTokenController = TextEditingController();
+  final GetStorage _storage = GetStorage();
 
-  final List<Map<String, dynamic>> _plans = [
-    {
-      "id": "free",
-      "name": "FREE",
-      "price": "0",
-      "description": "• 기본 AI 대화 (일 3회)\n• 공용 단어장 열람 가능\n• 광고 포함",
-      "isHighlight": false,
-    },
-    {
-      "id": "pro",
-      "name": "VIPA PRO",
-      "price": "9,900",
-      "description": "• AI 대화 무제한 이용\n• 모든 프리미엄 단어장 잠금해제\n• 나만의 오답노트 무제한 생성\n• 광고 제거",
-      "isHighlight": true,
-    },
+  String _selectedPlanId = 'pro';
+  bool _isLoading = false;
+  PendingKakaoPayment? _pendingPayment;
+  SubscriptionState _subscription = SubscriptionState.free;
+
+  static const List<SubscriptionPlan> _plans = [
+    SubscriptionPlan(
+      id: 'free',
+      name: 'FREE',
+      price: 0,
+      description: '기본 학습 기능을 가볍게 이용할 수 있는 플랜',
+      features: ['일부 AI 학습 기능', '기본 학습 기록', '광고 포함'],
+    ),
+    SubscriptionPlan(
+      id: 'pro',
+      name: 'VIPA PRO',
+      price: 9900,
+      description: 'AI 학습 기능을 제한 없이 이용하는 월 구독 플랜',
+      features: ['AI 대화 및 피드백 무제한', '모든 프리미엄 학습 콘텐츠', '상세 학습 리포트', '광고 제거'],
+      highlight: true,
+    ),
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadState();
+  }
+
+  @override
+  void dispose() {
+    _pgTokenController.dispose();
+    super.dispose();
+  }
+
+  void _loadState() {
+    setState(() {
+      _subscription = SubscriptionStorage.getState();
+      _pendingPayment = SubscriptionStorage.getPendingPayment();
+      if (_subscription.active) {
+        _selectedPlanId = _subscription.planId;
+      }
+    });
+  }
+
+  String get _partnerUserId {
+    final userData = _storage.read('user_data');
+    if (userData is Map) {
+      return (userData['user_id'] ??
+              userData['email'] ??
+              userData['nickname'] ??
+              'user-1')
+          .toString();
+    }
+    return 'user-1';
+  }
+
+  String _createOrderId(String planId) {
+    return 'vipa_${planId}_${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  Future<void> _startKakaoPay(SubscriptionPlan plan) async {
+    if (plan.price == 0) {
+      await SubscriptionStorage.saveState(SubscriptionState.free);
+      if (!mounted) return;
+      Navigator.pop(context, true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final orderId = _createOrderId(plan.id);
+      final ready = await PaymentService.readyKakaoSubscription(
+        partnerOrderId: orderId,
+        partnerUserId: _partnerUserId,
+        itemName: plan.name,
+        totalAmount: plan.price,
+        approvalUrl: '${ApiConfig.baseUrl}/payments/kakao/redirect/success',
+        cancelUrl: '${ApiConfig.baseUrl}/payments/kakao/redirect/cancel',
+        failUrl: '${ApiConfig.baseUrl}/payments/kakao/redirect/fail',
+      );
+
+      final pending = PendingKakaoPayment(
+        tid: ready.tid,
+        orderId: orderId,
+        partnerUserId: _partnerUserId,
+        planId: plan.id,
+        planName: plan.name,
+        amount: plan.price,
+        createdAt: DateTime.now(),
+        subscription: true,
+      );
+
+      await SubscriptionStorage.savePendingPayment(pending);
+      setState(() => _pendingPayment = pending);
+
+      final redirectUrl = ready.browserRedirectUrl;
+      if (redirectUrl == null || redirectUrl.isEmpty) {
+        throw Exception('카카오페이 결제 URL이 응답에 없습니다.');
+      }
+
+      final launched = await launchUrl(
+        Uri.parse(redirectUrl),
+        mode: kIsWeb
+            ? LaunchMode.platformDefault
+            : LaunchMode.externalApplication,
+      );
+
+      if (!launched) {
+        throw Exception('카카오페이 결제창을 열 수 없습니다.');
+      }
+
+      if (!mounted) return;
+      _showPgTokenDialog(pending);
+    } catch (error) {
+      if (!mounted) return;
+      _showSnack(PaymentService.describeError(error), isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _approvePendingPayment(PendingKakaoPayment pending) async {
+    final pgToken = _pgTokenController.text.trim();
+    if (pgToken.isEmpty) {
+      _showSnack('pg_token을 입력해주세요.', isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await PaymentService.approveKakaoSubscription(
+        tid: pending.tid,
+        partnerOrderId: pending.orderId,
+        partnerUserId: pending.partnerUserId,
+        pgToken: pgToken,
+      );
+
+      await SubscriptionStorage.activateSubscription(
+        pending: pending,
+        approveResponse: response,
+      );
+
+      _pgTokenController.clear();
+      _loadState();
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      _showSnack('카카오페이 구독 결제가 완료되었습니다.');
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) return;
+      _showSnack(PaymentService.describeError(error), isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showPgTokenDialog(PendingKakaoPayment pending) {
+    _pgTokenController.clear();
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('결제 승인'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('카카오페이 결제 완료 후 이동한 URL에서 pg_token 값을 복사해 입력하세요.'),
+            const SizedBox(height: 12),
+            SelectableText(
+              'tid: ${pending.tid}\norderId: ${pending.orderId}',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _pgTokenController,
+              decoration: const InputDecoration(
+                labelText: 'pg_token',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('나중에 승인'),
+          ),
+          ElevatedButton(
+            onPressed: _isLoading
+                ? null
+                : () => _approvePendingPayment(pending),
+            child: const Text('승인 요청'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnack(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.redAccent : Colors.blueAccent,
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final selectedPlan = _plans.firstWhere(
+      (plan) => plan.id == _selectedPlanId,
+    );
+
     return Scaffold(
-      backgroundColor: Colors.white, // 디자인 시스템에 맞춰 화이트로 통일
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("멤버십 구독", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D3436))),
+        title: const Text(
+          '멤버십 구독',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2D3436),
+          ),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.only(bottom: 110),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 8),
               child: Text(
-                "나에게 꼭 맞는\n학습 플랜을 선택하세요",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, height: 1.4, color: Color(0xFF2D3436)),
+                '나에게 맞는\n학습 플랜을 선택하세요',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  height: 1.3,
+                  color: Color(0xFF2D3436),
+                ),
               ),
             ),
-            
-            // 디자인 시스템 Card_Container를 활용한 플랜 선택
-            ..._plans.map((plan) => _buildPlanCard(plan)),
-            
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildInfoText(),
+            if (_subscription.active) _buildCurrentSubscription(),
+            if (_pendingPayment != null) _buildPendingPayment(),
+            ..._plans.map(_buildPlanCard),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
+              child: Text(
+                '구독은 매월 자동 결제됩니다. 해지는 마이페이지에서 처리할 수 있습니다.',
+                style: TextStyle(color: Colors.grey, fontSize: 12, height: 1.6),
+              ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: _buildSubscribeButton(),
+      bottomNavigationBar: _buildSubscribeButton(selectedPlan),
     );
   }
 
-  Widget _buildPlanCard(Map<String, dynamic> plan) {
-    final bool isSelected = _selectedPlanId == plan['id'];
+  Widget _buildCurrentSubscription() {
+    return cardContainer(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            const Icon(Icons.verified, color: Colors.blueAccent),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '${_subscription.planName} 구독 이용 중',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingPayment() {
+    final pending = _pendingPayment!;
+    return cardContainer(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '승인 대기 중인 결제',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${pending.planName} 결제의 pg_token을 받았다면 승인을 완료하세요.',
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () => _showPgTokenDialog(pending),
+              child: const Text('pg_token 입력'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlanCard(SubscriptionPlan plan) {
+    final isSelected = _selectedPlanId == plan.id;
+    final isActivePlan =
+        _subscription.active && _subscription.planId == plan.id;
 
     return GestureDetector(
-      onTap: () => setState(() => _selectedPlanId = plan['id']),
+      onTap: () => setState(() => _selectedPlanId = plan.id),
       child: cardContainer(
-        // 선택되었을 때 테두리 강조를 위해 cardContainer 내부에 로직 추가 가능
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -90,17 +359,29 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    plan['name'],
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.blueAccent : const Color(0xFF2D3436),
+                  Expanded(
+                    child: Text(
+                      plan.name,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected
+                            ? Colors.blueAccent
+                            : const Color(0xFF2D3436),
+                      ),
                     ),
                   ),
-                  if (isSelected) const Icon(Icons.check_circle, color: Colors.blueAccent),
+                  if (isActivePlan)
+                    const Text(
+                      '이용 중',
+                      style: TextStyle(
+                        color: Colors.blueAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  else if (isSelected)
+                    const Icon(Icons.check_circle, color: Colors.blueAccent),
                 ],
               ),
               const SizedBox(height: 12),
@@ -108,14 +389,46 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Text("₩ ${plan['price']}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  const Text(" / 월", style: TextStyle(color: Colors.grey, fontSize: 14)),
+                  Text(
+                    plan.price == 0 ? '무료' : '₩${plan.formattedPrice}',
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (plan.price > 0)
+                    const Text(
+                      ' / 월',
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
                 ],
               ),
-              const Divider(height: 30),
+              const SizedBox(height: 8),
               Text(
-                plan['description'],
-                style: TextStyle(color: Colors.grey[600], height: 1.6, fontSize: 13),
+                plan.description,
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+              const Divider(height: 28),
+              ...plan.features.map(
+                (feature) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check,
+                        size: 18,
+                        color: Colors.blueAccent,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          feature,
+                          style: const TextStyle(fontSize: 13, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -124,65 +437,48 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  Widget _buildInfoText() {
-    return Text(
-      "• 구독은 매월 자동으로 갱신됩니다.\n• 다음 결제일 24시간 전까지 언제든 해지 가능합니다.",
-      style: TextStyle(color: Colors.grey[400], fontSize: 12, height: 1.6),
-    );
-  }
+  Widget _buildSubscribeButton(SubscriptionPlan selectedPlan) {
+    final isActivePlan =
+        _subscription.active && _subscription.planId == selectedPlan.id;
 
-  Widget _buildSubscribeButton() {
-    final selectedPlan = _plans.firstWhere((p) => p['id'] == _selectedPlanId);
-    
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
       decoration: const BoxDecoration(color: Colors.white),
       child: ElevatedButton(
-        onPressed: () => _showPaymentMethodSheet(selectedPlan),
+        onPressed: _isLoading || isActivePlan
+            ? null
+            : () => _startKakaoPay(selectedPlan),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blueAccent,
+          disabledBackgroundColor: Colors.grey.shade300,
           minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           elevation: 0,
         ),
-        child: Text(
-          "${selectedPlan['name']} 시작하기",
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Text(
+                isActivePlan
+                    ? '현재 이용 중인 플랜'
+                    : selectedPlan.price == 0
+                    ? 'FREE로 변경'
+                    : '카카오페이로 시작하기',
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
       ),
     );
-  }
-
-  void _showPaymentMethodSheet(Map<String, dynamic> plan) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(30),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("결제 수단 선택", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.payment, color: Colors.orange),
-              title: const Text("카카오페이"),
-              onTap: () => _processPayment(plan),
-            ),
-            ListTile(
-              leading: const Icon(Icons.credit_card, color: Colors.blue),
-              title: const Text("신용카드"),
-              onTap: () => _processPayment(plan),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _processPayment(Map<String, dynamic> plan) {
-    Navigator.pop(context); // 시트 닫기
-    // 여기서 Navigator.pop을 할 때 선택한 플랜 정보를 전달합니다.
-    Navigator.pop(context, plan['name']); 
   }
 }
