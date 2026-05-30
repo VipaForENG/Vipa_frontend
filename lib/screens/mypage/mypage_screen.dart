@@ -1,16 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:intl/intl.dart';
 
 import '../../api/api_service.dart';
 import '../../controllers/auth_controller.dart';
 import '../../design/card_design.dart';
-import '../../models/payment_models.dart';
 import '../../routes/app_routes.dart';
-import '../../services/payment_service.dart';
-import '../../services/subscription_storage.dart';
-import '../mypage/profile_setting_screen.dart';
-import '../mypage/subscription_screen.dart';
+import 'profile_setting_screen.dart';
+import 'subscription_screen.dart';
 
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
@@ -20,96 +18,88 @@ class MyPageScreen extends StatefulWidget {
 }
 
 class _MyPageScreenState extends State<MyPageScreen> {
-  final GetStorage _storage = GetStorage();
-  final DateFormat _dateFormat = DateFormat('yyyy.MM.dd');
-
-  SubscriptionState _subscription = SubscriptionState.free;
-  bool _isSocialUser = false;
-  bool _isCancelling = false;
-  String _nickname = 'VIPA 사용자';
-  String _email = 'user@email.com';
+  String currentPlan = 'PRO';
+  String nextBillingDate = '2024.06.20';
+  String nickname = '닉네임';
+  String email = 'user@email.com';
+  String? profileImage;
+  String? localProfileImagePath;
+  bool isSocialUser = false;
+  Map<String, dynamic>? userData;
 
   @override
   void initState() {
     super.initState();
     _loadUserInfo();
-    _loadSubscription();
   }
 
-  Future<void> _loadUserInfo() async {
-    var userData = _storage.read('user_data');
+  Future<void> _loadUserInfo({bool forceRefresh = false}) async {
+    final storage = GetStorage();
+    final cachedData = storage.read('user_data');
+    final savedLocalImagePath = storage.read('local_profile_image_path')?.toString();
+    final cachedLocalImagePath =
+        (savedLocalImagePath != null && savedLocalImagePath.isNotEmpty)
+        ? savedLocalImagePath
+        : (cachedData is Map
+              ? cachedData['local_profile_image_path']?.toString()
+              : null);
+    dynamic data = forceRefresh ? null : storage.read('user_data');
 
-    if (userData == null) {
+    if (data == null) {
       try {
-        userData = await ApiService.getMyProfile();
-        await _storage.write('user_data', userData);
-      } catch (error) {
-        debugPrint('프로필 조회 실패: $error');
+        data = await ApiService.getMyProfile();
+        if (cachedLocalImagePath != null && cachedLocalImagePath.isNotEmpty) {
+          data['local_profile_image_path'] = cachedLocalImagePath;
+        }
+        await storage.write('user_data', data);
+      } catch (e) {
+        debugPrint('프로필 조회 실패: $e');
+        return;
       }
     }
 
-    if (!mounted || userData is! Map) return;
-
-    final isSocial = userData['is_social'] ?? 0;
+    if (!mounted) return;
     setState(() {
-      _nickname = (userData['nickname'] ?? _nickname).toString();
-      _email = (userData['email'] ?? _email).toString();
-      _isSocialUser =
-          (isSocial is int
-              ? isSocial
-              : int.tryParse(isSocial.toString()) ?? 0) >
-          0;
+      userData = Map<String, dynamic>.from(data);
+      nickname = userData?['nickname']?.toString() ?? '닉네임';
+      email = userData?['email']?.toString() ?? 'user@email.com';
+      profileImage = userData?['profile_image']?.toString();
+      localProfileImagePath = userData?['local_profile_image_path']?.toString();
+      final isSocial = userData?['is_social'] ?? 0;
+      isSocialUser =
+          (isSocial is int ? isSocial : int.tryParse(isSocial.toString()) ?? 0) >
+              0;
     });
   }
 
-  void _loadSubscription() {
+  Future<void> _openProfileSetting() async {
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfileSettingScreen(initialUserData: userData),
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
     setState(() {
-      _subscription = SubscriptionStorage.getState();
+      userData = result;
+      nickname = result['nickname']?.toString() ?? nickname;
+      email = result['email']?.toString() ?? email;
+      profileImage = result['profile_image']?.toString();
+      localProfileImagePath = result['local_profile_image_path']?.toString();
     });
   }
 
   Future<void> _navigateToSubscription() async {
-    final changed = await Navigator.push<bool>(
+    final result = await Navigator.push<String>(
       context,
       MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
     );
 
-    if (changed == true && mounted) {
-      _loadSubscription();
+    if (result != null && mounted) {
+      setState(() => currentPlan = result);
     }
-  }
-
-  Future<void> _cancelSubscription() async {
-    final state = _subscription;
-    setState(() => _isCancelling = true);
-
-    try {
-      if (state.sid != null && state.sid!.isNotEmpty) {
-        await PaymentService.inactiveKakaoSubscription(sid: state.sid!);
-      }
-
-      await SubscriptionStorage.cancelSubscription(state: state);
-      if (!mounted) return;
-      Navigator.pop(context);
-      _loadSubscription();
-      _showSnack('구독이 해지되었습니다.');
-    } catch (error) {
-      if (!mounted) return;
-      _showSnack(PaymentService.describeError(error), isError: true);
-    } finally {
-      if (mounted) {
-        setState(() => _isCancelling = false);
-      }
-    }
-  }
-
-  void _showSnack(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.redAccent : Colors.blueAccent,
-      ),
-    );
   }
 
   void _showWithdrawalDialog(BuildContext context) {
@@ -135,7 +125,9 @@ class _MyPageScreenState extends State<MyPageScreen> {
                   (route) => false,
                 );
               } else {
-                _showSnack('회원 탈퇴에 실패했습니다.', isError: true);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('탈퇴 실패')),
+                );
               }
             },
             child: const Text('탈퇴', style: TextStyle(color: Colors.redAccent)),
@@ -184,9 +176,13 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
               if (success) {
                 Navigator.pop(context);
-                _showSnack('비밀번호가 변경되었습니다.');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('변경 완료')),
+                );
               } else {
-                _showSnack('비밀번호 변경에 실패했습니다.', isError: true);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('변경 실패')),
+                );
               }
             },
             child: const Text('변경'),
@@ -197,31 +193,23 @@ class _MyPageScreenState extends State<MyPageScreen> {
   }
 
   void _showCancelSubscriptionDialog(BuildContext context) {
-    showDialog<void>(
+    showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          '구독 해지',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          '${_subscription.planName} 구독을 해지할까요?\n해지 후 다음 결제는 진행되지 않습니다.',
-        ),
+        title: const Text('구독 해지', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('정말 구독을 해지하시겠습니까?'),
         actions: [
           TextButton(
-            onPressed: _isCancelling ? null : () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context),
             child: const Text('취소', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
-            onPressed: _isCancelling ? null : _cancelSubscription,
-            child: _isCancelling
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('해지하기', style: TextStyle(color: Colors.redAccent)),
+            onPressed: () {
+              setState(() => currentPlan = 'FREE');
+              Navigator.pop(context);
+            },
+            child: const Text('해지하기', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
@@ -235,96 +223,96 @@ class _MyPageScreenState extends State<MyPageScreen> {
       appBar: AppBar(
         title: const Text(
           '마이페이지',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2D3436),
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D3436)),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 40),
-        child: Column(
-          children: [
-            cardContainer(child: _buildProfileContent(context)),
-            const SizedBox(height: 24),
-            _buildSectionHeader('멤버십 관리'),
-            cardContainer(
-              child: Column(
-                children: [
-                  _buildMenuItem(
-                    icon: Icons.card_membership_outlined,
-                    title: '멤버십 구독 및 변경',
-                    onTap: _navigateToSubscription,
-                  ),
-                  const Divider(height: 1, indent: 20, endIndent: 20),
-                  _buildMenuItem(
-                    icon: Icons.receipt_long_outlined,
-                    title: '구독 결제 내역',
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      AppRoutes.subscriptionHistory,
-                    ).then((_) => _loadSubscription()),
-                  ),
-                ],
+      body: RefreshIndicator(
+        onRefresh: () => _loadUserInfo(forceRefresh: true),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 40),
+          child: Column(
+            children: [
+              cardContainer(
+                child: _buildProfileContent(context, currentPlan, nextBillingDate),
               ),
-            ),
-            const SizedBox(height: 24),
-            _buildSectionHeader('계정 관리'),
-            cardContainer(
-              child: Column(
-                children: [
-                  if (!_isSocialUser)
+              const SizedBox(height: 24),
+              _buildSectionHeader('멤버십 관리'),
+              cardContainer(
+                child: Column(
+                  children: [
                     _buildMenuItem(
-                      icon: Icons.lock_outline,
-                      title: '비밀번호 변경',
-                      onTap: () => _showChangePasswordDialog(context),
+                      icon: Icons.card_membership_outlined,
+                      title: '멤버십 구독 및 변경',
+                      onTap: _navigateToSubscription,
                     ),
-                  if (_subscription.active) ...[
                     const Divider(height: 1, indent: 20, endIndent: 20),
                     _buildMenuItem(
-                      icon: Icons.cancel_outlined,
-                      title: '구독 해지',
-                      isDanger: true,
-                      onTap: () => _showCancelSubscriptionDialog(context),
+                      icon: Icons.receipt_long_outlined,
+                      title: '구독 결제 내역',
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        AppRoutes.subscriptionHistory,
+                      ),
                     ),
                   ],
-                  const Divider(height: 1, indent: 20, endIndent: 20),
-                  _buildMenuItem(
-                    icon: Icons.person_remove_outlined,
-                    title: '회원 탈퇴',
-                    isDanger: true,
-                    onTap: () => _showWithdrawalDialog(context),
-                  ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
-            _buildLogoutButton(context),
-          ],
+              const SizedBox(height: 24),
+              _buildSectionHeader('내 정보 관리'),
+              cardContainer(
+                child: Column(
+                  children: [
+                    if (!isSocialUser)
+                      _buildMenuItem(
+                        icon: Icons.lock_outline,
+                        title: '비밀번호 변경',
+                        onTap: () => _showChangePasswordDialog(context),
+                      ),
+                    if (currentPlan != 'FREE') ...[
+                      const Divider(height: 1, indent: 20, endIndent: 20),
+                      _buildMenuItem(
+                        icon: Icons.cancel_outlined,
+                        title: '구독 해지',
+                        onTap: () => _showCancelSubscriptionDialog(context),
+                      ),
+                    ],
+                    const Divider(height: 1, indent: 20, endIndent: 20),
+                    _buildMenuItem(
+                      icon: Icons.person_remove_outlined,
+                      title: '회원 탈퇴',
+                      isDanger: true,
+                      onTap: () => _showWithdrawalDialog(context),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+              _buildLogoutButton(context),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildProfileContent(BuildContext context) {
-    final nextBillingDate = _subscription.nextBillingDate == null
-        ? null
-        : _dateFormat.format(_subscription.nextBillingDate!);
-    final planLabel = _subscription.active ? _subscription.planName : 'FREE';
-
+  Widget _buildProfileContent(BuildContext context, String plan, String nextDate) {
+    final hasImage = profileImage != null && profileImage!.isNotEmpty;
+    final hasLocalImage =
+        localProfileImagePath != null && localProfileImagePath!.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           Row(
             children: [
-              const CircleAvatar(
+              _buildProfileAvatar(
                 radius: 30,
-                backgroundColor: Colors.blueAccent,
-                child: Icon(Icons.person, color: Colors.white, size: 30),
+                localPath: hasLocalImage ? localProfileImagePath : null,
+                imageUrl: hasImage ? profileImage : null,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -332,8 +320,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _nickname,
-                      overflow: TextOverflow.ellipsis,
+                      nickname,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -341,20 +328,14 @@ class _MyPageScreenState extends State<MyPageScreen> {
                       ),
                     ),
                     Text(
-                      _email,
-                      overflow: TextOverflow.ellipsis,
+                      email,
                       style: const TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                   ],
                 ),
               ),
               TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProfileSettingScreen(),
-                  ),
-                ),
+                onPressed: _openProfileSetting,
                 child: const Text(
                   '수정',
                   style: TextStyle(
@@ -382,24 +363,21 @@ class _MyPageScreenState extends State<MyPageScreen> {
                       color: Color(0xFF2D3436),
                     ),
                   ),
-                  if (nextBillingDate != null)
+                  if (plan != 'FREE')
                     Text(
-                      '다음 결제: $nextBillingDate',
+                      '다음 결제: $nextDate',
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.blueAccent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  planLabel,
+                  plan,
                   style: const TextStyle(
                     color: Colors.blueAccent,
                     fontWeight: FontWeight.bold,
@@ -427,6 +405,32 @@ class _MyPageScreenState extends State<MyPageScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildProfileAvatar({
+    required double radius,
+    String? localPath,
+    String? imageUrl,
+  }) {
+    Widget fallback = Container(
+      color: Colors.blueAccent,
+      child: const Icon(Icons.person, color: Colors.white, size: 30),
+    );
+
+    Widget image = fallback;
+    if (localPath != null && File(localPath).existsSync()) {
+      image = Image.file(File(localPath), fit: BoxFit.cover);
+    } else if (imageUrl != null && imageUrl.isNotEmpty) {
+      image = Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback,
+      );
+    }
+
+    return ClipOval(
+      child: SizedBox(width: radius * 2, height: radius * 2, child: image),
     );
   }
 
@@ -463,8 +467,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
   Widget _buildLogoutButton(BuildContext context) {
     return Center(
       child: TextButton(
-        onPressed: () =>
-            Navigator.pushReplacementNamed(context, AppRoutes.login),
+        onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
         child: const Text(
           '로그아웃',
           style: TextStyle(
