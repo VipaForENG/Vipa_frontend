@@ -213,7 +213,7 @@ class AuthController {
   // --- 비밀번호 변경 ---
   static Future<bool> changePassword(String oldPassword, String newPassword) async {
     try {
-      final response = await ApiService.dio.patch("/user/mypage/change-password", 
+      final response = await ApiService.dio.patch("/users/mypage/change-password", 
           data: {"old_password": oldPassword, "new_password": newPassword});
       return response.statusCode == 200;
     } on DioException catch (e) {
