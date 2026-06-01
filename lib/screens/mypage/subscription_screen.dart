@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../design/app_colors.dart';
 import '../../design/card_design.dart'; // 디자인 시스템 임포트
 
 class SubscriptionScreen extends StatefulWidget {
@@ -23,7 +24,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       "id": "pro",
       "name": "VIPA PRO",
       "price": "9,900",
-      "description": "• AI 대화 무제한 이용\n• 모든 프리미엄 단어장 잠금해제\n• 나만의 오답노트 무제한 생성\n• 광고 제거",
+      "description":
+          "• AI 대화 무제한 이용\n• 모든 프리미엄 단어장 잠금해제\n• 나만의 오답노트 무제한 생성\n• 광고 제거",
       "isHighlight": true,
     },
   ];
@@ -31,10 +33,16 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // 디자인 시스템에 맞춰 화이트로 통일
+      backgroundColor: AppColors.background, // 로그인 화면 톤으로 통일
       appBar: AppBar(
-        title: const Text("멤버십 구독", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D3436))),
-        backgroundColor: Colors.white,
+        title: const Text(
+          "멤버십 구독",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2D3436),
+          ),
+        ),
+        backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -51,13 +59,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Text(
                 "나에게 꼭 맞는\n학습 플랜을 선택하세요",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, height: 1.4, color: Color(0xFF2D3436)),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  height: 1.4,
+                  color: Color(0xFF2D3436),
+                ),
               ),
             ),
-            
+
             // 디자인 시스템 Card_Container를 활용한 플랜 선택
             ..._plans.map((plan) => _buildPlanCard(plan)),
-            
+
             const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -97,10 +110,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.blueAccent : const Color(0xFF2D3436),
+                      color: isSelected
+                          ? Colors.blueAccent
+                          : const Color(0xFF2D3436),
                     ),
                   ),
-                  if (isSelected) const Icon(Icons.check_circle, color: Colors.blueAccent),
+                  if (isSelected)
+                    const Icon(Icons.check_circle, color: Colors.blueAccent),
                 ],
               ),
               const SizedBox(height: 12),
@@ -108,14 +124,27 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Text("₩ ${plan['price']}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  const Text(" / 월", style: TextStyle(color: Colors.grey, fontSize: 14)),
+                  Text(
+                    "₩ ${plan['price']}",
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Text(
+                    " / 월",
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
                 ],
               ),
               const Divider(height: 30),
               Text(
                 plan['description'],
-                style: TextStyle(color: Colors.grey[600], height: 1.6, fontSize: 13),
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  height: 1.6,
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
@@ -133,7 +162,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Widget _buildSubscribeButton() {
     final selectedPlan = _plans.firstWhere((p) => p['id'] == _selectedPlanId);
-    
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
       decoration: const BoxDecoration(color: Colors.white),
@@ -142,12 +171,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blueAccent,
           minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           elevation: 0,
         ),
         child: Text(
           "${selectedPlan['name']} 시작하기",
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       ),
     );
@@ -156,13 +191,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   void _showPaymentMethodSheet(Map<String, dynamic> plan) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
       builder: (context) => Container(
         padding: const EdgeInsets.all(30),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("결제 수단 선택", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              "결제 수단 선택",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 20),
             ListTile(
               leading: const Icon(Icons.payment, color: Colors.orange),
@@ -183,6 +223,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   void _processPayment(Map<String, dynamic> plan) {
     Navigator.pop(context); // 시트 닫기
     // 여기서 Navigator.pop을 할 때 선택한 플랜 정보를 전달합니다.
-    Navigator.pop(context, plan['name']); 
+    Navigator.pop(context, plan['name']);
   }
 }

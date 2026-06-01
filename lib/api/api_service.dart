@@ -13,8 +13,8 @@ class ApiService {
   static final Dio dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
+      connectTimeout: const Duration(seconds: 45),
+      receiveTimeout: const Duration(seconds: 45),
       contentType: 'application/json',
       // validateStatus: (status) => status != null && status < 500, 
       // 주의: 401을 정상으로 넘기면 에러 처리가 어려워지므로 기본값 사용 권장

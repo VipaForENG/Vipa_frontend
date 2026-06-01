@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../design/background.dart';
 import '../../design/animation_design.dart';
 import '../../routes/app_routes.dart';
+import '../../design/app_colors.dart';
 
 class VocabularyResultScreen extends StatelessWidget {
   const VocabularyResultScreen({super.key});
@@ -15,19 +16,22 @@ class VocabularyResultScreen extends StatelessWidget {
     // 🔍 백엔드 crud/vocabulary.py 규격에 맞게 Key 명칭 매핑
     final int total = resultData['total_count'] ?? 0;
     final int correct = resultData['correct_count'] ?? 0;
-    
+
     // ✨ [수정] 백엔드 스키마에 없는 정답률은 프론트에서 직접 계산해서 안전하게 표기!
     final double percentage = total > 0 ? (correct / total) * 100 : 0.0;
     final List results = resultData['results'] ?? [];
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false, // 결과창이므로 뒤로가기 방지
-        title: const Text('학습 결과', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          '학습 결과',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
       body: Background(
@@ -36,7 +40,7 @@ class VocabularyResultScreen extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 20),
-              
+
               // 1. 상단 점수 카드
               FadeSlideTransition(
                 delay: 0.1,
@@ -55,12 +59,24 @@ class VocabularyResultScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(30),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15)]
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 15,
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("공부한 단어", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        const Text(
+                          "공부한 단어",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
                         const Divider(height: 30),
                         Expanded(
                           child: ListView.builder(
@@ -84,12 +100,25 @@ class VocabularyResultScreen extends StatelessWidget {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pushNamedAndRemoveUntil(context, AppRoutes.home, (route) => false),
+                    onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      AppRoutes.home,
+                      (route) => false,
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF7B61FF),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                    child: const Text('홈으로 돌아가기', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      '홈으로 돌아가기',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -108,14 +137,24 @@ class VocabularyResultScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(0, 10))]
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildScoreInfo("총 문항", "$total", Colors.grey),
           _buildScoreInfo("맞힌 개수", "$correct", Colors.blueAccent),
-          _buildScoreInfo("정답률", "${percentage.toInt()}%", const Color(0xFF7B61FF)),
+          _buildScoreInfo(
+            "정답률",
+            "${percentage.toInt()}%",
+            const Color(0xFF7B61FF),
+          ),
         ],
       ),
     );
@@ -126,7 +165,14 @@ class VocabularyResultScreen extends StatelessWidget {
       children: [
         Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
         const SizedBox(height: 8),
-        Text(value, style: TextStyle(color: color, fontSize: 24, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
@@ -142,7 +188,9 @@ class VocabularyResultScreen extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: isCorrect ? Colors.blue.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+              color: isCorrect
+                  ? Colors.blue.withValues(alpha: 0.1)
+                  : Colors.red.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -157,10 +205,19 @@ class VocabularyResultScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ✨ [수정] 백엔드 변수명 'target_word' 매핑
-                Text(item['target_word'] ?? '', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(
+                  item['target_word'] ?? '',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 // ✨ [수정] 백엔드 변수명 'original_sentence' 매핑 (영어 예문 노출로 복습 효과 극대화)
-                Text(item['original_sentence'] ?? '', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                Text(
+                  item['original_sentence'] ?? '',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                ),
               ],
             ),
           ),
@@ -168,8 +225,12 @@ class VocabularyResultScreen extends StatelessWidget {
           // 틀렸을 경우 유저가 쓴 오답 빨간색 취소선으로 표기
           if (!isCorrect)
             Text(
-              item['user_answer'] ?? '', 
-              style: const TextStyle(color: Colors.redAccent, fontSize: 13, decoration: TextDecoration.lineThrough)
+              item['user_answer'] ?? '',
+              style: const TextStyle(
+                color: Colors.redAccent,
+                fontSize: 13,
+                decoration: TextDecoration.lineThrough,
+              ),
             ),
         ],
       ),

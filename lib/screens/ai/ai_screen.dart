@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
-import '../../design/animation_design.dart'; 
+import '../../design/animation_design.dart';
+import '../../design/app_colors.dart';
 import '../../controllers/ai_controller.dart';
 import 'widgets/voice_wave.dart';
 
@@ -30,8 +31,8 @@ class _AiScreenState extends State<AiScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const Color bgColor = Color(0xFFF5E4AD);
-    const Color waveColor = Color(0xFFFFF9E3);
+    const Color bgColor = AppColors.background;
+    const Color waveColor = AppColors.wave;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -52,10 +53,7 @@ class _AiScreenState extends State<AiScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: WaveBackground(
-              waveColor: waveColor,
-              waveHeightFactor: 0.4,
-            ),
+            child: WaveBackground(waveColor: waveColor, waveHeightFactor: 0.4),
           ),
 
           SafeArea(
@@ -73,19 +71,29 @@ class _AiScreenState extends State<AiScreen> {
                       child: _buildGlassCard(
                         child: _controller.isLoading
                             ? const Center(
-                                child: CircularProgressIndicator(color: Colors.black87),
+                                child: CircularProgressIndicator(
+                                  color: Colors.black87,
+                                ),
                               )
                             : Padding(
                                 padding: const EdgeInsets.all(24),
-                                child: Center( // 🔥 내용이 짧을 땐 수직 중앙 정렬 유지
-                                  child: SingleChildScrollView( // 🔥 내용이 넘치면 스크롤 허용
+                                child: Center(
+                                  // 🔥 내용이 짧을 땐 수직 중앙 정렬 유지
+                                  child: SingleChildScrollView(
+                                    // 🔥 내용이 넘치면 스크롤 허용
                                     child: Column(
-                                      mainAxisSize: MainAxisSize.min, // 🔥 Column이 자식 크기만큼만 팽창하도록 제한
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize
+                                          .min, // 🔥 Column이 자식 크기만큼만 팽창하도록 제한
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        const Icon(RemixIcons.robot_2_line, color: Colors.blueAccent, size: 30),
+                                        const Icon(
+                                          RemixIcons.robot_2_line,
+                                          color: Colors.blueAccent,
+                                          size: 30,
+                                        ),
                                         const SizedBox(height: 20),
-                                        
+
                                         // 🇺🇸 영어 발화
                                         Text(
                                           _controller.aiEnText,
@@ -97,15 +105,22 @@ class _AiScreenState extends State<AiScreen> {
                                             height: 1.3,
                                           ),
                                         ),
-                                        
+
                                         const SizedBox(height: 15),
-                                        
+
                                         // 🇰🇷 한국어 번역
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: Colors.black.withValues(alpha: 0.05),
-                                            borderRadius: BorderRadius.circular(8),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.05,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
                                           child: Text(
                                             _controller.aiKoText,
@@ -113,7 +128,9 @@ class _AiScreenState extends State<AiScreen> {
                                             style: TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w500,
-                                              color: Colors.black87.withValues(alpha: 0.7),
+                                              color: Colors.black87.withValues(
+                                                alpha: 0.7,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -128,7 +145,8 @@ class _AiScreenState extends State<AiScreen> {
 
                   const SizedBox(height: 20),
 
-                  if (_controller.aiFeedback.isNotEmpty && _controller.aiFeedback != "N/A")
+                  if (_controller.aiFeedback.isNotEmpty &&
+                      _controller.aiFeedback != "N/A")
                     FadeSlideTransition(
                       delay: 0.4,
                       child: Container(
@@ -139,17 +157,23 @@ class _AiScreenState extends State<AiScreen> {
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             // 🔥 [수정] withOpacity -> withValues(alpha: ...)
-                            color: Colors.orangeAccent.withValues(alpha: 0.5), 
-                            width: 1.5
+                            color: Colors.orangeAccent.withValues(alpha: 0.5),
+                            width: 1.5,
                           ),
                           boxShadow: [
                             // 🔥 [수정] withOpacity -> withValues(alpha: ...)
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                            ),
                           ],
                         ),
                         child: Row(
                           children: [
-                            const Icon(RemixIcons.lightbulb_flash_line, color: Colors.orange),
+                            const Icon(
+                              RemixIcons.lightbulb_flash_line,
+                              color: Colors.orange,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
@@ -204,8 +228,8 @@ class _AiScreenState extends State<AiScreen> {
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
           // 🔥 [수정] withOpacity -> withValues(alpha: ...)
-          color: Colors.white.withValues(alpha: 0.4), 
-          width: 1.2
+          color: Colors.white.withValues(alpha: 0.4),
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
@@ -213,7 +237,7 @@ class _AiScreenState extends State<AiScreen> {
             color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 20,
             spreadRadius: 5,
-          )
+          ),
         ],
       ),
       child: child,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 // [임포트] 각 화면 위젯들을 가져옵니다.
 import '../screens/home/home_screen.dart';
 import '../screens/login/login_screen.dart';
+import '../screens/splash/splash_screen.dart';
 import '../screens/signup/signup_screen.dart';
 import '../screens/history/learning_history_screen.dart';
 import '../screens/conversation/chat/conversation_chat_screen.dart';
@@ -24,6 +25,7 @@ import '../screens/vocabulary/vocabulary_result_screen.dart';
 class AppRoutes {
   // [상수] 페이지 경로 이름 정의
   static const String login = '/login';
+  static const String splash = '/splash';
   static const String signup = '/signup';
   static const String home = '/';
   static const String history = '/history';
@@ -45,8 +47,10 @@ class AppRoutes {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     // 이동 시 전달된 데이터가 있다면 저장합니다.
     // ignore: unused_local_variable
-  final args = settings.arguments;
+    final args = settings.arguments;
     switch (settings.name) {
+      case splash:
+        return _buildFadeRoute(const SplashScreen(), settings);
       case login:
         return _buildFadeRoute(const LoginScreen(), settings);
       case signup:

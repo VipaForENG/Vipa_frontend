@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../design/app_colors.dart';
 
 /// [클래스] ProfileSettingScreen
 /// 사용자의 프로필 사진과 닉네임을 변경하는 화면입니다.
@@ -11,7 +12,9 @@ class ProfileSettingScreen extends StatefulWidget {
 
 class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
   // 닉네임 입력을 관리하는 컨트롤러 (초기값 설정)
-  final TextEditingController _nicknameController = TextEditingController(text: "Vipa 사용자");
+  final TextEditingController _nicknameController = TextEditingController(
+    text: "Vipa 사용자",
+  );
 
   @override
   void dispose() {
@@ -23,18 +26,22 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
           "프로필 설정",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: true,
         // 뒤로가기 버튼 커스텀
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.black,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -44,15 +51,19 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
               // TODO: 서버에 변경된 닉네임과 이미지 저장하는 API 연결
               debugPrint("새로운 닉네임: ${_nicknameController.text}");
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("프로필이 변경되었습니다.")),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text("프로필이 변경되었습니다.")));
             },
             child: const Text(
               "완료",
-              style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(
+                color: Colors.blueAccent,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
-          )
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -60,7 +71,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
         child: Column(
           children: [
             const SizedBox(height: 40),
-            
+
             // [섹션 1] 프로필 이미지 변경 영역
             Center(
               child: Stack(
@@ -69,7 +80,11 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                   CircleAvatar(
                     radius: 60,
                     backgroundColor: Colors.blueAccent.withValues(alpha: 0.1),
-                    child: const Icon(Icons.person, size: 80, color: Colors.blueAccent),
+                    child: const Icon(
+                      Icons.person,
+                      size: 80,
+                      color: Colors.blueAccent,
+                    ),
                   ),
                   // 카메라 아이콘 버튼
                   Positioned(
@@ -86,7 +101,11 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                           color: Colors.blueAccent,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -104,7 +123,10 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                 hintText: "변경할 닉네임을 입력하세요",
                 filled: true,
                 fillColor: Colors.grey[100],
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -112,11 +134,14 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                 // 포커스 되었을 때 테두리
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.blueAccent, width: 1.5),
+                  borderSide: const BorderSide(
+                    color: Colors.blueAccent,
+                    width: 1.5,
+                  ),
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 20),
             const Text(
               "특수문자를 제외한 2~15자 이내로 입력해주세요.",
@@ -135,7 +160,11 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
       padding: const EdgeInsets.only(bottom: 8, left: 4),
       child: Text(
         label,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
       ),
     );
   }

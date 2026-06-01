@@ -4,6 +4,7 @@ import '../../routes/app_routes.dart';
 import '../../design/snack_bar.dart';
 import '../../controllers/auth_controller.dart';
 import '../../services/auth_service.dart';
+import '../../design/app_colors.dart';
 // 공용 애니메이션 임포트
 import '../../design/animation_design.dart';
 
@@ -112,8 +113,8 @@ class _LoginScreenState extends State<LoginScreen> {
         _isNormalLoading || _isGoogleLoading || _isKakaoLoading;
 
     // 🎨 색상 변수 설정
-    const Color bgColor = Color(0xFFFFF9E5); // 상단 배경 (노란색)
-    const Color waveColor = Color(0xFFffcbae); // 파도 및 하단 배경 (주황색)
+    const Color bgColor = AppColors.background; // 상단 배경 (노란색)
+    const Color waveColor = AppColors.wave; // 파도 및 하단 배경 (주황색)
 
     return Scaffold(
       // ✅ 1. 하단 단차 해결: Scaffold 배경을 파도 색상으로 설정
@@ -184,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: _buildPrimaryButton(
                         text: _isNormalLoading ? '로그인 중...' : '로그인',
                         onPressed: isAnyLoading ? () {} : _handleLogin,
-                        color: const Color(0xfff75f0b),
+                        color: AppColors.primary,
                         textColor: Colors.white,
                       ),
                     ),
@@ -219,12 +220,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Navigator.pushNamed(context, AppRoutes.signup),
                             child: const Text(
                               '회원가입',
-                              style: TextStyle(color: Color(0xfff75f0b)),
+                              style: TextStyle(color: AppColors.primary),
                             ),
                           ),
                           const Text(
                             '|',
-                            style: TextStyle(color: Color(0xfff75f0b)),
+                            style: TextStyle(color: AppColors.primary),
                           ),
                           TextButton(
                             onPressed: () => Navigator.pushNamed(
@@ -233,7 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             child: const Text(
                               '비밀번호 찾기',
-                              style: TextStyle(color: Color(0xfff75f0b)),
+                              style: TextStyle(color: AppColors.primary),
                             ),
                           ),
                         ],
@@ -264,17 +265,17 @@ class _LoginScreenState extends State<LoginScreen> {
         controller: controller,
         focusNode: focusNode,
         obscureText: isObscure,
-        cursorColor: Color(0xFFffa370),
+        cursorColor: AppColors.accent,
         decoration: InputDecoration(
-          prefixIcon: Icon(icon, size: 20, color: Color(0xFFffa370)),
+          prefixIcon: Icon(icon, size: 20, color: AppColors.accent),
           prefixIconConstraints: const BoxConstraints(minWidth: 35),
           hintText: hintText,
           hintStyle: const TextStyle(color: Colors.black87, fontSize: 14),
           enabledBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFFffa370), width: 1),
+            borderSide: BorderSide(color: AppColors.accent, width: 1),
           ),
           focusedBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFFffa370), width: 2),
+            borderSide: BorderSide(color: AppColors.accent, width: 2),
           ),
         ),
       ),

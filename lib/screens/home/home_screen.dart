@@ -11,6 +11,7 @@ import '../history/learning_history_screen.dart';
 import '../ai/ai_screen.dart';
 import '../mypage/mypage_screen.dart';
 import '../../../design/animation_design.dart';
+import '../../../design/app_colors.dart';
 import '../robot/robot_setup_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -38,10 +39,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFFF9E5),
+      backgroundColor: AppColors.background,
       appBar: _selectedIndex == 0
           ? AppBar(
-              backgroundColor: const Color(0xFFF5E4AD),
+              backgroundColor: AppColors.background,
               elevation: 0,
               title: const Text(
                 '홈',
@@ -151,7 +152,8 @@ class _HomeContentState extends State<_HomeContent>
 
   @override
   Widget build(BuildContext context) {
-    const Color waveColor = Color(0xFFFFF9E5);
+    const Color bgColor = AppColors.background;
+    const Color waveColor = AppColors.wave;
 
     return Obx(() {
       // 로딩 중일 때 표시
@@ -167,9 +169,7 @@ class _HomeContentState extends State<_HomeContent>
         builder: (context, child) {
           return Container(
             // 물결이 다 차오르면 배경색을 물결색과 맞춤
-            color: _heightAnimation.value > 0.95
-                ? waveColor
-                : const Color(0xFFF5E4AD),
+            color: bgColor,
             child: Stack(
               children: [
                 // 🌊 아래에서 위로 차오르는 물결

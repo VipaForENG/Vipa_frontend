@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../models/level_test_model.dart';
 import '../../routes/app_routes.dart';
+import '../../design/app_colors.dart';
 
 // [재사용] 공통 디자인 위젯 임포트
 import '../../../design/card_design.dart';
@@ -15,14 +16,18 @@ class LevelTestResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // 전체 배경색
+      backgroundColor: AppColors.background, // 전체 배경색
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: true,
         title: const Text(
           'AI 레벨 분석 결과',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         automaticallyImplyLeading: false,
       ),
@@ -35,16 +40,26 @@ class LevelTestResultScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 40),
                 child: Column(
                   children: [
-                    const Text('당신의 예상 CEFR 레벨', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                    const Text(
+                      '당신의 예상 CEFR 레벨',
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
                     const SizedBox(height: 12),
                     Text(
                       result.cefrLevel,
-                      style: const TextStyle(fontSize: 72, fontWeight: FontWeight.w900, color: Colors.blueAccent),
+                      style: const TextStyle(
+                        fontSize: 72,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.blueAccent,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       '정답률: ${result.correctAnswersCount}/20',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black54),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black54,
+                      ),
                     ),
                   ],
                 ),
@@ -58,11 +73,25 @@ class LevelTestResultScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('영역별 역량 지수', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const Text(
+                      '영역별 역량 지수',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                     const SizedBox(height: 20),
-                    _buildScoreBar('문법 지수', result.grammarScore, Colors.orangeAccent),
+                    _buildScoreBar(
+                      '문법 지수',
+                      result.grammarScore,
+                      Colors.orangeAccent,
+                    ),
                     const SizedBox(height: 16),
-                    _buildScoreBar('어휘 정밀도', result.vocabularyScore, Colors.greenAccent),
+                    _buildScoreBar(
+                      '어휘 정밀도',
+                      result.vocabularyScore,
+                      Colors.greenAccent,
+                    ),
                   ],
                 ),
               ),
@@ -75,27 +104,49 @@ class LevelTestResultScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('중점 보완 키워드', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const Text(
+                      '중점 보완 키워드',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: result.weaknessTags.map((tag) => _buildTagChip(tag)).toList(),
+                      children: result.weaknessTags
+                          .map((tag) => _buildTagChip(tag))
+                          .toList(),
                     ),
                     const SizedBox(height: 24),
                     const Divider(color: Color(0xFFEDF0F3)),
                     const SizedBox(height: 20),
                     const Row(
                       children: [
-                        Icon(Icons.auto_awesome, size: 18, color: Colors.blueAccent),
+                        Icon(
+                          Icons.auto_awesome,
+                          size: 18,
+                          color: Colors.blueAccent,
+                        ),
                         SizedBox(width: 8),
-                        Text('AI 상세 피드백', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(
+                          'AI 상세 피드백',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Text(
                       result.detailedFeedback,
-                      style: const TextStyle(fontSize: 14, height: 1.6, color: Color(0xFF2D3436)),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 1.6,
+                        color: Color(0xFF2D3436),
+                      ),
                     ),
                   ],
                 ),
@@ -104,7 +155,10 @@ class LevelTestResultScreen extends StatelessWidget {
 
             // 4. 하단 액션 버튼 (vipaPrimaryButton 재사용)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 20.0,
+              ),
               child: SizedBox(
                 width: double.infinity, // 버튼을 가로로 꽉 채웁니다.
                 child: vipaPrimaryButton(
@@ -130,8 +184,18 @@ class LevelTestResultScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 13, color: Colors.black54)),
-            Text('$score점', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: Colors.black54),
+            ),
+            Text(
+              '$score점',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -158,7 +222,11 @@ class LevelTestResultScreen extends StatelessWidget {
       ),
       child: Text(
         tag,
-        style: const TextStyle(fontSize: 12, color: Color(0xFF636E72), fontWeight: FontWeight.w600),
+        style: const TextStyle(
+          fontSize: 12,
+          color: Color(0xFF636E72),
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import '../../Design/snack_bar.dart';
 import '../../controllers/auth_controller.dart';
 // 🔥 공용 애니메이션 모듈 임포트
 import '../../design/animation_design.dart';
+import '../../design/app_colors.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -106,8 +107,8 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     // 🎨 로그인 페이지와 통일한 색상 세팅
-    const Color bgColor = Color(0xFFFFF9E5);
-    const Color waveColor = Color(0xFFffcbae);
+    const Color bgColor = AppColors.background;
+    const Color waveColor = AppColors.wave;
 
     return Scaffold(
       // ✅ 1. 하단 단차 해결: Scaffold 배경을 파도 색으로 미리 칠해둡니다.

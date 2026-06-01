@@ -6,6 +6,7 @@ import '../../controllers/auth_controller.dart';
 import '../../design/snack_bar.dart';
 // 공용 애니메이션 모듈 임포트
 import '../../design/animation_design.dart';
+import '../../design/app_colors.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -104,7 +105,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFFFFF9E5),
+        backgroundColor: AppColors.background,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         title: const Text(
           '인증번호 입력',
@@ -148,8 +149,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const Color bgColor = Color(0xFFFFF9E5);
-    const Color waveColor = Color(0xFFffcbae);
+    const Color bgColor = AppColors.background;
+    const Color waveColor = AppColors.wave;
 
     return Scaffold(
       backgroundColor: bgColor,

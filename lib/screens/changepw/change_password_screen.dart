@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
 import '../../routes/app_routes.dart';
 import '../../design/snack_bar.dart';
-import '../../controllers/auth_controller.dart'; // [추가] 컨트롤러 임포트
+import '../../controllers/auth_controller.dart';
+import '../../design/app_colors.dart'; // [추가] 컨트롤러 임포트
 
 class ChangePasswordScreen extends StatefulWidget {
   final bool isFromMyPage;
@@ -33,7 +34,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     }
 
     // 2. 이전 화면에서 전달받은 Arguments 꺼내기 (email, code)
-    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+    final args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
     if (args == null && !widget.isFromMyPage) {
       VipaSnackBar.show(context, "잘못된 접근입니다.");
       return;
@@ -74,7 +76,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
           widget.isFromMyPage ? "비밀번호 수정" : "새 비밀번호 설정",
@@ -83,7 +85,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
       ),

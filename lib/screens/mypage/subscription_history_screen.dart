@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../design/app_colors.dart';
 
 /// [클래스] SubscriptionHistoryScreen
 /// 목적: 사용자의 과거 구독 결제 및 갱신 내역을 보여주는 화면.
@@ -9,17 +10,44 @@ class SubscriptionHistoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // [가정] 서버에서 받아올 실제 결제 데이터 리스트
     final List<Map<String, dynamic>> billingHistory = [
-      {"title": "VIPA PRO 정기 결제", "date": "2026.03.10", "price": 9900, "status": "결제완료", "method": "카카오페이"},
-      {"title": "VIPA PRO 정기 결제", "date": "2026.02.10", "price": 9900, "status": "결제완료", "method": "카카오페이"},
-      {"title": "VIPA PRO 정기 결제", "date": "2026.01.10", "price": 9900, "status": "결제완료", "method": "카카오페이"},
-      {"title": "멤버십 첫 결제 할인", "date": "2025.12.10", "price": 100, "status": "결제완료", "method": "신용카드"},
+      {
+        "title": "VIPA PRO 정기 결제",
+        "date": "2026.03.10",
+        "price": 9900,
+        "status": "결제완료",
+        "method": "카카오페이",
+      },
+      {
+        "title": "VIPA PRO 정기 결제",
+        "date": "2026.02.10",
+        "price": 9900,
+        "status": "결제완료",
+        "method": "카카오페이",
+      },
+      {
+        "title": "VIPA PRO 정기 결제",
+        "date": "2026.01.10",
+        "price": 9900,
+        "status": "결제완료",
+        "method": "카카오페이",
+      },
+      {
+        "title": "멤버십 첫 결제 할인",
+        "date": "2025.12.10",
+        "price": 100,
+        "status": "결제완료",
+        "method": "신용카드",
+      },
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text("구독 결제 내역", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        title: const Text(
+          "구독 결제 내역",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: true,
       ),
@@ -27,14 +55,15 @@ class SubscriptionHistoryScreen extends StatelessWidget {
         children: [
           // 상단 요약 정보 (선택 사항)
           _buildSummaryHeader(),
-          
+
           Expanded(
             child: billingHistory.isEmpty
                 ? const Center(child: Text("결제 내역이 없습니다."))
                 : ListView.separated(
                     padding: const EdgeInsets.all(20),
                     itemCount: billingHistory.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final item = billingHistory[index];
                       return _buildHistoryItem(item);
@@ -58,16 +87,29 @@ class SubscriptionHistoryScreen extends StatelessWidget {
         children: [
           CircleAvatar(
             backgroundColor: Colors.blueAccent.withValues(alpha: 0.1),
-            child: const Icon(Icons.receipt_long, color: Colors.blueAccent, size: 20),
+            child: const Icon(
+              Icons.receipt_long,
+              color: Colors.blueAccent,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                Text(
+                  item['title'],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text("${item['date']} • ${item['method']}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(
+                  "${item['date']} • ${item['method']}",
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
               ],
             ),
           ),
@@ -76,12 +118,19 @@ class SubscriptionHistoryScreen extends StatelessWidget {
             children: [
               Text(
                 "₩${item['price'].toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 item['status'],
-                style: const TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  color: Colors.blueAccent,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),

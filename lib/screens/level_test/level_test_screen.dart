@@ -4,6 +4,7 @@ import '../../Design/snack_bar.dart';
 import '../../controllers/level_test_controller.dart';
 import '../../models/level_test_model.dart';
 import 'package:get/get.dart';
+import '../../design/app_colors.dart';
 
 class LevelTestScreen extends StatefulWidget {
   const LevelTestScreen({super.key});
@@ -48,25 +49,24 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       _isLoading = true;
       _loadingMessage = 'AI가 당신의 답변을 정밀 분석하여\n상세 결과를 생성하고 있습니다';
     });
-  
-  // 1. 서버에 답변 제출 후 결과(LevelTestResult) 받기
-  final LevelTestResult? result = await LevelTestController.submitLevelTest(_userAnswers);
 
-  if (result != null) {
-    if (!mounted) return;
-    VipaSnackBar.show(context, '테스트가 완료되었습니다!');
-
-    // 2. 🔥 GetX 전용 명령어로 이동 (arguments에 데이터를 실어 보냄)
-    // offAllNamed는 이전의 모든 스택(테스트 화면 등)을 비우고 이동합니다.
-    Get.offAllNamed(
-      AppRoutes.levelTestResult, 
-      arguments: result, 
+    // 1. 서버에 답변 제출 후 결과(LevelTestResult) 받기
+    final LevelTestResult? result = await LevelTestController.submitLevelTest(
+      _userAnswers,
     );
-  } else {
-    setState(() => _isLoading = false);
-    if (mounted) VipaSnackBar.show(context, '제출 중 오류가 발생했습니다.');
+
+    if (result != null) {
+      if (!mounted) return;
+      VipaSnackBar.show(context, '테스트가 완료되었습니다!');
+
+      // 2. 🔥 GetX 전용 명령어로 이동 (arguments에 데이터를 실어 보냄)
+      // offAllNamed는 이전의 모든 스택(테스트 화면 등)을 비우고 이동합니다.
+      Get.offAllNamed(AppRoutes.levelTestResult, arguments: result);
+    } else {
+      setState(() => _isLoading = false);
+      if (mounted) VipaSnackBar.show(context, '제출 중 오류가 발생했습니다.');
+    }
   }
-}
 
   void _onOptionSelected(String answer) {
     setState(() {
@@ -90,11 +90,11 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     }
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -104,10 +104,10 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                 strokeWidth: 3,
               ),
               const SizedBox(height: 30),
-              
+
               // 🔥 [수정] 하드코딩된 'AI가 맞춤형 문제를 생성 중입니다' 대신 변수 사용
               Text(
-                _loadingMessage, 
+                _loadingMessage,
                 textAlign: TextAlign.center, // 두 줄 이상일 때를 대비해 중앙 정렬
                 style: const TextStyle(
                   fontSize: 18,
@@ -116,11 +116,11 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               // [팁] 메인 메시지가 바뀔 때 서브 문구도 적절히 어울리도록 수정
               Text(
-                _loadingMessage.contains('분석') 
-                    ? '잠시만 기다려주세요.\n당신을 위한 맞춤 학습 리포트를 작성 중입니다.' 
+                _loadingMessage.contains('분석')
+                    ? '잠시만 기다려주세요.\n당신을 위한 맞춤 학습 리포트를 작성 중입니다.'
                     : '잠시만 기다려주세요.\n당신의 실력에 딱 맞는 문제를 준비하고 있어요.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
@@ -145,14 +145,14 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
         : [];
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
           'CEFR 레벨 테스트',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         elevation: 0,
       ),
       body: Padding(
@@ -191,7 +191,8 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
             Expanded(
               child: ListView.separated(
                 itemCount: options.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 10),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   String option = options[index].toString();
                   bool isSelected = _selectedAnswer == option;

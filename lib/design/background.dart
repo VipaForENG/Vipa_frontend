@@ -1,12 +1,13 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'app_colors.dart';
 
 /// [vipa] 프로젝트 공통 배경 위젯
 /// 파고(fillLevel)와 색상(colors)을 자유롭게 조절할 수 있습니다.
 class Background extends StatefulWidget {
   final Widget child;
   final List<Color>? colors; // 배경 그라데이션 색상
-  final double fillLevel;    // 물결의 높이 (0.0: 화면 최상단, 1.0: 화면 최하단)
+  final double fillLevel; // 물결의 높이 (0.0: 화면 최상단, 1.0: 화면 최하단)
 
   const Background({
     super.key,
@@ -47,7 +48,7 @@ class _BackgroundState extends State<Background>
         return Stack(
           children: [
             // 바탕색
-            Container(color: Colors.white), 
+            Container(color: AppColors.background),
             // 물결 레이어
             ClipPath(
               clipper: WaveClipper(_controller.value, widget.fillLevel),
@@ -56,13 +57,13 @@ class _BackgroundState extends State<Background>
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: widget.colors ?? [const Color(0xFF64B5F6), const Color(0xFF1976D2)],
+                    colors: widget.colors ?? [AppColors.wave, AppColors.wave],
                   ),
                 ),
               ),
             ),
             // 실제 화면 컨텐츠
-            widget.child, 
+            widget.child,
           ],
         );
       },
@@ -83,15 +84,20 @@ class WaveClipper extends CustomClipper<Path> {
     double currentFill = size.height * fillLevel;
 
     path.lineTo(0, currentFill);
-    
+
     // 물결 곡선 계산 로직 (수정 시 영향 없음)
     for (double i = 0; i <= size.width; i++) {
       path.lineTo(
         i,
-        currentFill + math.sin((i / size.width * 2 * math.pi) + (animationValue * 2 * math.pi)) * 15,
+        currentFill +
+            math.sin(
+                  (i / size.width * 2 * math.pi) +
+                      (animationValue * 2 * math.pi),
+                ) *
+                15,
       );
     }
-    
+
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);
     path.close();
