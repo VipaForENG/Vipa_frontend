@@ -25,7 +25,7 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
         listen: false,
       );
       provider.reset();
-      provider.initializeScenario(widget.subCatId, 1);
+      provider.initializeScenario(widget.subCatId);
     });
   }
 

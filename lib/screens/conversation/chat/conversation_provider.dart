@@ -88,11 +88,11 @@ class ConversationProvider with ChangeNotifier {
   }
 
   // 시나리오 로드
-  Future<void> initializeScenario(int subCatId, int testId) async {
+  Future<void> initializeScenario(int subCatId) async {
     try {
       final response = await ApiService.dio.post(
         "/scenario/generate",
-        data: {"user_id": 1, "sub_cat_id": subCatId, "test_id": testId},
+        data: {"sub_cat_id": subCatId},
       );
       if (response.statusCode == 200) {
         sessionId = response.data['session_id'];
