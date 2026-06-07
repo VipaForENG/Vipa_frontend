@@ -1,150 +1,135 @@
 import 'package:flutter/material.dart';
 
-class ConversationResultScreen extends StatelessWidget {
-  final Map<String, dynamic> result;
+import '../../login/auth_widgets.dart';
 
+class ConversationResultScreen extends StatelessWidget {
   const ConversationResultScreen({super.key, required this.result});
+
+  final Map<String, dynamic> result;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF263238), Color(0xFF1E1E2C)],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const Spacer(flex: 2),
-
-              // 🏆 성취 아이콘
-              _buildSuccessIcon(),
-
-              const SizedBox(height: 24),
-
-              // 🎉 완료 메시지
-              Text(
-                result['message'] ?? "학습을 완료했습니다!",
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.greenAccent,
-                ),
+      backgroundColor: const Color(0xFFF3F4F6),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+              child: Column(
+                children: [
+                  const Text(
+                    '실전회화 학습완료',
+                    style: TextStyle(
+                      color: AuthColors.primary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(33, 32, 33, 32),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.22),
+                          blurRadius: 5,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '학습한 상황',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          _situationTitle,
+                          style: const TextStyle(
+                            color: AuthColors.primary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'AI에게 교정받은 문장',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            height: 1.05,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '교정 받은 문장은 ${_correctedCount}개입니다.',
+                          style: const TextStyle(
+                            color: AuthColors.primary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+                  AuthButton(
+                    text: '교정문장 확인하기',
+                    onPressed: () {},
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF806B),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        '실전회화로 돌아가기',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                ],
               ),
-
-              const Spacer(flex: 1),
-
-              // 📊 학습 리포트 카드
-              _buildReportCard(),
-
-              const Spacer(flex: 2),
-
-              // 🏠 홈으로 돌아가기 버튼
-              _buildHomeButton(context),
-
-              const SizedBox(height: 40),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSuccessIcon() {
-    return Container(
-      padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(
-        color: const Color(0xFF8877FF).withValues(alpha: 0.1),
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(
-        Icons.emoji_events_rounded,
-        color: Color(0xFF8877FF),
-        size: 85,
-      ),
-    );
+  String get _situationTitle {
+    return result['situation_title']?.toString() ??
+        result['scenario_title']?.toString() ??
+        '공항에서 출입국 심사 중에';
   }
 
-  Widget _buildReportCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 30),
-      padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        children: [
-          _buildInfoRow("학습자", result['nickname'] ?? "사용자"),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 15),
-            child: Divider(color: Colors.white10),
-          ),
-          _buildInfoRow("학습 상황", result['situation_title'] ?? "일반 대화"),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 15),
-            child: Divider(color: Colors.white10),
-          ),
-          _buildInfoRow(
-            "AI 교정 문장",
-            "${result['corrected_count'] ?? 0}개",
-            isHighlight: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value, {bool isHighlight = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white54, fontSize: 16),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            color: isHighlight ? const Color(0xFF8877FF) : Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHomeButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF8877FF),
-          minimumSize: const Size(double.infinity, 60),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-        ),
-        onPressed: () {
-          Navigator.pop(context); // 목록으로 돌아가기
-        },
-        child: const Text(
-          "목록으로 돌아가기",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
+  String get _correctedCount {
+    return (result['corrected_count'] ?? result['correction_count'] ?? 0)
+        .toString();
   }
 }

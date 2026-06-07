@@ -1,17 +1,16 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../design/card_design.dart';
-import '../../../controllers/home_controller.dart';
-import 'widgets/user_profile_section.dart';
-import 'widgets/learning_chart_section.dart';
-import 'widgets/attendance_section.dart';
-import 'widgets/quick_menu_section.dart';
-import '../history/learning_history_screen.dart';
+import '../../controllers/home_controller.dart';
+import '../../models/home_summary_model.dart';
 import '../ai/ai_screen.dart';
+import '../conversation/category/category_selection_screen.dart';
+import '../history/learning_history_screen.dart';
 import '../mypage/mypage_screen.dart';
-import '../../../design/animation_design.dart';
-import '../robot/robot_setup_screen.dart';
+import '../vocabulary/vocabulary_dashboard_screen.dart';
+import '../login/auth_widgets.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,52 +37,29 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFFF9E5),
-      appBar: _selectedIndex == 0
-          ? AppBar(
-              backgroundColor: const Color(0xFFF5E4AD),
-              elevation: 0,
-              title: const Text(
-                '홈',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(
-                    Icons.smart_toy_outlined,
-                    color: Colors.black,
-                  ),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RobotSetupScreen(),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.settings_outlined,
-                    color: Colors.black,
-                  ),
-                  onPressed: () => debugPrint("설정 클릭"),
-                ),
-              ],
-            )
-          : null,
+      backgroundColor: const Color(0xFFF7F7F7),
       body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey,
+        selectedItemColor: AuthColors.primary,
+        unselectedItemColor: const Color(0xFFD7D7D7),
+        selectedLabelStyle: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
         onTap: (index) => setState(() => _selectedIndex = index),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.grid_view), label: '학습내역'),
-          BottomNavigationBarItem(icon: Icon(Icons.auto_awesome), label: 'AI'),
+          BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: '학습내역'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.smart_toy_outlined),
+            label: 'AI프리토킹',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: '마이페이지'),
         ],
       ),
@@ -98,143 +74,529 @@ class _HomeContent extends StatefulWidget {
   State<_HomeContent> createState() => _HomeContentState();
 }
 
-class _HomeContentState extends State<_HomeContent>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _waveUpController;
-  late Animation<double> _heightAnimation;
-
-  // 🎯 [수정] Get.put을 사용하여 컨트롤러를 확실히 주입합니다.
+class _HomeContentState extends State<_HomeContent> {
   final HomeController controller = Get.put(HomeController());
 
   @override
-  void initState() {
-    super.initState();
-
-    // 1. 물결 상승 애니메이션 설정 (1.5초 동안 확 올라가는 연출)
-    _waveUpController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-
-    // 2. 0.0(바닥) -> 1.1(화면 상단을 살짝 덮음)까지 상승
-    _heightAnimation = Tween<double>(begin: 0.0, end: 1.1).animate(
-      CurvedAnimation(parent: _waveUpController, curve: Curves.easeOutQuart),
-    );
-
-    // 3. 로딩이 끝나면 애니메이션 시작하도록 리스너 등록
-    ever(controller.isLoading, (bool isLoading) {
-      if (!isLoading && mounted) {
-        _startAnimation();
-      }
-    });
-
-    // 만약 이미 데이터가 있는 경우 즉시 실행
-    if (!controller.isLoading.value && controller.summary.value != null) {
-      _startAnimation();
-    }
-  }
-
-  void _startAnimation() {
-    Future.microtask(() {
-      if (mounted) {
-        _waveUpController.reset(); // 0부터 다시 시작 보장
-        _waveUpController.forward();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _waveUpController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    const Color waveColor = Color(0xFFFFF9E5);
+    return SafeArea(
+      child: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(
+            child: CircularProgressIndicator(color: AuthColors.primary),
+          );
+        }
 
-    return Obx(() {
-      // 로딩 중일 때 표시
-      if (controller.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
-      }
+        final data = controller.summary.value;
+        if (data == null) {
+          return const Center(child: Text('데이터가 없습니다.'));
+        }
 
-      final data = controller.summary.value;
-      if (data == null) return const Center(child: Text("데이터가 없습니다."));
-
-      return AnimatedBuilder(
-        animation: _heightAnimation,
-        builder: (context, child) {
-          return Container(
-            // 물결이 다 차오르면 배경색을 물결색과 맞춤
-            color: _heightAnimation.value > 0.95
-                ? waveColor
-                : const Color(0xFFF5E4AD),
-            child: Stack(
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: Column(
               children: [
-                // 🌊 아래에서 위로 차오르는 물결
-                Positioned.fill(
-                  child: WaveBackground(
-                    waveColor: waveColor,
-                    waveHeightFactor: _heightAnimation.value,
-                  ),
-                ),
-
-                // 📄 물결 뒤에 나타나는 카드들
-                Positioned.fill(
+                const _HomeHeader(),
+                Expanded(
                   child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.fromLTRB(13, 16, 13, 24),
                     child: Column(
                       children: [
-                        FadeSlideTransition(
-                          delay: 0.4,
-                          child: cardContainer(
-                            child: UserProfileSection(
-                              nickname: data.nickname,
-                              tier: data.tier,
-                              topPercent: data.topPercent,
-                              studyAchievementRate: data.studyAchievementRate,
+                        _RankCard(data: data),
+                        const SizedBox(height: 14),
+                        _AttendanceCard(
+                          attendanceList: data.attendance,
+                          streakCount: data.continuousAttendanceCount,
+                        ),
+                        const SizedBox(height: 15),
+                        _HomeActionButton(
+                          color: AuthColors.primary,
+                          icon: Icons.menu_book,
+                          title: '오늘은 어떤 어휘를 배워볼까요?',
+                          subtitle: '오늘의 어휘 학습하기 >',
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const VocabularyDashboardScreen(),
                             ),
                           ),
                         ),
-                        FadeSlideTransition(
-                          delay: 0.6,
-                          child: cardContainer(
-                            child: LearningChartSection(
-                              weeklyData: data.weeklyData,
+                        const SizedBox(height: 14),
+                        _HomeActionButton(
+                          color: const Color(0xFFFF806B),
+                          icon: Icons.record_voice_over,
+                          title: 'AI와 함께 실전에 통하는 회화!',
+                          subtitle: '실전회화 학습하기 >',
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CategorySelectionScreen(),
                             ),
                           ),
                         ),
-                        FadeSlideTransition(
-                          delay: 0.8,
-                          child: cardContainer(
-                            child: AttendanceSection(
-                              attendanceList: data.attendance,
-                              streakCount: data.continuousAttendanceCount,
-                            ),
-                          ),
-                        ),
-                        const FadeSlideTransition(
-                          delay: 1.0,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 20,
-                            ),
-                            child: QuickMenuSection(),
-                          ),
-                        ),
-                        const SizedBox(height: 50),
                       ],
                     ),
                   ),
                 ),
               ],
             ),
-          );
-        },
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 56,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const Text(
+            '홈',
+            style: TextStyle(
+              color: AuthColors.primary,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Positioned(
+            right: 12,
+            child: IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.settings, color: AuthColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RankCard extends StatelessWidget {
+  const _RankCard({required this.data});
+
+  final HomeSummary data;
+
+  @override
+  Widget build(BuildContext context) {
+    final rank = VipaRank.fromTier(data.tier);
+    final totalEnergy = data.weeklyData.fold<int>(
+      0,
+      (sum, item) => sum + item.totalEnergy,
+    );
+    final today = DateTime.now().toIso8601String().split('T').first;
+    WeeklyData? todayData;
+    for (final item in data.weeklyData) {
+      if (item.date == today) {
+        todayData = item;
+        break;
+      }
+    }
+    final todayVocabulary = todayData?.vocabEnergy ?? 0;
+    final todayConversation = todayData?.convEnergy ?? 0;
+
+    return _WhiteCard(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(27, 24, 27, 18),
+        child: Column(
+          children: [
+            RankBadge(rank: rank, size: 76),
+            const SizedBox(height: 6),
+            Text(
+              rank.koreanName,
+              style: TextStyle(
+                color: rank.color,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 27),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: (data.studyAchievementRate / 100)
+                    .clamp(0.0, 1.0)
+                    .toDouble(),
+                minHeight: 7,
+                backgroundColor: const Color(0xFFE5E5E5),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AuthColors.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _EnergyLine(label: '총 학습량', value: '$totalEnergy개'),
+                  _EnergyLine(
+                    label: '오늘의 어휘 학습량',
+                    value: '$todayVocabulary개',
+                    valueColor: AuthColors.primary,
+                  ),
+                  _EnergyLine(
+                    label: '실전회화 학습량',
+                    value: '$todayConversation개',
+                    valueColor: AuthColors.primary,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EnergyLine extends StatelessWidget {
+  const _EnergyLine({
+    required this.label,
+    required this.value,
+    this.valueColor = Colors.black,
+  });
+
+  final String label;
+  final String value;
+  final Color valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        text: '$label : ',
+        children: [
+          TextSpan(
+            text: value,
+            style: TextStyle(color: valueColor, fontWeight: FontWeight.w900),
+          ),
+        ],
+      ),
+      style: const TextStyle(
+        color: Colors.black,
+        fontSize: 10,
+        fontWeight: FontWeight.w800,
+        height: 1.45,
+      ),
+    );
+  }
+}
+
+class _AttendanceCard extends StatelessWidget {
+  const _AttendanceCard({
+    required this.attendanceList,
+    required this.streakCount,
+  });
+
+  final List<String> attendanceList;
+  final int streakCount;
+
+  @override
+  Widget build(BuildContext context) {
+    const days = ['월', '화', '수', '목', '금', '토', '일'];
+
+    return _WhiteCard(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(32, 21, 32, 18),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(days.length, (index) {
+                final isDone = attendanceList.contains(days[index]);
+                return _DayDot(
+                  number: index + 1,
+                  day: days[index],
+                  isDone: isDone,
+                );
+              }),
+            ),
+            const SizedBox(height: 17),
+            Text.rich(
+              TextSpan(
+                text: '연속출석 : ',
+                children: [
+                  TextSpan(
+                    text: '$streakCount일!',
+                    style: const TextStyle(color: AuthColors.primary),
+                  ),
+                ],
+              ),
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DayDot extends StatelessWidget {
+  const _DayDot({
+    required this.number,
+    required this.day,
+    required this.isDone,
+  });
+
+  final int number;
+  final String day;
+  final bool isDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDone ? AuthColors.primary : Colors.black;
+
+    return Column(
+      children: [
+        Container(
+          width: 23,
+          height: 23,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isDone ? AuthColors.primary : Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            '$number',
+            style: TextStyle(
+              color: isDone ? Colors.white : Colors.black,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          day,
+          style: TextStyle(
+            color: color,
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HomeActionButton extends StatelessWidget {
+  const _HomeActionButton({
+    required this.color,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onPressed,
+  });
+
+  final Color color;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 85,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          elevation: 2,
+          shadowColor: Colors.black26,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+          padding: const EdgeInsets.symmetric(horizontal: 27),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 31),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WhiteCard extends StatelessWidget {
+  const _WhiteCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+enum VipaRank {
+  bronze('브론즈', Color(0xFFB8663B)),
+  silver('실버', Color(0xFFBFC0C0)),
+  gold('골드', Color(0xFFFFA11A)),
+  emerald('에메랄드', Color(0xFF28A8D7)),
+  diamond('다이아', Color(0xFFE445B6)),
+  master('마스터', Color(0xFF240028));
+
+  const VipaRank(this.koreanName, this.color);
+
+  final String koreanName;
+  final Color color;
+
+  static VipaRank fromTier(String tier) {
+    switch (tier.toUpperCase()) {
+      case 'SILVER':
+        return VipaRank.silver;
+      case 'GOLD':
+        return VipaRank.gold;
+      case 'EMERALD':
+        return VipaRank.emerald;
+      case 'DIAMOND':
+        return VipaRank.diamond;
+      case 'MASTER':
+        return VipaRank.master;
+      case 'BRONZE':
+      default:
+        return VipaRank.bronze;
+    }
+  }
+}
+
+class RankBadge extends StatelessWidget {
+  const RankBadge({super.key, required this.rank, required this.size});
+
+  final VipaRank rank;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        painter: _RankBadgePainter(color: rank.color),
+        child: Center(
+          child: Text(
+            '${rank.index + 1}',
+            style: TextStyle(
+              color: rank.color,
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              shadows: [const Shadow(color: Colors.white, blurRadius: 1)],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RankBadgePainter extends CustomPainter {
+  const _RankBadgePainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width * 0.42;
+    final path = Path();
+
+    for (int i = 0; i < 6; i++) {
+      final angle = -math.pi / 2 + i * math.pi / 3;
+      final point = Offset(
+        center.dx + radius * math.cos(angle),
+        center.dy + radius * math.sin(angle),
       );
-    });
+      if (i == 0) {
+        path.moveTo(point.dx, point.dy);
+      } else {
+        path.lineTo(point.dx, point.dy);
+      }
+    }
+    path.close();
+
+    canvas.drawShadow(path, Colors.black.withValues(alpha: 0.35), 8, true);
+    canvas.drawPath(path, Paint()..color = color);
+
+    final inner = Path();
+    final innerRadius = radius * 0.62;
+    for (int i = 0; i < 6; i++) {
+      final angle = -math.pi / 2 + i * math.pi / 3;
+      final point = Offset(
+        center.dx + innerRadius * math.cos(angle),
+        center.dy + innerRadius * math.sin(angle),
+      );
+      if (i == 0) {
+        inner.moveTo(point.dx, point.dy);
+      } else {
+        inner.lineTo(point.dx, point.dy);
+      }
+    }
+    inner.close();
+    canvas.drawPath(inner, Paint()..color = Colors.white);
+    canvas.drawPath(
+      inner,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.45)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _RankBadgePainter oldDelegate) {
+    return oldDelegate.color != color;
   }
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../api/api_service.dart'; // ApiService 경로에 맞게 수정해주세요
 
 class VocabularyDashboardProvider extends ChangeNotifier {
+  static const int maxGoalWords = 30;
+
   bool isLoading = true;
 
   // 백엔드에서 받아온 최대 개수
@@ -28,9 +30,9 @@ class VocabularyDashboardProvider extends ChangeNotifier {
         maxRetry = data['retry_words_count'] ?? 0;
 
         // 초기값은 최대치로 꽉 채워둠
-        chosenNew = maxNew;
-        chosenReview = maxReview;
-        chosenRetry = maxRetry;
+        chosenNew = maxNew.clamp(0, maxGoalWords).toInt();
+        chosenReview = maxReview.clamp(0, maxGoalWords).toInt();
+        chosenRetry = maxRetry.clamp(0, maxGoalWords).toInt();
       }
     } catch (e) {
       debugPrint("대시보드 로드 에러: $e");
@@ -42,11 +44,22 @@ class VocabularyDashboardProvider extends ChangeNotifier {
 
   void adjustCount(String type, int delta) {
     if (type == 'new') {
-      chosenNew = (chosenNew + delta).clamp(0, maxNew);
+      chosenNew = (chosenNew + delta).clamp(0, maxGoalWords).toInt();
     } else if (type == 'review') {
-      chosenReview = (chosenReview + delta).clamp(0, maxReview);
+      chosenReview = (chosenReview + delta).clamp(0, maxGoalWords).toInt();
     } else if (type == 'retry') {
-      chosenRetry = (chosenRetry + delta).clamp(0, maxRetry);
+      chosenRetry = (chosenRetry + delta).clamp(0, maxGoalWords).toInt();
+    }
+    notifyListeners();
+  }
+
+  void setCount(String type, int value) {
+    if (type == 'new') {
+      chosenNew = value.clamp(0, maxGoalWords).toInt();
+    } else if (type == 'review') {
+      chosenReview = value.clamp(0, maxGoalWords).toInt();
+    } else if (type == 'retry') {
+      chosenRetry = value.clamp(0, maxGoalWords).toInt();
     }
     notifyListeners();
   }

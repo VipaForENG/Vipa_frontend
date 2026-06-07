@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../../login/auth_widgets.dart';
 import 'conversation_provider.dart';
 import 'conversation_result_screen.dart';
-import 'widgets/conversation_widgets.dart';
-import 'evaluation_detail_view.dart';
 
 class ConversationChatScreen extends StatefulWidget {
-  final int subCatId;
   const ConversationChatScreen({super.key, required this.subCatId});
+
+  final int subCatId;
 
   @override
   State<ConversationChatScreen> createState() => _ConversationChatScreenState();
@@ -53,271 +54,350 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
     }
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: ConversationTopBar(value: provider.progress),
-      ),
-      body: Stack(
-        children: [
-          _buildBackground(),
-          SafeArea(
+      backgroundColor: const Color(0xFFF3F4F6),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
             child: Column(
               children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        AiSpeechBubble(
-                          en: provider.aiEnglish,
-                          ko: provider.aiKorean,
-                        ),
-                        const SizedBox(height: 30),
-                        _buildMissionBox(provider.userTargetSentence),
-                        if (provider.hints.isNotEmpty && !provider.isAnswered)
-                          ...provider.hints.map((hint) => _buildHintItem(hint)),
-                        const SizedBox(height: 100),
-                      ],
+                const SizedBox(height: 18),
+                const Text(
+                  '실전회화 학습',
+                  style: TextStyle(
+                    color: AuthColors.primary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 48),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: provider.progress,
+                      minHeight: 7,
+                      backgroundColor: const Color(0xFFE2E2E2),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        AuthColors.primary,
+                      ),
                     ),
                   ),
                 ),
-                _buildBottomArea(provider),
+                const SizedBox(height: 18),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _LearningCard(
+                    english: provider.aiEnglish,
+                    korean: provider.aiKorean,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _MissionBox(text: provider.userTargetSentence),
+                ),
+                if (provider.isTextMode)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: _TextAnswerBox(
+                      controller: _textController,
+                      onMicTap: provider.toggleTextMode,
+                      onSubmit: () => _handleTextSubmit(provider),
+                    ),
+                  ),
+                if (provider.isAnswered)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: _FeedbackBox(
+                      feedback: provider.feedbackKo,
+                      corrected: provider.correctedEn,
+                      onNext: provider.nextStep,
+                    ),
+                  ),
+                const Spacer(),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 44),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _RoundToolButton(
+                        icon: Icons.lightbulb,
+                        onTap: () => provider.requestHintStepByStep(
+                          textController: _textController,
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      _MicButton(provider: provider),
+                      const SizedBox(width: 20),
+                      _RoundToolButton(
+                        icon: Icons.keyboard,
+                        onTap: provider.toggleTextMode,
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBackground() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF263238), Color(0xFF1E1E2C)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
         ),
-      ),
-    );
-  }
-
-  Widget _buildHintItem(String text) {
-    bool isWarning = text.contains("⚠️");
-    bool isAnswer = text.contains("정답:");
-    Color color = isWarning
-        ? Colors.redAccent
-        : (isAnswer ? Colors.greenAccent : const Color(0xFFB3A9FF));
-    return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isWarning
-                ? Icons.warning_amber_rounded
-                : (isAnswer ? Icons.check_circle_outline : Icons.lightbulb),
-            color: color,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: color,
-                fontSize: 15,
-                fontWeight: (isWarning || isAnswer)
-                    ? FontWeight.bold
-                    : FontWeight.normal,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ✨ 하단 컨트롤 분기 영역
-  Widget _buildBottomArea(ConversationProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
-      child: provider.isAnswered
-          ? ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.5,
-              ),
-              child: EvaluationDetailView(provider: provider),
-            )
-          : _buildInputArea(provider),
-    );
-  }
-
-  Widget _buildInputArea(ConversationProvider provider) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (provider.isRecording)
-          _buildUserSpeechPreview(provider.userSpokenText),
-        const SizedBox(height: 15),
-        // ✨ 키보드 모드 분기
-        provider.isTextMode
-            ? _buildTextFieldInput(provider)
-            : _buildInputButtons(provider),
-      ],
-    );
-  }
-
-  // ✨ 텍스트 입력 UI
-  Widget _buildTextFieldInput(ConversationProvider provider) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.mic_none, color: Colors.white70),
-            onPressed: () => provider.toggleTextMode(),
-          ),
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              autofocus: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                hintText: "Type your answer...",
-                hintStyle: TextStyle(color: Colors.white38),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 15),
-              ),
-              onSubmitted: (value) => _handleTextSubmit(provider),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.send, color: Color(0xFF8877FF)),
-            onPressed: () => _handleTextSubmit(provider),
-          ),
-        ],
       ),
     );
   }
 
   void _handleTextSubmit(ConversationProvider provider) {
-    if (_textController.text.trim().isNotEmpty) {
-      provider.evaluateSpeech(_textController.text.trim());
-      _textController.clear();
-    }
+    final text = _textController.text.trim();
+    if (text.isEmpty) return;
+    provider.evaluateSpeech(text);
+    _textController.clear();
   }
+}
 
-  Widget _buildInputButtons(ConversationProvider provider) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _circleButton(
-          Icons.lightbulb_outline,
-          () => provider.requestHintStepByStep(textController: _textController),
-        ),
-        _micButton(provider),
-        _circleButton(
-          Icons.keyboard_alt_outlined,
-          () => provider.toggleTextMode(),
-        ), // ✨ 모드 전환 버튼
-      ],
+class _LearningCard extends StatelessWidget {
+  const _LearningCard({required this.english, required this.korean});
+
+  final String english;
+  final String korean;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.18),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            english,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              height: 1.18,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            korean,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF8C8C8C),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
+}
 
-  Widget _buildUserSpeechPreview(String text) {
+class _MissionBox extends StatelessWidget {
+  const _MissionBox({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(25),
+        color: const Color(0xFFFF806B),
+        borderRadius: BorderRadius.circular(6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.18),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Text(
-        text,
+        text.isEmpty ? '문장을 듣고 답변해 보세요.' : text,
         textAlign: TextAlign.center,
-        style: const TextStyle(color: Colors.white, fontSize: 16),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }
+}
 
-  Widget _micButton(ConversationProvider provider) {
-    double scale = provider.dbScale;
-    return GestureDetector(
-      onTap: () => provider.toggleRecording(),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
-        padding: const EdgeInsets.all(26),
-        decoration: BoxDecoration(
-          color: provider.isRecording
-              ? Colors.redAccent
-              : const Color(0xFF8877FF),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color:
-                  (provider.isRecording
-                          ? Colors.redAccent
-                          : const Color(0xFF8877FF))
-                      .withValues(alpha: 0.3 + (scale * 0.5)),
-              blurRadius: 15 + (scale * 60),
-              spreadRadius: 2 + (scale * 25),
+class _TextAnswerBox extends StatelessWidget {
+  const _TextAnswerBox({
+    required this.controller,
+    required this.onMicTap,
+    required this.onSubmit,
+  });
+
+  final TextEditingController controller;
+  final VoidCallback onMicTap;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: onMicTap,
+            icon: const Icon(Icons.mic, color: AuthColors.primary),
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: '답변을 입력하세요',
+                border: InputBorder.none,
+              ),
+              onSubmitted: (_) => onSubmit(),
+            ),
+          ),
+          IconButton(
+            onPressed: onSubmit,
+            icon: const Icon(Icons.send, color: AuthColors.primary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeedbackBox extends StatelessWidget {
+  const _FeedbackBox({
+    required this.feedback,
+    required this.corrected,
+    required this.onNext,
+  });
+
+  final String feedback;
+  final String corrected;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        children: [
+          Text(
+            feedback.isEmpty ? '답변을 확인했습니다.' : feedback,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (corrected.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              corrected,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AuthColors.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: ElevatedButton(
+              onPressed: onNext,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AuthColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              child: const Text(
+                '다음으로',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoundToolButton extends StatelessWidget {
+  const _RoundToolButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(99),
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: const BoxDecoration(
+          color: Color(0xFFFF806B),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.white, size: 25),
+      ),
+    );
+  }
+}
+
+class _MicButton extends StatelessWidget {
+  const _MicButton({required this.provider});
+
+  final ConversationProvider provider;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: provider.toggleRecording,
+      borderRadius: BorderRadius.circular(99),
+      child: Container(
+        width: 76,
+        height: 76,
+        decoration: BoxDecoration(
+          color: provider.isRecording ? Colors.redAccent : AuthColors.primary,
+          shape: BoxShape.circle,
         ),
         child: Icon(
           provider.isRecording ? Icons.stop : Icons.mic,
           color: Colors.white,
           size: 42,
-        ),
-      ),
-    );
-  }
-
-  Widget _circleButton(IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(30),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white, size: 28),
-      ),
-    );
-  }
-
-  Widget _buildMissionBox(String text) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 18,
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );

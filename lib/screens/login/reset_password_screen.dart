@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart';
 
-import '../../routes/app_routes.dart';
 import '../../controllers/auth_controller.dart';
 import '../../design/snack_bar.dart';
-// 공용 애니메이션 모듈 임포트
-import '../../design/animation_design.dart';
+import '../../routes/app_routes.dart';
+import 'auth_widgets.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+  const ResetPasswordScreen({
+    super.key,
+    this.initialEmail,
+    this.isFromMyPage = false,
+  });
+
+  final String? initialEmail;
+  final bool isFromMyPage;
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -16,267 +21,101 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _inputController = TextEditingController();
-  final FocusNode _emailFocusNode = FocusNode();
 
   bool _isLoading = false;
-  double _currentWaveHeight = 0.35;
+  String? _emailError;
 
   @override
   void initState() {
     super.initState();
-    _emailFocusNode.addListener(_onFocusChange);
-  }
-
-  void _onFocusChange() {
-    if (!mounted) return;
-    setState(() {
-      _currentWaveHeight = _emailFocusNode.hasFocus ? 0.45 : 0.35;
-    });
+    // 마이페이지에서 진입하면 저장된 이메일을 미리 채워 사용자의 입력 부담을 줄인다.
+    _emailController.text = widget.initialEmail ?? '';
   }
 
   @override
   void dispose() {
     _emailController.dispose();
-    _inputController.dispose();
-    _emailFocusNode.dispose();
     super.dispose();
   }
 
-  // --- 비즈니스 로직 ---
+  bool _isEmailValid(String email) {
+    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+  }
+
   Future<void> _handleSendCode() async {
     final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      VipaSnackBar.show(context, '이메일을 입력해주세요.');
+    if (!_isEmailValid(email)) {
+      setState(() => _emailError = '존재하는 이메일이 아닙니다.');
       return;
     }
 
-    setState(() => _isLoading = true);
-    bool success = await AuthController.sendRecoveryCode(email);
+    setState(() {
+      _isLoading = true;
+      _emailError = null;
+    });
+    final success = await AuthController.sendRecoveryCode(email);
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (success) {
-      if (!mounted) return;
       VipaSnackBar.show(context, '인증 코드가 발송되었습니다.');
-      _showAuthDialog();
-    } else {
-      if (!mounted) return;
-      VipaSnackBar.show(context, '존재하지 않는 이메일이거나 발송에 실패했습니다.');
-    }
-  }
-
-  Future<void> _handleVerifyCode() async {
-    final email = _emailController.text.trim();
-    final code = _inputController.text.trim();
-
-    if (code.length < 6) {
-      VipaSnackBar.show(context, '6자리 코드를 입력해주세요.');
+      // 인증번호 화면에서도 마이페이지 진입 여부를 유지해 완료 후 복귀 위치를 구분한다.
+      Navigator.pushNamed(
+        context,
+        AppRoutes.verificationCode,
+        arguments: <String, dynamic>{
+          'email': email,
+          'isFromMyPage': widget.isFromMyPage,
+        },
+      );
       return;
     }
 
-    bool isVerified = await AuthController.verifyRecoveryCode(email, code);
-
-    if (isVerified) {
-      if (!mounted) return;
-
-      // 🔥 [해결] Navigator 상태를 미리 변수에 할당하여 다이얼로그가 팝(pop)된 후에도
-      // context가 유효하도록 방어합니다.
-      final navigator = Navigator.of(context);
-
-      // 1. 인증번호 입력 다이얼로그를 먼저 닫습니다.
-      navigator.pop();
-
-      // 2. 확보한 navigator 인스턴스를 사용하여 다음 화면으로 이동합니다.
-      // arguments의 타입을 <String, dynamic>으로 명시하여 캐스팅 에러를 방지합니다.
-      navigator.pushNamed(
-        AppRoutes.changePassword,
-        arguments: <String, dynamic>{'email': email, 'code': code},
-      );
-    } else {
-      if (!mounted) return;
-      VipaSnackBar.show(context, '인증번호가 틀렸거나 만료되었습니다.');
-    }
-  }
-
-  // --- UI 컴포넌트 ---
-  void _showAuthDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFFFFF9E5),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: const Text(
-          '인증번호 입력',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color(0xfff75f0b),
-          ),
-        ),
-        content: TextField(
-          controller: _inputController,
-          keyboardType: TextInputType.number,
-          maxLength: 6,
-          decoration: const InputDecoration(
-            hintText: '인증번호 6자리',
-            hintStyle: TextStyle(color: Color(0xFFffa370)),
-            counterText: "",
-            enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFFffa370), width: 1),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소', style: TextStyle(color: Color(0xFFffa370))),
-          ),
-          TextButton(
-            onPressed: _handleVerifyCode,
-            child: const Text(
-              '인증확인',
-              style: TextStyle(
-                color: Color(0xfff75f0b),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    setState(() => _emailError = '존재하는 이메일이 아닙니다.');
+    VipaSnackBar.show(context, '이메일을 확인해주세요.', isError: true);
   }
 
   @override
   Widget build(BuildContext context) {
-    const Color bgColor = Color(0xFFFFF9E5);
-    const Color waveColor = Color(0xFFffcbae);
-
-    return Scaffold(
-      backgroundColor: bgColor,
-      resizeToAvoidBottomInset: false,
-      body: Stack(
+    return AuthScaffold(
+      child: Column(
         children: [
-          Positioned.fill(
-            child: WaveBackground(
-              waveColor: waveColor,
-              waveHeightFactor: _currentWaveHeight,
+          const SizedBox(height: 121),
+          Text(
+            widget.isFromMyPage ? '비밀번호 변경 해주세요!' : '혹시 비밀번호를 잊으셨나요?!',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              height: 1.05,
             ),
+            textAlign: TextAlign.center,
           ),
-          SafeArea(
-            child: Column(
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(
-                      RemixIcons.arrow_left_line,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 40),
-                          // 🔥 일관된 진입 애니메이션 적용
-                          FadeSlideTransition(
-                            delay: 0.0,
-                            child: const Icon(
-                              RemixIcons.lock_password_line,
-                              size: 80,
-                              color: Color(0xfff75f0b),
-                            ),
-                          ),
-                          const SizedBox(height: 30),
-                          FadeSlideTransition(
-                            delay: 0.2,
-                            child: const Text(
-                              '가입 시 사용한 이메일을 입력해주세요.\n인증번호를 보내드립니다.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.black87,
-                                height: 1.5,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 50),
-                          FadeSlideTransition(
-                            delay: 0.4,
-                            child: _buildUnderlineTextField(),
-                          ),
-                          const SizedBox(height: 40),
-                          FadeSlideTransition(
-                            delay: 0.6,
-                            child: _buildPrimaryButton(),
-                          ),
-                          const SizedBox(height: 50),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(height: 8),
+          Text(
+            widget.isFromMyPage
+                ? '이메일을 확인하고 인증번호를 받아주세요!'
+                : '이메일을 입력하고 인증번호를 받아보세요!',
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
           ),
+          const SizedBox(height: 91),
+          AuthTextField(
+            controller: _emailController,
+            label: '이메일',
+            hintText: '이메일',
+            keyboardType: TextInputType.emailAddress,
+            errorText: _emailError,
+            onChanged: (_) => setState(() => _emailError = null),
+          ),
+          const SizedBox(height: 27),
+          AuthButton(
+            text: _isLoading
+                ? '전송 중...'
+                : (widget.isFromMyPage ? '인증번호 입력' : '인증번호 받기'),
+            onPressed: _isLoading ? null : _handleSendCode,
+          ),
+          const Spacer(),
         ],
-      ),
-    );
-  }
-
-  // --- UI Helper (중복 제거를 위해 메서드로 분리) ---
-  Widget _buildUnderlineTextField() {
-    return SizedBox(
-      width: 300,
-      child: TextField(
-        controller: _emailController,
-        focusNode: _emailFocusNode,
-        decoration: const InputDecoration(
-          prefixIcon: Icon(
-            RemixIcons.mail_fill,
-            size: 20,
-            color: Color(0xFFffa370),
-          ),
-          prefixIconConstraints: BoxConstraints(minWidth: 35),
-          hintText: '이메일 주소',
-          hintStyle: TextStyle(color: Colors.black38),
-          enabledBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFFffa370), width: 1),
-          ),
-          focusedBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFFffa370), width: 2),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPrimaryButton() {
-    return SizedBox(
-      width: 300,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleSendCode,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xfff75f0b),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 0,
-        ),
-        child: Text(
-          _isLoading ? '전송 중...' : '인증요청',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
       ),
     );
   }

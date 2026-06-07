@@ -4,11 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 
 import '../../api/api_service.dart';
-import '../../controllers/auth_controller.dart';
-import '../../design/card_design.dart';
 import '../../routes/app_routes.dart';
 import 'profile_setting_screen.dart';
-import 'subscription_screen.dart';
 
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
@@ -18,13 +15,13 @@ class MyPageScreen extends StatefulWidget {
 }
 
 class _MyPageScreenState extends State<MyPageScreen> {
-  String currentPlan = 'PRO';
-  String nextBillingDate = '2024.06.20';
+  static const _primaryColor = Color(0xFFFF4F39);
+  static const _pageBackground = Color(0xFFF2F2F2);
+
   String nickname = '닉네임';
   String email = 'user@email.com';
   String? profileImage;
   String? localProfileImagePath;
-  bool isSocialUser = false;
   Map<String, dynamic>? userData;
 
   @override
@@ -36,7 +33,9 @@ class _MyPageScreenState extends State<MyPageScreen> {
   Future<void> _loadUserInfo({bool forceRefresh = false}) async {
     final storage = GetStorage();
     final cachedData = storage.read('user_data');
-    final savedLocalImagePath = storage.read('local_profile_image_path')?.toString();
+    final savedLocalImagePath = storage.read(
+      'local_profile_image_path',
+    )?.toString();
     final cachedLocalImagePath =
         (savedLocalImagePath != null && savedLocalImagePath.isNotEmpty)
         ? savedLocalImagePath
@@ -65,14 +64,11 @@ class _MyPageScreenState extends State<MyPageScreen> {
       email = userData?['email']?.toString() ?? 'user@email.com';
       profileImage = userData?['profile_image']?.toString();
       localProfileImagePath = userData?['local_profile_image_path']?.toString();
-      final isSocial = userData?['is_social'] ?? 0;
-      isSocialUser =
-          (isSocial is int ? isSocial : int.tryParse(isSocial.toString()) ?? 0) >
-              0;
     });
   }
 
   Future<void> _openProfileSetting() async {
+    // 프로필 수정 화면에서 돌아온 결과를 받아 마이페이지 정보를 즉시 갱신한다.
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
@@ -91,339 +87,106 @@ class _MyPageScreenState extends State<MyPageScreen> {
     });
   }
 
-  Future<void> _navigateToSubscription() async {
-    final result = await Navigator.push<String>(
+  void _openPasswordRecovery() {
+    // 마이페이지 비밀번호 재설정은 비밀번호 찾기 인증 흐름을 재사용한다.
+    // 로그인한 사용자의 이메일과 진입 위치를 넘겨 다음 화면들이 같은 플로우를 이어간다.
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+      AppRoutes.resetPassword,
+      arguments: <String, dynamic>{'email': email, 'isFromMyPage': true},
     );
-
-    if (result != null && mounted) {
-      setState(() => currentPlan = result);
-    }
   }
 
-  void _showWithdrawalDialog(BuildContext context) {
+  void _showWithdrawalDialog() {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('회원 탈퇴'),
-        content: const Text('탈퇴하면 계정과 학습 데이터가 삭제됩니다. 계속할까요?'),
+        content: const Text('회원탈퇴 기능은 UI만 먼저 연결했습니다.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final success = await AuthController.withdrawUser();
-              if (!context.mounted) return;
-
-              if (success) {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  AppRoutes.login,
-                  (route) => false,
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('탈퇴 실패')),
-                );
-              }
-            },
-            child: const Text('탈퇴', style: TextStyle(color: Colors.redAccent)),
+            child: const Text('확인', style: TextStyle(color: _primaryColor)),
           ),
         ],
       ),
     );
   }
 
-  void _showChangePasswordDialog(BuildContext context) {
-    final oldPwController = TextEditingController();
-    final newPwController = TextEditingController();
-
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('비밀번호 변경'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: oldPwController,
-              decoration: const InputDecoration(labelText: '현재 비밀번호'),
-              obscureText: true,
-            ),
-            TextField(
-              controller: newPwController,
-              decoration: const InputDecoration(labelText: '새 비밀번호'),
-              obscureText: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final success = await AuthController.changePassword(
-                oldPwController.text,
-                newPwController.text,
-              );
-
-              if (!context.mounted) return;
-
-              if (success) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('변경 완료')),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('변경 실패')),
-                );
-              }
-            },
-            child: const Text('변경'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCancelSubscriptionDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('구독 해지', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('정말 구독을 해지하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() => currentPlan = 'FREE');
-              Navigator.pop(context);
-            },
-            child: const Text('해지하기', style: TextStyle(color: Colors.redAccent)),
-          ),
-        ],
-      ),
-    );
+  void _logout() {
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          '마이페이지',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D3436)),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: RefreshIndicator(
-        onRefresh: () => _loadUserInfo(forceRefresh: true),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 40),
-          child: Column(
-            children: [
-              cardContainer(
-                child: _buildProfileContent(context, currentPlan, nextBillingDate),
-              ),
-              const SizedBox(height: 24),
-              _buildSectionHeader('멤버십 관리'),
-              cardContainer(
-                child: Column(
-                  children: [
-                    _buildMenuItem(
-                      icon: Icons.card_membership_outlined,
-                      title: '멤버십 구독 및 변경',
-                      onTap: _navigateToSubscription,
-                    ),
-                    const Divider(height: 1, indent: 20, endIndent: 20),
-                    _buildMenuItem(
-                      icon: Icons.receipt_long_outlined,
-                      title: '구독 결제 내역',
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        AppRoutes.subscriptionHistory,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              _buildSectionHeader('내 정보 관리'),
-              cardContainer(
-                child: Column(
-                  children: [
-                    if (!isSocialUser)
-                      _buildMenuItem(
-                        icon: Icons.lock_outline,
-                        title: '비밀번호 변경',
-                        onTap: () => _showChangePasswordDialog(context),
-                      ),
-                    if (currentPlan != 'FREE') ...[
-                      const Divider(height: 1, indent: 20, endIndent: 20),
-                      _buildMenuItem(
-                        icon: Icons.cancel_outlined,
-                        title: '구독 해지',
-                        onTap: () => _showCancelSubscriptionDialog(context),
-                      ),
-                    ],
-                    const Divider(height: 1, indent: 20, endIndent: 20),
-                    _buildMenuItem(
-                      icon: Icons.person_remove_outlined,
-                      title: '회원 탈퇴',
-                      isDanger: true,
-                      onTap: () => _showWithdrawalDialog(context),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-              _buildLogoutButton(context),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileContent(BuildContext context, String plan, String nextDate) {
-    final hasImage = profileImage != null && profileImage!.isNotEmpty;
-    final hasLocalImage =
-        localProfileImagePath != null && localProfileImagePath!.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _buildProfileAvatar(
-                radius: 30,
-                localPath: hasLocalImage ? localProfileImagePath : null,
-                imageUrl: hasImage ? profileImage : null,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      nickname,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2D3436),
-                      ),
-                    ),
-                    Text(
-                      email,
-                      style: const TextStyle(color: Colors.grey, fontSize: 14),
-                    ),
-                  ],
-                ),
-              ),
-              TextButton(
-                onPressed: _openProfileSetting,
-                child: const Text(
-                  '수정',
-                  style: TextStyle(
-                    color: Colors.blueAccent,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: _pageBackground,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: RefreshIndicator(
+              color: _primaryColor,
+              onRefresh: () => _loadUserInfo(forceRefresh: true),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 28),
                 children: [
-                  const Text(
-                    '나의 멤버십',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF2D3436),
+                  const _PageTitle(title: '마이페이지'),
+                  const SizedBox(height: 8),
+                  _ProfileCard(
+                    nickname: nickname,
+                    email: email,
+                    avatar: _buildProfileAvatar(radius: 24),
+                    onEdit: _openProfileSetting,
+                  ),
+                  const SizedBox(height: 8),
+                  _MenuButton(
+                    title: '비밀번호 재설정',
+                    onPressed: _openPasswordRecovery,
+                  ),
+                  const SizedBox(height: 8),
+                  _MenuButton(
+                    title: '회원탈퇴',
+                    textColor: _primaryColor,
+                    onPressed: _showWithdrawalDialog,
+                  ),
+                  const SizedBox(height: 18),
+                  TextButton(
+                    onPressed: _logout,
+                    child: const Text(
+                      '로그아웃',
+                      style: TextStyle(
+                        color: Color(0xFF8E8E8E),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                  if (plan != 'FREE')
-                    Text(
-                      '다음 결제: $nextDate',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.blueAccent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  plan,
-                  style: const TextStyle(
-                    color: Colors.blueAccent,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey,
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildProfileAvatar({
-    required double radius,
-    String? localPath,
-    String? imageUrl,
-  }) {
-    Widget fallback = Container(
-      color: Colors.blueAccent,
-      child: const Icon(Icons.person, color: Colors.white, size: 30),
-    );
+  Widget _buildProfileAvatar({required double radius}) {
+    final hasLocalImage =
+        localProfileImagePath != null && localProfileImagePath!.isNotEmpty;
+    final hasRemoteImage = profileImage != null && profileImage!.isNotEmpty;
 
-    Widget image = fallback;
-    if (localPath != null && File(localPath).existsSync()) {
-      image = Image.file(File(localPath), fit: BoxFit.cover);
-    } else if (imageUrl != null && imageUrl.isNotEmpty) {
+    Widget image = Container(
+      color: const Color(0xFFE8E8E8),
+      child: const Icon(Icons.person, color: Colors.white, size: 26),
+    );
+    final fallback = image;
+
+    if (hasLocalImage && File(localProfileImagePath!).existsSync()) {
+      image = Image.file(File(localProfileImagePath!), fit: BoxFit.cover);
+    } else if (hasRemoteImage) {
       image = Image.network(
-        imageUrl,
+        profileImage!,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => fallback,
       );
@@ -433,50 +196,166 @@ class _MyPageScreenState extends State<MyPageScreen> {
       child: SizedBox(width: radius * 2, height: radius * 2, child: image),
     );
   }
+}
 
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    bool isDanger = false,
-  }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      leading: Icon(
-        icon,
-        color: isDanger ? Colors.redAccent : const Color(0xFF2D3436),
-        size: 22,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-          color: isDanger ? Colors.redAccent : const Color(0xFF2D3436),
-        ),
-      ),
-      trailing: const Icon(
-        Icons.chevron_right,
-        color: Color(0xFFDFE6E9),
-        size: 20,
-      ),
-      onTap: onTap,
-    );
-  }
+class _PageTitle extends StatelessWidget {
+  const _PageTitle({required this.title});
 
-  Widget _buildLogoutButton(BuildContext context) {
-    return Center(
-      child: TextButton(
-        onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
-        child: const Text(
-          '로그아웃',
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
-            decoration: TextDecoration.underline,
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 40,
+      child: Center(
+        child: Text(
+          title,
+          style: const TextStyle(
+            color: _MyPageScreenState._primaryColor,
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({
+    required this.nickname,
+    required this.email,
+    required this.avatar,
+    required this.onEdit,
+  });
+
+  final String nickname;
+  final String email;
+  final Widget avatar;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ShadowPanel(
+      height: 76,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            avatar,
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    nickname,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF262626),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF9A9A9A),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: 58,
+              height: 28,
+              child: ElevatedButton(
+                onPressed: onEdit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _MyPageScreenState._primaryColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                child: const Text(
+                  '수정',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuButton extends StatelessWidget {
+  const _MenuButton({
+    required this.title,
+    required this.onPressed,
+    this.textColor = Colors.black,
+  });
+
+  final String title;
+  final VoidCallback onPressed;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ShadowPanel(
+      height: 36,
+      child: TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          foregroundColor: textColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShadowPanel extends StatelessWidget {
+  const _ShadowPanel({required this.child, required this.height});
+
+  final Widget child;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(9),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }

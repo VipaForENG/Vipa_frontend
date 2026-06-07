@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; 
 import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 
-// [도메인 임포트] 파일명 확인 필수! (vocabulary_provider.dart 내부에 GrammarProvider 클래스가 있음)
-import 'vocabulary_provider.dart'; 
-import 'widgets/vocabulary_widgets.dart'; 
-
-// ✨ [디자인 시스템 임포트] 
-import '../../design/snack_bar.dart'; 
-import '../../design/background.dart'; 
-import '../../design/animation_design.dart'; 
+import '../../design/snack_bar.dart';
 import '../../routes/app_routes.dart';
+import '../login/auth_widgets.dart';
+import 'vocabulary_provider.dart';
 
 class VocabularyScreen extends StatefulWidget {
   const VocabularyScreen({super.key});
@@ -21,17 +16,23 @@ class VocabularyScreen extends StatefulWidget {
 
 class _VocabularyScreenState extends State<VocabularyScreen> {
   final TextEditingController _answerController = TextEditingController();
+  bool _showHint = false;
+  Object? _visibleQuizId;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = Get.arguments ?? {'new_count': 5, 'review_count': 10, 'retry_count': 10};
-      
+      final routeArgs = ModalRoute.of(context)?.settings.arguments;
+      final args = routeArgs is Map
+          ? routeArgs
+          : Get.arguments ??
+                {'new_count': 5, 'review_count': 0, 'retry_count': 0};
+
       Provider.of<GrammarProvider>(context, listen: false).fetchQuiz(
-        args['new_count'], 
-        args['review_count'], 
-        args['retry_count']
+        args['new_count'] ?? 5,
+        args['review_count'] ?? 0,
+        args['retry_count'] ?? 0,
       );
     });
   }
@@ -47,29 +48,20 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     final provider = Provider.of<GrammarProvider>(context);
 
     return Scaffold(
-      extendBodyBehindAppBar: true, 
-      backgroundColor: Colors.white, 
+      backgroundColor: const Color(0xFFF3F4F6),
       resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: provider.isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AuthColors.primary),
+                  )
+                : _buildQuizBody(provider),
+          ),
         ),
-        title: GrammarProgressBar(current: provider.currentCount, total: provider.totalCount),
-        centerTitle: true,
       ),
-      
-      body: provider.isLoading 
-          ? const Center(child: CircularProgressIndicator())
-          : Background(
-              fillLevel: 0.25, 
-              child: SafeArea(
-                bottom: false, 
-                child: _buildQuizBody(provider),
-              ),
-            ),
     );
   }
 
@@ -77,195 +69,381 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     final quiz = provider.currentQuiz;
     if (quiz == null) return const SizedBox.shrink();
 
-    return Column(
-      children: [
-        Expanded(
-          child: FadeSlideTransition(
-            delay: 0.1, 
-            child: Container(
-              margin: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 0),
-              padding: const EdgeInsets.all(25),
-              decoration: BoxDecoration(
-                color: Colors.white, 
-                borderRadius: BorderRadius.circular(35),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10))
-                ]
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('CEFR 등급 퀴즈', style: TextStyle(color: Colors.grey)),
-                    const SizedBox(height: 20),
-                    
-                    // 🌟 수정: 한국어 힌트 텍스트와 즐겨찾기 아이콘을 Row로 묶어서 나란히 배치
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            quiz['korean_hint'] ?? '', 
-                            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)
-                          ),
-                        ),
-                        // ✨ [신규 추가] 즐겨찾기(북마크) 토글 버튼
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: Icon(
-                            provider.isCurrentBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
-                            color: provider.isCurrentBookmarked ? const Color(0xFFFFC107) : Colors.grey.shade400,
-                            size: 32,
-                          ),
-                          onPressed: () {
-                            provider.toggleBookmark();
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 25),
-                    
-                    if (provider.isWrong && provider.currentHint != null)
-                      HintBox(hint: provider.currentHint!),
-                      
-                    const SizedBox(height: 50),
-                    _buildInputArea(provider, quiz['masked_sentence'] ?? ''),
-                  ],
+    final quizId = quiz['sentence_id'];
+    if (_visibleQuizId != quizId) {
+      _visibleQuizId = quizId;
+      _showHint = false;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+      child: Column(
+        children: [
+          const Text(
+            '오늘의 어휘 목표량',
+            style: TextStyle(
+              color: AuthColors.primary,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 31),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 34),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: provider.totalCount == 0
+                    ? 0
+                    : (provider.currentCount / provider.totalCount)
+                          .clamp(0.0, 1.0)
+                          .toDouble(),
+                minHeight: 7,
+                backgroundColor: const Color(0xFFE2E2E2),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AuthColors.primary,
                 ),
               ),
             ),
           ),
-        ),
-        _buildConfirmButton(provider),
-      ],
-    );
-  }
-
-  Widget _buildInputArea(GrammarProvider provider, String maskedSentence) {
-    final parts = maskedSentence.split('____');
-    final engBefore = parts.isNotEmpty ? parts[0] : '';
-    final engAfter = parts.length > 1 ? parts[1] : '';
-
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.end, 
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4.0), 
-          child: Text(engBefore, style: const TextStyle(fontSize: 18, height: 1.5)),
-        ),
-        _buildTextField(provider),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4.0),
-          child: Text(engAfter, style: const TextStyle(fontSize: 18, height: 1.5)),
-        ),
-      ],
-    );
-  }
-
-  // 🌟 수정: 텍스트 필드 제어 (기회가 없으면 입력 불가)
-  Widget _buildTextField(GrammarProvider provider) {
-    return Container(
-      width: 120, 
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      child: TextField(
-        controller: _answerController,
-        onSubmitted: (_) => _handleAction(provider),
-        textAlign: TextAlign.center,
-        // 기회가 없으면 텍스트 필드 잠금
-        enabled: !provider.isChecking && provider.canRetry,
-        style: TextStyle(
-          fontSize: 20, 
-          color: provider.isWrong ? const Color(0xFFFF4757) : const Color(0xFF7B61FF),
-          fontWeight: FontWeight.bold
-        ),
-        decoration: InputDecoration(
-          isDense: true, 
-          contentPadding: const EdgeInsets.symmetric(vertical: 4), 
-          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: provider.isWrong ? const Color(0xFFFF4757) : Colors.grey.shade400, width: 2)),
-          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: provider.isWrong ? const Color(0xFFFF4757) : const Color(0xFF7B61FF), width: 2)),
-        ),
+          const SizedBox(height: 18),
+          _VocabularyQuizCard(
+            quiz: quiz,
+            controller: _answerController,
+            isWrong: provider.isWrong,
+            enabled: !provider.isChecking && provider.canRetry,
+            isChecking: provider.isChecking,
+            onSubmit: () => _handleAction(provider),
+          ),
+          if (provider.isWrong && provider.currentHint != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: _showHint
+                  ? _HintMessageCard(message: provider.currentHint!)
+                  : _HintMessageButton(
+                      onPressed: () {
+                        setState(() {
+                          _showHint = true;
+                        });
+                      },
+                    ),
+            ),
+          const Spacer(),
+        ],
       ),
     );
   }
 
-  // 🌟 수정: 제출 및 다음으로 넘어가기 통합 핸들러
   void _handleAction(GrammarProvider provider) {
-    // 1. 이미 기회를 다 쓴 상태에서 버튼을 눌렀다면 -> 정답 제출하지 않고 바로 다음 문제로 패스!
     if (!provider.canRetry) {
       _answerController.clear();
-      provider.forceNextQuestion(
-        () {}, // 화면만 전환되므로 별도 스낵바 불필요
-        () => _finishQuiz(provider)
-      );
+      setState(() {
+        _showHint = false;
+      });
+      provider.forceNextQuestion(() {}, () => _finishQuiz(provider));
       return;
     }
 
-    // 2. 정상적인 답안 제출 로직
     provider.checkAnswer(
       _answerController.text,
       () {
-        // [정답 콜백] 
         _answerController.clear();
-        VipaSnackBar.show(context, "정답입니다! 다음 문제로 갑니다! 🎉");
+        setState(() {
+          _showHint = false;
+        });
+        VipaSnackBar.show(context, '정답입니다! 다음 문제로 갑니다!');
       },
       () {
-        // [종료 콜백]
         _finishQuiz(provider);
       },
       () {
-        // ✨ [신규 추가] 2회 오답으로 기회 소진 콜백
-        VipaSnackBar.show(context, "기회를 모두 소진했습니다. 정답을 확인하세요!");
-        // 텍스트 필드에 진짜 정답을 채워넣어 보여줌
-        _answerController.text = provider.targetWord ?? "알 수 없음"; 
-      }
+        VipaSnackBar.show(context, '기회를 모두 소진했습니다. 정답을 확인하세요!');
+        _answerController.text = provider.targetWord ?? '';
+        setState(() {
+          _showHint = false;
+        });
+      },
     );
   }
 
-  // 중복 코드 분리용
   void _finishQuiz(GrammarProvider provider) {
     _answerController.clear();
     Get.offNamed(
-      AppRoutes.vocabularyResult, 
-      arguments: provider.completionResult ?? {
-        'total_count': provider.totalCount,
-        'correct_count': provider.totalCount, 
-        'score_percentage': 100.0,
-        'results': []
-      }
+      AppRoutes.vocabularyResult,
+      arguments:
+          provider.completionResult ??
+          {
+            'total_count': provider.totalCount,
+            'correct_count': provider.totalCount,
+            'results': [],
+          },
     );
   }
+}
 
-  // 🌟 수정: 버튼 라벨 동적 변경
-  Widget _buildConfirmButton(GrammarProvider provider) {
-    // 상황에 맞는 버튼 텍스트 설정
-    String btnText = "확인";
-    if (!provider.canRetry) {
-      btnText = "다음 문제로 넘어가기";
-    } else if (provider.currentCount == provider.totalCount) {
-      btnText = "결과 보기";
-    }
+class _VocabularyQuizCard extends StatelessWidget {
+  const _VocabularyQuizCard({
+    required this.quiz,
+    required this.controller,
+    required this.isWrong,
+    required this.enabled,
+    required this.isChecking,
+    required this.onSubmit,
+  });
 
-    return SafeArea( 
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16), 
-        color: Colors.transparent, 
-        child: SizedBox(
-          height: 56, 
-          child: ElevatedButton(
-            onPressed: provider.isChecking ? null : () => _handleAction(provider),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF7B61FF),
-              disabledBackgroundColor: Colors.grey.shade300, 
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), 
-            ),
-            child: provider.isChecking 
-              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-              : Text(btnText, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+  final Map<String, dynamic> quiz;
+  final TextEditingController controller;
+  final bool isWrong;
+  final bool enabled;
+  final bool isChecking;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final hint = quiz['korean_hint']?.toString() ?? '';
+    final maskedSentence = quiz['masked_sentence']?.toString() ?? '';
+    final target = quiz['target_word']?.toString();
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.20),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
           ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 33, 18, 31),
+            child: _HighlightedKoreanHint(text: hint, target: target),
+          ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(18, 31, 18, 31),
+            color: const Color(0xFFFFF0EE),
+            child: _SentenceInputLine(
+              maskedSentence: maskedSentence,
+              controller: controller,
+              enabled: enabled,
+              isWrong: isWrong,
+              onSubmit: onSubmit,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 14, 28, 20),
+            child: SizedBox(
+              width: double.infinity,
+              height: 42,
+              child: ElevatedButton(
+                onPressed: isChecking ? null : onSubmit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AuthColors.primary,
+                  disabledBackgroundColor: AuthColors.primary.withValues(
+                    alpha: 0.45,
+                  ),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+                child: Text(
+                  isChecking ? '확인 중...' : '확인',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HintMessageButton extends StatelessWidget {
+  const _HintMessageButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 156,
+      height: 40,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AuthColors.primary,
+          side: const BorderSide(color: AuthColors.primary, width: 1.4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
+        child: const Text(
+          '힌트메세지',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
         ),
       ),
+    );
+  }
+}
+
+class _HintMessageCard extends StatelessWidget {
+  const _HintMessageCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 92),
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFFC8),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.black,
+          fontSize: 14,
+          fontWeight: FontWeight.w900,
+          height: 1.4,
+        ),
+      ),
+    );
+  }
+}
+
+class _HighlightedKoreanHint extends StatelessWidget {
+  const _HighlightedKoreanHint({required this.text, this.target});
+
+  final String text;
+  final String? target;
+
+  @override
+  Widget build(BuildContext context) {
+    if (target == null || target!.isEmpty || !text.contains(target!)) {
+      return Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.black,
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+        ),
+      );
+    }
+
+    final parts = text.split(target!);
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: parts.first),
+          TextSpan(
+            text: target,
+            style: const TextStyle(color: AuthColors.primary),
+          ),
+          TextSpan(text: parts.skip(1).join(target!)),
+        ],
+      ),
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: Colors.black,
+        fontSize: 13,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+  }
+}
+
+class _SentenceInputLine extends StatelessWidget {
+  const _SentenceInputLine({
+    required this.maskedSentence,
+    required this.controller,
+    required this.enabled,
+    required this.isWrong,
+    required this.onSubmit,
+  });
+
+  final String maskedSentence;
+  final TextEditingController controller;
+  final bool enabled;
+  final bool isWrong;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = maskedSentence.split('____');
+    final before = parts.isNotEmpty ? parts.first : '';
+    final after = parts.length > 1 ? parts.sublist(1).join('____') : '';
+
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      alignment: WrapAlignment.center,
+      children: [
+        Text(
+          before,
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        SizedBox(
+          width: 106,
+          child: TextField(
+            controller: controller,
+            enabled: enabled,
+            textAlign: TextAlign.center,
+            cursorColor: AuthColors.primary,
+            onSubmitted: (_) => onSubmit(),
+            style: TextStyle(
+              color: isWrong ? AuthColors.primary : Colors.black,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
+            decoration: const InputDecoration(
+              isDense: true,
+              contentPadding: EdgeInsets.only(bottom: 2),
+              border: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.black),
+              ),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.black),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: AuthColors.primary, width: 2),
+              ),
+            ),
+          ),
+        ),
+        Text(
+          after,
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }

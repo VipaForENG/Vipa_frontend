@@ -11,20 +11,24 @@ import '../screens/level_test/level_test_result_screen.dart';
 import '../screens/level_test/level_test_screen.dart';
 import '../screens/login/login_screen.dart';
 import '../screens/login/reset_password_screen.dart';
+import '../screens/login/verification_code_screen.dart';
 import '../screens/mypage/subscription_history_screen.dart';
 import '../screens/mypage/subscription_screen.dart';
+import '../screens/splash/splash_screen.dart';
 import '../screens/signup/signup_screen.dart';
 import '../screens/vocabulary/vocabulary_dashboard_screen.dart';
 import '../screens/vocabulary/vocabulary_result_screen.dart';
 import '../screens/vocabulary/vocabulary_screen.dart';
 
 class AppRoutes {
+  static const String splash = '/splash';
   static const String login = '/login';
   static const String signup = '/signup';
   static const String home = '/';
   static const String history = '/history';
   static const String conversation = '/conversation';
   static const String resetPassword = '/reset-password';
+  static const String verificationCode = '/verification-code';
   static const String changePassword = '/change-password';
   static const String subscription = '/subscription';
   static const String subscriptionHistory = '/subscription-history';
@@ -39,13 +43,47 @@ class AppRoutes {
     final args = settings.arguments;
 
     switch (settings.name) {
+      case splash:
+        return _buildFadeRoute(const SplashScreen(), settings);
       case login:
         return _buildFadeRoute(const LoginScreen(), settings);
       case signup:
         return _buildFadeRoute(const SignupScreen(), settings);
       case resetPassword:
+        // 같은 비밀번호 찾기 화면을 로그인 전/마이페이지 진입 두 상황에서 재사용한다.
+        if (args is Map<String, dynamic>) {
+          return _buildFadeRoute(
+            ResetPasswordScreen(
+              initialEmail: args['email'] as String?,
+              isFromMyPage: args['isFromMyPage'] == true,
+            ),
+            settings,
+          );
+        }
+        return _buildFadeRoute(const ResetPasswordScreen(), settings);
+      case verificationCode:
+        // 인증번호 화면은 이메일과 진입 위치를 받아 다음 비밀번호 변경 화면으로 이어준다.
+        if (args is String) {
+          return _buildFadeRoute(VerificationCodeScreen(email: args), settings);
+        }
+        if (args is Map<String, dynamic> && args['email'] is String) {
+          return _buildFadeRoute(
+            VerificationCodeScreen(
+              email: args['email'] as String,
+              isFromMyPage: args['isFromMyPage'] == true,
+            ),
+            settings,
+          );
+        }
         return _buildFadeRoute(const ResetPasswordScreen(), settings);
       case changePassword:
+        // isFromMyPage 값으로 변경 완료 후 로그인 화면 이동 여부를 결정한다.
+        if (args is Map<String, dynamic>) {
+          return _buildFadeRoute(
+            ChangePasswordScreen(isFromMyPage: args['isFromMyPage'] == true),
+            settings,
+          );
+        }
         return _buildFadeRoute(const ChangePasswordScreen(), settings);
       case home:
         return _buildFadeRoute(const HomeScreen(), settings);

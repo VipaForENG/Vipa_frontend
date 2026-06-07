@@ -1,26 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'vocabulary_dashboard_provider.dart';
-import '../../routes/app_routes.dart';
 
-// ✨ [디자인 시스템 임포트]
-import '../../design/background.dart'; 
-import '../../design/animation_design.dart'; 
+import '../../routes/app_routes.dart';
+import '../login/auth_widgets.dart';
+import 'vocabulary_dashboard_provider.dart';
 
 class VocabularyDashboardScreen extends StatefulWidget {
   const VocabularyDashboardScreen({super.key});
 
   @override
-  State<VocabularyDashboardScreen> createState() => _VocabularyDashboardScreenState();
+  State<VocabularyDashboardScreen> createState() =>
+      _VocabularyDashboardScreenState();
 }
 
 class _VocabularyDashboardScreenState extends State<VocabularyDashboardScreen> {
-  
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<VocabularyDashboardProvider>(context, listen: false).loadDashboard();
+      Provider.of<VocabularyDashboardProvider>(
+        context,
+        listen: false,
+      ).loadDashboard();
     });
   }
 
@@ -29,124 +30,183 @@ class _VocabularyDashboardScreenState extends State<VocabularyDashboardScreen> {
     final provider = Provider.of<VocabularyDashboardProvider>(context);
 
     return Scaffold(
-      extendBodyBehindAppBar: true, // ✨ Appbar 뒤로 배경을 확장
-      backgroundColor: Colors.white, // 바탕색은 하얀색
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        // 물결 배경(파란색 계열) 위에서 잘 보이도록 글씨 색상을 흰색으로!
-        title: const Text('오늘의 어휘', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: provider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          // ✨ 대시보드에도 물결 배경 쫙 깔아주기!
-          : Background(
-              fillLevel: 0.25, // 화면 상단 25% 지점부터 찰랑거림
-              child: _buildDashboardBody(provider, context),
-            ),
-    );
-  }
+      backgroundColor: const Color(0xFFF3F4F6),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: provider.isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AuthColors.primary),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+                    child: Column(
+                      children: [
+                        const Text(
+                          '오늘의 어휘 목표량',
+                          style: TextStyle(
+                            color: AuthColors.primary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 34),
+                        _GoalSliderCard(
+                          title: '새로운 단어는 몇개를 배워볼까요?',
+                          value: provider.chosenNew,
+                          onChanged: (value) => provider.setCount('new', value),
+                        ),
+                        const SizedBox(height: 15),
+                        _GoalSliderCard(
+                          title: '복습할 단어는 얼마나 할까요?',
+                          value: provider.chosenReview,
+                          onChanged: (value) =>
+                              provider.setCount('review', value),
+                        ),
+                        const SizedBox(height: 15),
+                        _GoalSliderCard(
+                          title: '재도전 단어는 몇개나 할까요?',
+                          value: provider.chosenRetry,
+                          onChanged: (value) =>
+                              provider.setCount('retry', value),
+                        ),
+                        const SizedBox(height: 25),
+                        AuthButton(
+                          text: '이대로 시작!',
+                          onPressed: () {
+                            if (provider.chosenNew == 0 &&
+                                provider.chosenReview == 0 &&
+                                provider.chosenRetry == 0) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('학습할 단어를 1개 이상 선택해주세요!'),
+                                ),
+                              );
+                              return;
+                            }
 
-  Widget _buildDashboardBody(VocabularyDashboardProvider provider, BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Spacer(), 
-            
-            // ✨ 가운데 원형 설정창이 아래에서 부드럽게 나타납니다!
-            FadeSlideTransition(
-              delay: 0.1,
-              child: Container(
-                width: 340, 
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(40),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 30, offset: const Offset(0, 15))
-                  ],
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("학습할 단어 설정", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
-                    const SizedBox(height: 30), 
-                    _buildAdjustableRow(provider, '새로운 단어', 'new', provider.chosenNew, provider.maxNew, Colors.blue),
-                    const SizedBox(height: 10), 
-                    _buildAdjustableRow(provider, '복습할 단어', 'review', provider.chosenReview, provider.maxReview, Colors.orange),
-                    const SizedBox(height: 10),
-                    _buildAdjustableRow(provider, '재도전 단어', 'retry', provider.chosenRetry, provider.maxRetry, Colors.redAccent),
-                  ],
-                ),
-              ),
-            ),
-            
-            const Spacer(),
-
-            // 하단 학습 시작 버튼
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (provider.chosenNew == 0 && provider.chosenReview == 0 && provider.chosenRetry == 0) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("학습할 단어를 1개 이상 선택해주세요!")));
-                        return;
-                      }
-
-                      // 퀴즈 화면(vocabulary)으로 이동
-                      Navigator.pushNamed(
-                        context, 
-                        AppRoutes.vocabulary, // 🌟 이 경로는 app_routes.dart에 맞춰주세요! (vocabulary 또는 grammar)
-                        arguments: {
-                          'new_count': provider.chosenNew,
-                          'review_count': provider.chosenReview,
-                          'retry_count': provider.chosenRetry,
-                        }
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7B61FF),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), 
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.vocabulary,
+                              arguments: {
+                                'new_count': provider.chosenNew,
+                                'review_count': provider.chosenReview,
+                                'retry_count': provider.chosenRetry,
+                              },
+                            );
+                          },
+                        ),
+                        const Spacer(),
+                      ],
                     ),
-                    child: const Text('오늘의 학습하기', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
-                ),
-              ),
-            )
-          ],
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildAdjustableRow(VocabularyDashboardProvider provider, String label, String type, int currentVal, int maxVal, Color accentColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 20.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+class _GoalSliderCard extends StatefulWidget {
+  const _GoalSliderCard({
+    required this.title,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String title;
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  @override
+  State<_GoalSliderCard> createState() => _GoalSliderCardState();
+}
+
+class _GoalSliderCardState extends State<_GoalSliderCard> {
+  late PageController _controller;
+
+  int get _pageCount => VocabularyDashboardProvider.maxGoalWords;
+  int get _currentValue => widget.value.clamp(0, _pageCount).toInt();
+
+  @override
+  void initState() {
+    super.initState();
+    final initialPage = (_currentValue <= 0 ? 1 : _currentValue) - 1;
+    _controller = PageController(
+      initialPage: initialPage,
+      viewportFraction: 0.14,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _GoalSliderCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final targetPage = ((_currentValue <= 0 ? 1 : _currentValue) - 1)
+        .clamp(0, _pageCount - 1)
+        .toInt();
+    if (_controller.hasClients && targetPage != _controller.page?.round()) {
+      _controller.jumpToPage(targetPage);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 25, 18, 22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.20),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
         children: [
-          Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          Row(
-            children: [
-              IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.grey), onPressed: () => provider.adjustCount(type, -1)),
-              SizedBox(
-                width: 60,
-                child: Text('$currentVal / $maxVal', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: accentColor)),
-              ),
-              IconButton(icon: Icon(Icons.add_circle, color: accentColor), onPressed: () => provider.adjustCount(type, 1)),
-            ],
+          Text(
+            widget.title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 36,
+            child: PageView.builder(
+              controller: _controller,
+              itemCount: _pageCount,
+              onPageChanged: (index) => widget.onChanged(index + 1),
+              itemBuilder: (context, index) {
+                final number = index + 1;
+                final selected = number == _currentValue;
+                return Center(
+                  child: Text(
+                    '$number',
+                    style: TextStyle(
+                      color: selected
+                          ? AuthColors.primary
+                          : AuthColors.primary.withValues(alpha: 0.45),
+                      fontSize: selected ? 25 : 12,
+                      fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),

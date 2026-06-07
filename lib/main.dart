@@ -61,7 +61,7 @@ class VipaApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
           useMaterial3: true,
         ),
-        initialRoute: AppRoutes.login,
+        initialRoute: AppRoutes.splash,
         // GetX를 사용하므로 AppRoutes.onGenerateRoute를 통해 경로를 관리합니다.
         onGenerateRoute: AppRoutes.onGenerateRoute,
       ),

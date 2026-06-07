@@ -1,174 +1,147 @@
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart';
-import '../../routes/app_routes.dart';
+
+import '../../controllers/auth_controller.dart';
 import '../../design/snack_bar.dart';
-import '../../controllers/auth_controller.dart'; // [추가] 컨트롤러 임포트
+import '../../routes/app_routes.dart';
+import '../login/auth_widgets.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
-  final bool isFromMyPage;
   const ChangePasswordScreen({super.key, this.isFromMyPage = false});
+
+  final bool isFromMyPage;
 
   @override
   State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
 }
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
-  final TextEditingController _pwController = TextEditingController();
-  final TextEditingController _confirmPwController = TextEditingController();
-  bool _isLoading = false; // 로딩 상태 추가
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
-  /// [함수] 비밀번호 변경 로직 호출
+  bool _isLoading = false;
+  String? _passwordError;
+  String? _confirmPasswordError;
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  bool _isPasswordValid(String password) {
+    return RegExp(
+      r'^(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$',
+    ).hasMatch(password);
+  }
+
   Future<void> _handleResetPassword() async {
-    final newPassword = _pwController.text.trim();
-    final confirmPassword = _confirmPwController.text.trim();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
 
-    // 1. 기본 유효성 검사
-    if (newPassword.isEmpty || confirmPassword.isEmpty) {
-      VipaSnackBar.show(context, "비밀번호를 모두 입력해주세요.");
+    setState(() {
+      _passwordError = null;
+      _confirmPasswordError = null;
+    });
+
+    if (!_isPasswordValid(password)) {
+      setState(() => _passwordError = '소문자, 숫자, 특수문자 조합을 주세요');
       return;
     }
-    if (newPassword != confirmPassword) {
-      VipaSnackBar.show(context, "비밀번호가 일치하지 않습니다.");
+
+    if (password != confirmPassword) {
+      setState(() => _confirmPasswordError = '비밀번호가 일치하지 않습니다.');
       return;
     }
 
-    // 2. 이전 화면에서 전달받은 Arguments 꺼내기 (email, code)
-    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
-    if (args == null && !widget.isFromMyPage) {
-      VipaSnackBar.show(context, "잘못된 접근입니다.");
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final recoveryArgs = args is Map<String, dynamic> ? args : null;
+
+    if (recoveryArgs == null && !widget.isFromMyPage) {
+      VipaSnackBar.show(context, '잘못된 접근입니다.', isError: true);
       return;
     }
 
     setState(() => _isLoading = true);
-
-    // 3. AuthController를 통해 서버 PATCH 요청
-    // 비밀번호 찾기 프로세스라면 넘겨받은 email, code 사용
-    bool success = await AuthController.resetPassword(
-      email: args?['email'] ?? "",
-      code: args?['code'] ?? "",
-      newPassword: newPassword,
+    final success = await AuthController.resetPassword(
+      email: recoveryArgs?['email'] as String? ?? '',
+      code: recoveryArgs?['code'] as String? ?? '',
+      newPassword: password,
     );
-
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (success) {
-      if (!mounted) return;
-      VipaSnackBar.show(context, "비밀번호 변경이 완료되었습니다. 다시 로그인해주세요.");
-
-      if (widget.isFromMyPage) {
-        Navigator.pop(context);
-      } else {
-        // 로그인 화면으로 이동하며 이전 스택 다 비우기
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.login,
-          (route) => false,
-        );
-      }
-    } else {
-      if (!mounted) return;
-      VipaSnackBar.show(context, "비밀번호 변경에 실패했습니다. 코드가 만료되었을 수 있습니다.");
+    if (!success) {
+      VipaSnackBar.show(
+        context,
+        '비밀번호 변경에 실패했습니다. 코드가 만료되었을 수 있습니다.',
+        isError: true,
+      );
+      return;
     }
+
+    if (widget.isFromMyPage) {
+      // 마이페이지에서 시작한 변경은 로그인 화면으로 보내지 않고 기존 마이페이지 흐름으로 복귀한다.
+      VipaSnackBar.show(context, '비밀번호 변경이 완료되었습니다.');
+      Navigator.popUntil(context, (route) => route.isFirst);
+      return;
+    }
+
+    VipaSnackBar.show(context, '비밀번호 변경이 완료되었습니다. 다시 로그인해주세요.');
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.login,
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          widget.isFromMyPage ? "비밀번호 수정" : "새 비밀번호 설정",
-          style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
+    return AuthScaffold(
+      child: Column(
+        children: [
+          const SizedBox(height: 91),
+          const Text(
+            '비밀번호 변경 해주세요!',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              height: 1.05,
+            ),
+            textAlign: TextAlign.center,
           ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
-          child: Column(
-            children: [
-              const Text(
-                "안전한 비밀번호로 변경해 주세요.",
-                style: TextStyle(fontSize: 16, color: Colors.black54),
-              ),
-              const SizedBox(height: 50),
-              _buildUnderlineField(
-                _pwController,
-                "새 비밀번호",
-                RemixIcons.lock_password_line,
-              ),
-              const SizedBox(height: 25),
-              _buildUnderlineField(
-                _confirmPwController,
-                "새 비밀번호 확인",
-                RemixIcons.checkbox_circle_line,
-              ),
-              const SizedBox(height: 50),
-              SizedBox(
-                width: 300,
-                height: 52,
-                child: ElevatedButton(
-                  // 로딩 중에는 클릭 안 되게 null 처리
-                  onPressed: _isLoading ? null : _handleResetPassword,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black87,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          "변경 완료",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
-              ),
-            ],
+          const SizedBox(height: 8),
+          const Text(
+            '새롭게 비밀번호를 작성해주세요!',
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUnderlineField(
-    TextEditingController controller,
-    String hint,
-    IconData icon,
-  ) {
-    return SizedBox(
-      width: 300,
-      child: TextField(
-        controller: controller,
-        obscureText: true,
-        decoration: InputDecoration(
-          prefixIcon: Icon(icon, size: 20),
-          prefixIconConstraints: const BoxConstraints(minWidth: 35),
-          hintText: hint,
-          enabledBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.black12),
+          const SizedBox(height: 75),
+          AuthTextField(
+            controller: _passwordController,
+            label: '비밀번호 입력',
+            hintText: '비밀번호',
+            obscureText: true,
+            errorText: _passwordError,
+            onChanged: (_) => setState(() => _passwordError = null),
           ),
-          focusedBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.black87, width: 2),
+          const SizedBox(height: 14),
+          AuthTextField(
+            controller: _confirmPasswordController,
+            label: '비밀번호 확인',
+            hintText: '비밀번호',
+            obscureText: true,
+            errorText: _confirmPasswordError,
+            onChanged: (_) => setState(() => _confirmPasswordError = null),
           ),
-        ),
+          const SizedBox(height: 31),
+          AuthButton(
+            text: _isLoading ? '변경 중...' : '비밀번호 변경',
+            onPressed: _isLoading ? null : _handleResetPassword,
+          ),
+          const Spacer(),
+        ],
       ),
     );
   }
