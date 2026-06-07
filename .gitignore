@@ -30,3 +30,6 @@ proxies.json
 # [추가 항목] 로그 및 환경변수
 *.log
 .env
+
+# [추가 항목] API 설정 파일 (개인 IP 주소 포함)
+lib/api/api_config.dart

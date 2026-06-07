@@ -29,6 +29,14 @@ class ConversationProvider with ChangeNotifier {
   List<String> _hints = [];
   Map<String, dynamic>? completionResult;
 
+  int get _totalUserTurns {
+    final turns = generatedScript?['turns'];
+    if (turns is List && turns.isNotEmpty) {
+      return (turns.length / 2).floor().clamp(1, 999);
+    }
+    return 1;
+  }
+
   // --- Getters ---
   bool get isRecording => _isRecording;
   bool get isAnswered => _isAnswered;
@@ -80,11 +88,11 @@ class ConversationProvider with ChangeNotifier {
   }
 
   // 시나리오 로드
-  Future<void> initializeScenario(int subCatId, int testId) async {
+  Future<void> initializeScenario(int subCatId) async {
     try {
       final response = await ApiService.dio.post(
         "/scenario/generate",
-        data: {"user_id": 1, "sub_cat_id": subCatId, "test_id": testId},
+        data: {"sub_cat_id": subCatId},
       );
       if (response.statusCode == 200) {
         sessionId = response.data['session_id'];
@@ -135,7 +143,9 @@ class ConversationProvider with ChangeNotifier {
         },
         localeId: "en_US",
         // 🚨 Deprecated 경고 해결: listenMode 대신 listenOptions 사용
-        listenOptions: stt.SpeechListenOptions(listenMode: stt.ListenMode.confirmation),
+        listenOptions: stt.SpeechListenOptions(
+          listenMode: stt.ListenMode.confirmation,
+        ),
         pauseFor: const Duration(seconds: 3),
       );
     }
@@ -157,7 +167,36 @@ class ConversationProvider with ChangeNotifier {
     }
   }
 
-  // 📝 공통 평가 로직 (음성/텍스트 공용)
+  // 💡 🌟 수정 1: UI의 TextEditingController를 인자로 받아서 직접 값을 넣어줍니다.
+  Future<void> requestHintStepByStep({TextEditingController? textController}) async {
+    if (_currentHintLevel >= 4) {
+      return;
+    }
+    _currentHintLevel++;
+
+    if (_currentHintLevel == 1) {
+      await _fetchAndAddHint(1, "초성 힌트: ");
+    } else if (_currentHintLevel == 2) {
+      await _fetchAndAddHint(2, "시작 문구: ");
+    } else if (_currentHintLevel == 3) {
+      _hints.add("⚠️ 한 번 더 누르면 정답이 입력창에 자동 완성됩니다.");
+      notifyListeners();
+    } else if (_currentHintLevel == 4) {
+      String exactAnswer = await _fetchAndAddHint(3, "정답: ");
+      
+      _userSpokenText = exactAnswer;
+      _isTextMode = true; 
+      
+      // ✨ 핵심: UI에서 넘겨받은 컨트롤러에 정답을 직접 타이핑해줍니다!
+      if (textController != null) {
+        textController.text = exactAnswer;
+      }
+      
+      notifyListeners();
+    }
+  }
+
+  // 📝 🌟 수정 2: 평가 API에 힌트 사용 여부를 같이 쏴줍니다.
   Future<void> evaluateSpeech(String userInput) async {
     try {
       setUserSpokenText(userInput);
@@ -168,6 +207,8 @@ class ConversationProvider with ChangeNotifier {
           "scenario_id": scenarioId,
           "turn_index": _currentTurnIndex,
           "user_input": userInput,
+          // ✨ 핵심: 백엔드가 "아, 이 사람은 힌트를 끝까지 다 보고 쳤구나"라고 알 수 있게 보냅니다.
+          "used_hint_level": _currentHintLevel, 
         },
       );
       if (response.statusCode == 200) {
@@ -182,30 +223,8 @@ class ConversationProvider with ChangeNotifier {
     }
   }
 
-  // 💡 힌트 단계 제어
-  Future<void> requestHintStepByStep() async {
-    if (_currentHintLevel >= 4) {
-      return;
-    }
-    _currentHintLevel++;
-
-    if (_currentHintLevel == 1) {
-      await _fetchAndAddHint(1, "초성 힌트: ");
-    } else if (_currentHintLevel == 2) {
-      await _fetchAndAddHint(2, "시작 문구: ");
-    } else if (_currentHintLevel == 3) {
-      _hints.add("⚠️ 경고: 한 번 더 누르면 정답 공개 후 다음 문제로 넘어갑니다.");
-      notifyListeners();
-    } else if (_currentHintLevel == 4) {
-      await _fetchAndAddHint(3, "정답: ");
-      _userSpokenText = "정답 확인 중... 잠시 후 이동합니다.";
-      notifyListeners();
-      await Future.delayed(const Duration(seconds: 3));
-      nextStep();
-    }
-  }
-
-  Future<void> _fetchAndAddHint(int level, String prefix) async {
+  // ✨ 리턴 타입을 Future<void>에서 Future<String>으로 변경하여 힌트 텍스트를 반환
+  Future<String> _fetchAndAddHint(int level, String prefix) async {
     try {
       final response = await ApiService.dio.post(
         "/scenario/hint",
@@ -219,13 +238,18 @@ class ConversationProvider with ChangeNotifier {
         String hintText = response.data['hint_text'] ?? "";
         _hints.add("$prefix$hintText");
         notifyListeners();
+        
+        return hintText; // 🌟 핵심: 받아온 문장을 리턴해 줍니다.
       }
-    } catch (_) {}
+    } catch (_) {
+      debugPrint("힌트 불러오기 실패");
+    }
+    return ""; // 에러 발생 시 빈 문자열 반환
   }
 
-  void nextStep() {
+  Future<void> nextStep() async {
     _currentTurnIndex++;
-    _progress = (_currentTurnIndex / 8).clamp(0.0, 1.0);
+    _progress = (_currentTurnIndex / _totalUserTurns).clamp(0.0, 1.0);
     _isAnswered = false;
     _isTextMode = false; // ✨ 다음 단계 시 키보드 모드 초기화
     _userSpokenText = "";
@@ -234,7 +258,7 @@ class ConversationProvider with ChangeNotifier {
     _hints = [];
 
     if (_progress >= 1.0) {
-      _completeSession();
+      await _completeSession();
     } else {
       _updateTurnUI();
     }
@@ -244,7 +268,7 @@ class ConversationProvider with ChangeNotifier {
   Future<void> _completeSession() async {
     try {
       final response = await ApiService.dio.post(
-        "/complete",
+        "/scenario/complete",
         data: {"session_id": sessionId},
       );
       if (response.statusCode == 200) {

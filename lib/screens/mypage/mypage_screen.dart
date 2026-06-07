@@ -1,10 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
+
+import '../../api/api_service.dart';
+import '../../controllers/auth_controller.dart';
 import '../../design/card_design.dart';
-import '../changepw/change_password_screen.dart';
-import '../mypage/profile_setting_screen.dart';
-import '../mypage/subscription_screen.dart'; // 구독 화면 임포트
 import '../../routes/app_routes.dart';
 import '../../design/app_colors.dart';
+import 'profile_setting_screen.dart';
+import 'subscription_screen.dart';
 
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
@@ -14,233 +19,259 @@ class MyPageScreen extends StatefulWidget {
 }
 
 class _MyPageScreenState extends State<MyPageScreen> {
-  // 상태로 관리할 변수들
+  // 상태 관리 변수
   String currentPlan = 'PRO';
   String nextBillingDate = '2024.06.20';
-  final String loginType = 'email';
+  String nickname = '닉네임';
+  String email = 'user@email.com';
+  String? profileImage;
+  String? localProfileImagePath;
+  bool isSocialUser = false;
+  Map<String, dynamic>? userData;
 
-  // [핵심] 구독 화면으로 이동하고 결과를 받아오는 함수
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
+  }
+
+  // [로직] main 브랜치의 안정적인 유저 정보 로드
+  Future<void> _loadUserInfo({bool forceRefresh = false}) async {
+    final storage = GetStorage();
+    final cachedData = storage.read('user_data');
+    final savedLocalImagePath = storage.read('local_profile_image_path')?.toString();
+    final cachedLocalImagePath = (savedLocalImagePath != null && savedLocalImagePath.isNotEmpty)
+        ? savedLocalImagePath
+        : (cachedData is Map ? cachedData['local_profile_image_path']?.toString() : null);
+    
+    dynamic data = forceRefresh ? null : storage.read('user_data');
+
+    if (data == null) {
+      try {
+        data = await ApiService.getMyProfile();
+        if (cachedLocalImagePath != null && cachedLocalImagePath.isNotEmpty) {
+          data['local_profile_image_path'] = cachedLocalImagePath;
+        }
+        await storage.write('user_data', data);
+      } catch (e) {
+        debugPrint('프로필 조회 실패: $e');
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      userData = Map<String, dynamic>.from(data);
+      nickname = userData?['nickname']?.toString() ?? '닉네임';
+      email = userData?['email']?.toString() ?? 'user@email.com';
+      profileImage = userData?['profile_image']?.toString();
+      localProfileImagePath = userData?['local_profile_image_path']?.toString();
+      final isSocial = userData?['is_social'] ?? 0;
+      isSocialUser = (isSocial is int ? isSocial : int.tryParse(isSocial.toString()) ?? 0) > 0;
+    });
+  }
+
+  Future<void> _openProfileSetting() async {
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfileSettingScreen(initialUserData: userData),
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    setState(() {
+      userData = result;
+      nickname = result['nickname']?.toString() ?? nickname;
+      email = result['email']?.toString() ?? email;
+      profileImage = result['profile_image']?.toString();
+      localProfileImagePath = result['local_profile_image_path']?.toString();
+    });
+  }
+
   Future<void> _navigateToSubscription() async {
-    final result = await Navigator.push(
+    final result = await Navigator.push<String>(
       context,
       MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
     );
 
-    // 구독 화면에서 Navigator.pop(context, '플랜명')으로 넘겨준 값을 처리
-    if (result != null && result is String) {
-      setState(() {
-        currentPlan = result;
-        // 실제 서비스라면 여기서 서버 데이터를 다시 불러오는 로직이 들어갑니다.
-      });
+    if (result != null && mounted) {
+      setState(() => currentPlan = result);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // [UI] 팀원의 AppColors.background 배경색 적용 및 main의 RefreshIndicator 결합
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
           '마이페이지',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2D3436),
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D3436)),
         ),
         backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 40),
-        child: Column(
-          children: [
-            // [섹션 1] 프로필 및 구독 상태
-            cardContainer(
-              child: _buildProfileContent(
-                context,
-                currentPlan,
-                nextBillingDate,
+      body: RefreshIndicator(
+        onRefresh: () => _loadUserInfo(forceRefresh: true),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 40),
+          child: Column(
+            children: [
+              // [섹션 1] 프로필 및 구독 상태
+              cardContainer(
+                child: _buildProfileContent(context, currentPlan, nextBillingDate),
               ),
-            ),
+              const SizedBox(height: 24),
 
-            const SizedBox(height: 24),
-
-            // [섹션 2] 멤버십 관리
-            _buildSectionHeader('멤버십 관리'),
-            cardContainer(
-              child: Column(
-                children: [
-                  _buildMenuItem(
-                    icon: Icons.card_membership_outlined,
-                    title: '멤버십 구독 및 변경',
-                    onTap: _navigateToSubscription, // 수정된 함수 연결
-                  ),
-                  const Divider(height: 1, indent: 20, endIndent: 20),
-                  _buildMenuItem(
-                    icon: Icons.receipt_long_outlined,
-                    title: '구독 결제 내역',
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      AppRoutes.subscriptionHistory,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // [섹션 3] 내 정보 관리
-            _buildSectionHeader('내 정보 관리'),
-            cardContainer(
-              child: Column(
-                children: [
-                  if (loginType == 'email')
+              // [섹션 2] 멤버십 관리
+              _buildSectionHeader('멤버십 관리'),
+              cardContainer(
+                child: Column(
+                  children: [
                     _buildMenuItem(
-                      icon: Icons.lock_outline,
-                      title: '비밀번호 변경',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const ChangePasswordScreen(isFromMyPage: true),
-                        ),
-                      ),
+                      icon: Icons.card_membership_outlined,
+                      title: '멤버십 구독 및 변경',
+                      onTap: _navigateToSubscription,
                     ),
-                  const Divider(height: 1, indent: 20, endIndent: 20),
-                  _buildMenuItem(
-                    icon: Icons.email_outlined,
-                    title: '이메일 변경',
-                    onTap: () => debugPrint("이메일 변경 시도"),
-                  ),
-                  if (currentPlan != 'FREE') ...[
                     const Divider(height: 1, indent: 20, endIndent: 20),
                     _buildMenuItem(
-                      icon: Icons.cancel_outlined,
-                      title: '구독 해지',
-                      onTap: () => _showCancelSubscriptionDialog(context),
+                      icon: Icons.receipt_long_outlined,
+                      title: '구독 결제 내역',
+                      onTap: () => Navigator.pushNamed(context, AppRoutes.subscriptionHistory),
                     ),
                   ],
-                  const Divider(height: 1, indent: 20, endIndent: 20),
-                  _buildMenuItem(
-                    icon: Icons.person_remove_outlined,
-                    title: '회원 탈퇴',
-                    isDanger: true,
-                    onTap: () => _showWithdrawalDialog(context),
-                  ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: 24),
 
-            const SizedBox(height: 32),
-            _buildLogoutButton(context),
-          ],
+              // [섹션 3] 내 정보 관리
+              _buildSectionHeader('내 정보 관리'),
+              cardContainer(
+                child: Column(
+                  children: [
+                    // [로직] main 브랜치의 isSocialUser 검증 활용
+                    if (!isSocialUser)
+                      _buildMenuItem(
+                        icon: Icons.lock_outline,
+                        title: '비밀번호 변경',
+                        onTap: () => _showChangePasswordDialog(context),
+                      ),
+                    if (currentPlan != 'FREE') ...[
+                      const Divider(height: 1, indent: 20, endIndent: 20),
+                      _buildMenuItem(
+                        icon: Icons.cancel_outlined,
+                        title: '구독 해지',
+                        onTap: () => _showCancelSubscriptionDialog(context),
+                      ),
+                    ],
+                    const Divider(height: 1, indent: 20, endIndent: 20),
+                    _buildMenuItem(
+                      icon: Icons.person_remove_outlined,
+                      title: '회원 탈퇴',
+                      isDanger: true,
+                      onTap: () => _showWithdrawalDialog(context),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+              _buildLogoutButton(context),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // --- 위젯 빌드 함수들 (이전과 동일하지만 currentPlan 변수를 동적으로 사용) ---
-
-  Widget _buildProfileContent(
-    BuildContext context,
-    String plan,
-    String nextDate,
-  ) {
+  // [UI & 로직] 팀원의 UI 레이아웃과 main의 _buildProfileAvatar 로직 결합
+  Widget _buildProfileContent(BuildContext context, String plan, String nextDate) {
+    final hasImage = profileImage != null && profileImage!.isNotEmpty;
+    final hasLocalImage = localProfileImagePath != null && localProfileImagePath!.isNotEmpty;
+    
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           Row(
             children: [
-              const CircleAvatar(
+              _buildProfileAvatar(
                 radius: 30,
-                backgroundColor: Colors.blueAccent,
-                child: Icon(Icons.person, color: Colors.white, size: 30),
+                localPath: hasLocalImage ? localProfileImagePath : null,
+                imageUrl: hasImage ? profileImage : null,
               ),
               const SizedBox(width: 16),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '닉네임',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2D3436),
-                      ),
+                      nickname,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3436)),
                     ),
                     Text(
-                      'user@email.com',
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                      email,
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                   ],
                 ),
               ),
               TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProfileSettingScreen(),
-                  ),
-                ),
-                child: const Text(
-                  '수정',
-                  style: TextStyle(
-                    color: Colors.blueAccent,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                onPressed: _openProfileSetting,
+                child: const Text('수정', style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(),
-          ),
+          const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider()),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "나의 멤버십",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF2D3436),
-                    ),
-                  ),
+                  const Text('나의 멤버십', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2D3436))),
                   if (plan != 'FREE')
-                    Text(
-                      "다음 결제: $nextDate",
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
+                    Text('다음 결제: $nextDate', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.blueAccent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   plan,
-                  style: const TextStyle(
-                    color: Colors.blueAccent,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  // [로직] main의 이미지 렌더링 로직 유지 (파일 우선 확인 후 네트워크 이미지 폴백)
+  Widget _buildProfileAvatar({required double radius, String? localPath, String? imageUrl}) {
+    Widget fallback = Container(
+      color: Colors.blueAccent,
+      child: const Icon(Icons.person, color: Colors.white, size: 30),
+    );
+
+    Widget image = fallback;
+    if (localPath != null && File(localPath).existsSync()) {
+      image = Image.file(File(localPath), fit: BoxFit.cover);
+    } else if (imageUrl != null && imageUrl.isNotEmpty) {
+      image = Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => fallback);
+    }
+
+    return ClipOval(
+      child: SizedBox(width: radius * 2, height: radius * 2, child: image),
     );
   }
 
@@ -251,11 +282,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
         alignment: Alignment.centerLeft,
         child: Text(
           title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey,
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
         ),
       ),
     );
@@ -269,24 +296,12 @@ class _MyPageScreenState extends State<MyPageScreen> {
   }) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      leading: Icon(
-        icon,
-        color: isDanger ? Colors.redAccent : const Color(0xFF2D3436),
-        size: 22,
-      ),
+      leading: Icon(icon, color: isDanger ? Colors.redAccent : const Color(0xFF2D3436), size: 22),
       title: Text(
         title,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-          color: isDanger ? Colors.redAccent : const Color(0xFF2D3436),
-        ),
+        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: isDanger ? Colors.redAccent : const Color(0xFF2D3436)),
       ),
-      trailing: const Icon(
-        Icons.chevron_right,
-        color: Color(0xFFDFE6E9),
-        size: 20,
-      ),
+      trailing: const Icon(Icons.chevron_right, color: Color(0xFFDFE6E9), size: 20),
       onTap: onTap,
     );
   }
@@ -294,44 +309,75 @@ class _MyPageScreenState extends State<MyPageScreen> {
   Widget _buildLogoutButton(BuildContext context) {
     return Center(
       child: TextButton(
-        onPressed: () =>
-            Navigator.pushReplacementNamed(context, AppRoutes.login),
+        onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
         child: const Text(
           '로그아웃',
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
-            decoration: TextDecoration.underline,
-          ),
+          style: TextStyle(color: Colors.grey, fontSize: 14, decoration: TextDecoration.underline),
         ),
       ),
     );
   }
 
+  // [로직] main 브랜치의 다이얼로그 기능들 통합
   void _showWithdrawalDialog(BuildContext context) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          '회원 탈퇴',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: const Text('탈퇴 시 모든 학습 데이터가 삭제되며 복구할 수 없습니다.'),
+        title: const Text('회원 탈퇴', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('탈퇴하면 계정과 학습 데이터가 삭제됩니다. 계속할까요?'),
         actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소', style: TextStyle(color: Colors.grey))),
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소', style: TextStyle(color: Colors.grey)),
+            onPressed: () async {
+              final success = await AuthController.withdrawUser();
+              if (!context.mounted) return;
+
+              if (success) {
+                Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('탈퇴 실패')));
+              }
+            },
+            child: const Text('탈퇴', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context) {
+    final oldPwController = TextEditingController();
+    final newPwController = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('비밀번호 변경', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: oldPwController, decoration: const InputDecoration(labelText: '현재 비밀번호'), obscureText: true),
+            const SizedBox(height: 12),
+            TextField(controller: newPwController, decoration: const InputDecoration(labelText: '새 비밀번호'), obscureText: true),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소', style: TextStyle(color: Colors.grey))),
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              '탈퇴',
-              style: TextStyle(
-                color: Colors.redAccent,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            onPressed: () async {
+              final success = await AuthController.changePassword(oldPwController.text, newPwController.text);
+              if (!context.mounted) return;
+
+              if (success) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('변경 완료')));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('변경 실패')));
+              }
+            },
+            child: const Text('변경', style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -343,25 +389,16 @@ class _MyPageScreenState extends State<MyPageScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          '구독 해지',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('구독 해지', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('정말 구독을 해지하시겠습니까?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소', style: TextStyle(color: Colors.grey)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소', style: TextStyle(color: Colors.grey))),
           TextButton(
             onPressed: () {
               setState(() => currentPlan = 'FREE'); // 테스트용 즉시 해지 반영
               Navigator.pop(context);
             },
-            child: const Text(
-              '해지하기',
-              style: TextStyle(color: Colors.redAccent),
-            ),
+            child: const Text('해지하기', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

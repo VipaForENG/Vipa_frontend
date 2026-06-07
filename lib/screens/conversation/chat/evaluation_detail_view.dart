@@ -85,12 +85,9 @@ class EvaluationDetailView extends StatelessWidget {
                 () => provider.setAnswered(false),
               ),
               const SizedBox(width: 10),
-              _actionButton(
-                Icons.arrow_forward,
-                "Next",
-                true,
-                () => provider.nextStep(),
-              ),
+              _actionButton(Icons.arrow_forward, "Next", true, () {
+                provider.nextStep();
+              }),
             ],
           ),
         ],
