@@ -13,8 +13,8 @@ class ApiService {
   static final dio_pkg.Dio dio = dio_pkg.Dio(
     dio_pkg.BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
+      connectTimeout: const Duration(seconds: 45),
+      receiveTimeout: const Duration(seconds: 45),
       contentType: 'application/json',
     ),
   )..interceptors.addAll([

@@ -1,9 +1,8 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../routes/app_routes.dart';
-import '../login/auth_widgets.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -16,9 +15,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(milliseconds: 1500), () {
+    // 1600ms 후 로그인 화면으로 이동
+    Timer(const Duration(milliseconds: 1600), () {
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
+      Get.offNamed(AppRoutes.login);
     });
   }
 
@@ -30,24 +30,39 @@ class _SplashScreenState extends State<SplashScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF09819), Color(0xFFFF512F)],
+            colors: [
+              Color(0xFFFF512F),
+              Color(0xFFF09819),
+            ],
           ),
         ),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              VipaMark(size: 128, color: Colors.white),
-              SizedBox(height: 18),
-              Text(
-                '최고의 영어회화 학습어플',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+        child: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 고해상도 로고 이미지
+                Image(
+                  image: AssetImage('assets/images/splash_logo.png'),
+                  width: 240,
+                  height: 240,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
                 ),
-              ),
-            ],
+                SizedBox(height: 34),
+                // 메인 타이틀
+                Text(
+                  '최고의 영어회화 학습어플',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

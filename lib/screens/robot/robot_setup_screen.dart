@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../design/card_design.dart'; // 기존 카드 디자인 위젯 활용
+import '../../design/card_design.dart';
+import '../../design/app_colors.dart'; // 기존 카드 디자인 위젯 활용
 
 class RobotSetupScreen extends StatefulWidget {
   const RobotSetupScreen({super.key});
@@ -24,11 +25,13 @@ class _RobotSetupScreenState extends State<RobotSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffF6F7FB),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('로봇 설정 및 제어', 
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        title: const Text(
+          '로봇 설정 및 제어',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: true,
         // 하단 탭바에서 접근할 때는 뒤로가기 버튼이 자동으로 생깁니다.
@@ -42,8 +45,10 @@ class _RobotSetupScreenState extends State<RobotSetupScreen> {
             const SizedBox(height: 20),
             _buildStatusSection(), // 2. 연결 상태 및 에너지
             const SizedBox(height: 30),
-            const Text("하드웨어 테스트 및 제어", 
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text(
+              "하드웨어 테스트 및 제어",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 15),
             _buildFaceTestSection(), // 3. 표정 테스트 (오버플로 수정 적용)
             const SizedBox(height: 20),
@@ -62,25 +67,39 @@ class _RobotSetupScreenState extends State<RobotSetupScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("로봇의 IP를 입력해주세요.", 
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          const Text(
+            "로봇의 IP를 입력해주세요.",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 10),
           TextField(
             controller: _ipController,
             decoration: InputDecoration(
               hintText: "IP는 로봇의 뒷면에 적혀 있습니다....",
               hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
           const SizedBox(height: 15),
           Row(
             children: [
-              Expanded(child: ElevatedButton(onPressed: () {}, child: const Text("연결"))),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {},
+                  child: const Text("연결"),
+                ),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: OutlinedButton(onPressed: () {}, child: const Text("취소"))),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {},
+                  child: const Text("취소"),
+                ),
+              ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -92,10 +111,15 @@ class _RobotSetupScreenState extends State<RobotSetupScreen> {
       children: [
         Row(
           children: [
-            CircleAvatar(radius: 8, backgroundColor: _isConnected ? Colors.green : Colors.red),
+            CircleAvatar(
+              radius: 8,
+              backgroundColor: _isConnected ? Colors.green : Colors.red,
+            ),
             const SizedBox(width: 10),
-            Text(_isConnected ? "현재 연결됨" : "연결 안 됨", 
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              _isConnected ? "현재 연결됨" : "연결 안 됨",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         const SizedBox(height: 15),
@@ -116,8 +140,12 @@ class _RobotSetupScreenState extends State<RobotSetupScreen> {
           ],
         ),
         const SizedBox(height: 5),
-        Center(child: Text('"$_statusMessage"', 
-          style: const TextStyle(fontWeight: FontWeight.bold))),
+        Center(
+          child: Text(
+            '"$_statusMessage"',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
       ],
     );
   }
@@ -150,7 +178,7 @@ class _RobotSetupScreenState extends State<RobotSetupScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.grey[300], 
+          backgroundColor: Colors.grey[300],
           foregroundColor: Colors.black,
           minimumSize: const Size(60, 36), // 버튼 최소 크기 지정으로 일관성 유지
         ),
@@ -204,8 +232,8 @@ class _RobotSetupScreenState extends State<RobotSetupScreen> {
         ElevatedButton(
           onPressed: () {
             debugPrint("사운드 테스트 시작");
-          }, 
-          child: const Text("테스트 버튼")
+          },
+          child: const Text("테스트 버튼"),
         ),
       ],
     );

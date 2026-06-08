@@ -5,6 +5,10 @@ import '../../routes/app_routes.dart';
 import '../login/auth_widgets.dart';
 import 'vocabulary_dashboard_provider.dart';
 
+// ✨ 디자인 시스템 (배경 및 색상 유지)
+import '../../design/background.dart';
+import '../../design/app_colors.dart';
+
 class VocabularyDashboardScreen extends StatefulWidget {
   const VocabularyDashboardScreen({super.key});
 
@@ -30,84 +34,100 @@ class _VocabularyDashboardScreenState extends State<VocabularyDashboardScreen> {
     final provider = Provider.of<VocabularyDashboardProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: provider.isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AuthColors.primary),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+      extendBodyBehindAppBar: true, 
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          '오늘의 어휘',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: provider.isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          : Background(
+              fillLevel: 0.25,
+              child: SafeArea(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 430),
                     child: Column(
                       children: [
-                        const Text(
-                          '오늘의 어휘 목표량',
-                          style: TextStyle(
-                            color: AuthColors.primary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
+                        const SizedBox(height: 20),
+                        // 애니메이션 없이 즉시 표시
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            children: [
+                              _GoalSliderCard(
+                                title: '새로운 단어는 몇개를 배워볼까요?',
+                                value: provider.chosenNew,
+                                onChanged: (value) =>
+                                    provider.setCount('new', value),
+                              ),
+                              const SizedBox(height: 15),
+                              _GoalSliderCard(
+                                title: '복습할 단어는 얼마나 할까요?',
+                                value: provider.chosenReview,
+                                onChanged: (value) =>
+                                    provider.setCount('review', value),
+                              ),
+                              const SizedBox(height: 15),
+                              _GoalSliderCard(
+                                title: '재도전 단어는 몇개나 할까요?',
+                                value: provider.chosenRetry,
+                                onChanged: (value) =>
+                                    provider.setCount('retry', value),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 34),
-                        _GoalSliderCard(
-                          title: '새로운 단어는 몇개를 배워볼까요?',
-                          value: provider.chosenNew,
-                          onChanged: (value) => provider.setCount('new', value),
-                        ),
-                        const SizedBox(height: 15),
-                        _GoalSliderCard(
-                          title: '복습할 단어는 얼마나 할까요?',
-                          value: provider.chosenReview,
-                          onChanged: (value) =>
-                              provider.setCount('review', value),
-                        ),
-                        const SizedBox(height: 15),
-                        _GoalSliderCard(
-                          title: '재도전 단어는 몇개나 할까요?',
-                          value: provider.chosenRetry,
-                          onChanged: (value) =>
-                              provider.setCount('retry', value),
-                        ),
-                        const SizedBox(height: 25),
-                        AuthButton(
-                          text: '이대로 시작!',
-                          onPressed: () {
-                            if (provider.chosenNew == 0 &&
-                                provider.chosenReview == 0 &&
-                                provider.chosenRetry == 0) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('학습할 단어를 1개 이상 선택해주세요!'),
-                                ),
-                              );
-                              return;
-                            }
-
-                            Navigator.pushNamed(
-                              context,
-                              AppRoutes.vocabulary,
-                              arguments: {
-                                'new_count': provider.chosenNew,
-                                'review_count': provider.chosenReview,
-                                'retry_count': provider.chosenRetry,
-                              },
-                            );
-                          },
-                        ),
                         const Spacer(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 24),
+                          child: AuthButton(
+                            text: '이대로 시작!',
+                            onPressed: () {
+                              if (provider.chosenNew == 0 &&
+                                  provider.chosenReview == 0 &&
+                                  provider.chosenRetry == 0) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('학습할 단어를 1개 이상 선택해주세요!')),
+                                );
+                                return;
+                              }
+
+                              Navigator.pushNamed(
+                                context,
+                                AppRoutes.vocabulary,
+                                arguments: {
+                                  'new_count': provider.chosenNew,
+                                  'review_count': provider.chosenReview,
+                                  'retry_count': provider.chosenRetry,
+                                },
+                              );
+                            },
+                          ),
+                        ),
                       ],
                     ),
                   ),
-          ),
-        ),
-      ),
+                ),
+              ),
+            ),
     );
   }
 }
 
+// ✨ 기존 PageView 기반 슬라이더 카드 (100% 유지)
 class _GoalSliderCard extends StatefulWidget {
   const _GoalSliderCard({
     required this.title,
@@ -163,12 +183,12 @@ class _GoalSliderCardState extends State<_GoalSliderCard> {
       padding: const EdgeInsets.fromLTRB(18, 25, 18, 22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.20),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -178,7 +198,7 @@ class _GoalSliderCardState extends State<_GoalSliderCard> {
             widget.title,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.black,
+              color: Colors.black87,
               fontSize: 16,
               fontWeight: FontWeight.w900,
             ),
@@ -198,8 +218,8 @@ class _GoalSliderCardState extends State<_GoalSliderCard> {
                     '$number',
                     style: TextStyle(
                       color: selected
-                          ? AuthColors.primary
-                          : AuthColors.primary.withValues(alpha: 0.45),
+                          ? AppColors.primary
+                          : Colors.grey.withValues(alpha: 0.45),
                       fontSize: selected ? 25 : 12,
                       fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
                     ),

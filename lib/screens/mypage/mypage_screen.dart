@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 
 import '../../api/api_service.dart';
+import '../../design/app_colors.dart';
 import '../../routes/app_routes.dart';
+import '../changepw/change_password_screen.dart'; // 이전 화면에서 쓰던 경로에 맞게 임포트
 import 'profile_setting_screen.dart';
 
 class MyPageScreen extends StatefulWidget {
@@ -15,14 +17,17 @@ class MyPageScreen extends StatefulWidget {
 }
 
 class _MyPageScreenState extends State<MyPageScreen> {
-  static const _primaryColor = Color(0xFFFF4F39);
-  static const _pageBackground = Color(0xFFF2F2F2);
-
+  // --- 상태 데이터 (HEAD 로직 통합) ---
   String nickname = '닉네임';
   String email = 'user@email.com';
   String? profileImage;
   String? localProfileImagePath;
   Map<String, dynamic>? userData;
+
+  // UI 상태 변수
+  String currentPlan = 'PRO'; 
+  String nextBillingDate = '2024.06.20';
+  final String loginType = 'email';
 
   @override
   void initState() {
@@ -30,18 +35,20 @@ class _MyPageScreenState extends State<MyPageScreen> {
     _loadUserInfo();
   }
 
+  // --- 비즈니스 로직 (HEAD 통합) ---
+
   Future<void> _loadUserInfo({bool forceRefresh = false}) async {
     final storage = GetStorage();
     final cachedData = storage.read('user_data');
-    final savedLocalImagePath = storage.read(
-      'local_profile_image_path',
-    )?.toString();
+    final savedLocalImagePath = storage.read('local_profile_image_path')?.toString();
+    
     final cachedLocalImagePath =
         (savedLocalImagePath != null && savedLocalImagePath.isNotEmpty)
-        ? savedLocalImagePath
-        : (cachedData is Map
-              ? cachedData['local_profile_image_path']?.toString()
-              : null);
+            ? savedLocalImagePath
+            : (cachedData is Map
+                ? cachedData['local_profile_image_path']?.toString()
+                : null);
+
     dynamic data = forceRefresh ? null : storage.read('user_data');
 
     if (data == null) {
@@ -68,7 +75,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
   }
 
   Future<void> _openProfileSetting() async {
-    // 프로필 수정 화면에서 돌아온 결과를 받아 마이페이지 정보를 즉시 갱신한다.
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
@@ -87,210 +93,75 @@ class _MyPageScreenState extends State<MyPageScreen> {
     });
   }
 
-  void _openPasswordRecovery() {
-    // 마이페이지 비밀번호 재설정은 비밀번호 찾기 인증 흐름을 재사용한다.
-    // 로그인한 사용자의 이메일과 진입 위치를 넘겨 다음 화면들이 같은 플로우를 이어간다.
-    Navigator.pushNamed(
-      context,
-      AppRoutes.resetPassword,
-      arguments: <String, dynamic>{'email': email, 'isFromMyPage': true},
-    );
-  }
-
-  void _showWithdrawalDialog() {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('회원 탈퇴'),
-        content: const Text('회원탈퇴 기능은 UI만 먼저 연결했습니다.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('확인', style: TextStyle(color: _primaryColor)),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _logout() {
+    // 로그아웃 시 스택 초기화
     Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
   }
+
+  // --- UI 구현 (vipa_front-dev 기반) ---
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _pageBackground,
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: RefreshIndicator(
-              color: _primaryColor,
-              onRefresh: () => _loadUserInfo(forceRefresh: true),
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 28),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('마이페이지', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D3436))),
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 40),
+        child: Column(
+          children: [
+            // [섹션 1] 프로필
+            _cardContainer(
+              child: _buildProfileContent(context),
+            ),
+            const SizedBox(height: 24),
+
+            // [섹션 2] 멤버십 관리
+            _buildSectionHeader('멤버십 관리'),
+            _cardContainer(
+              child: Column(
                 children: [
-                  const _PageTitle(title: '마이페이지'),
-                  const SizedBox(height: 8),
-                  _ProfileCard(
-                    nickname: nickname,
-                    email: email,
-                    avatar: _buildProfileAvatar(radius: 24),
-                    onEdit: _openProfileSetting,
+                  _buildMenuItem(
+                    icon: Icons.receipt_long_outlined,
+                    title: '구독 결제 내역',
+                    onTap: () => Navigator.pushNamed(context, AppRoutes.subscriptionHistory),
                   ),
-                  const SizedBox(height: 8),
-                  _MenuButton(
-                    title: '비밀번호 재설정',
-                    onPressed: _openPasswordRecovery,
-                  ),
-                  const SizedBox(height: 8),
-                  _MenuButton(
-                    title: '회원탈퇴',
-                    textColor: _primaryColor,
-                    onPressed: _showWithdrawalDialog,
-                  ),
-                  const SizedBox(height: 18),
-                  TextButton(
-                    onPressed: _logout,
-                    child: const Text(
-                      '로그아웃',
-                      style: TextStyle(
-                        color: Color(0xFF8E8E8E),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // [섹션 3] 내 정보 관리
+            _buildSectionHeader('내 정보 관리'),
+            _cardContainer(
+              child: Column(
+                children: [
+                  if (loginType == 'email')
+                    _buildMenuItem(
+                      icon: Icons.lock_outline,
+                      title: '비밀번호 변경',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ChangePasswordScreen(isFromMyPage: true)),
                       ),
                     ),
+                  _buildMenuItem(
+                    icon: Icons.logout,
+                    title: '로그아웃',
+                    onTap: _logout,
+                  ),
+                  _buildMenuItem(
+                    icon: Icons.delete_forever,
+                    title: '회원 탈퇴',
+                    isDanger: true,
+                    onTap: () => _showWithdrawalDialog(context),
                   ),
                 ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileAvatar({required double radius}) {
-    final hasLocalImage =
-        localProfileImagePath != null && localProfileImagePath!.isNotEmpty;
-    final hasRemoteImage = profileImage != null && profileImage!.isNotEmpty;
-
-    Widget image = Container(
-      color: const Color(0xFFE8E8E8),
-      child: const Icon(Icons.person, color: Colors.white, size: 26),
-    );
-    final fallback = image;
-
-    if (hasLocalImage && File(localProfileImagePath!).existsSync()) {
-      image = Image.file(File(localProfileImagePath!), fit: BoxFit.cover);
-    } else if (hasRemoteImage) {
-      image = Image.network(
-        profileImage!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => fallback,
-      );
-    }
-
-    return ClipOval(
-      child: SizedBox(width: radius * 2, height: radius * 2, child: image),
-    );
-  }
-}
-
-class _PageTitle extends StatelessWidget {
-  const _PageTitle({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: Center(
-        child: Text(
-          title,
-          style: const TextStyle(
-            color: _MyPageScreenState._primaryColor,
-            fontSize: 15,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({
-    required this.nickname,
-    required this.email,
-    required this.avatar,
-    required this.onEdit,
-  });
-
-  final String nickname;
-  final String email;
-  final Widget avatar;
-  final VoidCallback onEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ShadowPanel(
-      height: 76,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            avatar,
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    nickname,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF262626),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    email,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF9A9A9A),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(
-              width: 58,
-              height: 28,
-              child: ElevatedButton(
-                onPressed: onEdit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _MyPageScreenState._primaryColor,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                child: const Text(
-                  '수정',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
-                ),
               ),
             ),
           ],
@@ -298,64 +169,112 @@ class _ProfileCard extends StatelessWidget {
       ),
     );
   }
-}
 
-class _MenuButton extends StatelessWidget {
-  const _MenuButton({
-    required this.title,
-    required this.onPressed,
-    this.textColor = Colors.black,
-  });
+  // --- UI Helper Methods ---
 
-  final String title;
-  final VoidCallback onPressed;
-  final Color textColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ShadowPanel(
-      height: 36,
-      child: TextButton(
-        onPressed: onPressed,
-        style: TextButton.styleFrom(
-          foregroundColor: textColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ShadowPanel extends StatelessWidget {
-  const _ShadowPanel({required this.child, required this.height});
-
-  final Widget child;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(9),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+  Widget _buildProfileContent(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _buildProfileAvatar(radius: 30), // 통합된 아바타 로직
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(nickname, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3436))),
+                    Text(email, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: _openProfileSetting,
+                child: const Text('수정', style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  // HEAD에서 가져온 강력한 프로필 이미지 처리 로직
+  Widget _buildProfileAvatar({required double radius}) {
+    final hasLocalImage = localProfileImagePath != null && localProfileImagePath!.isNotEmpty;
+    final hasRemoteImage = profileImage != null && profileImage!.isNotEmpty;
+
+    Widget image = Container(
+      color: Colors.blueAccent.withValues(alpha: 0.2),
+      child: const Icon(Icons.person, color: Colors.blueAccent, size: 30),
+    );
+
+    if (hasLocalImage && File(localProfileImagePath!).existsSync()) {
+      image = Image.file(File(localProfileImagePath!), fit: BoxFit.cover);
+    } else if (hasRemoteImage) {
+      image = Image.network(
+        profileImage!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => image,
+      );
+    }
+
+    return ClipOval(
+      child: SizedBox(width: radius * 2, height: radius * 2, child: image),
+    );
+  }
+
+  Widget _cardContainer({required Widget child}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
       child: child,
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
+      ),
+    );
+  }
+
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isDanger = false,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      leading: Icon(icon, color: isDanger ? Colors.redAccent : const Color(0xFF2D3436), size: 22),
+      title: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: isDanger ? Colors.redAccent : const Color(0xFF2D3436))),
+      trailing: const Icon(Icons.chevron_right, color: Color(0xFFDFE6E9), size: 20),
+      onTap: onTap,
+    );
+  }
+
+  void _showWithdrawalDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('회원 탈퇴', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('탈퇴 시 모든 학습 데이터가 삭제되며 복구할 수 없습니다.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소', style: TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('탈퇴', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
+        ],
+      ),
     );
   }
 }

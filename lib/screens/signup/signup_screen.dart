@@ -4,6 +4,7 @@ import '../../controllers/auth_controller.dart';
 import '../../design/snack_bar.dart';
 import '../../routes/app_routes.dart';
 import '../login/auth_widgets.dart';
+import '../../design/app_colors.dart'; 
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -84,7 +85,7 @@ class _SignupScreenState extends State<SignupScreen> {
           const Text(
             '회원가입',
             style: TextStyle(
-              color: Colors.black,
+              color: Color(0xFF2D3436), // 정의되지 않은 textMain 대신 기존 디자인 색상 적용
               fontSize: 31,
               fontWeight: FontWeight.w900,
               height: 1,
@@ -92,8 +93,8 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'VIPA와 가장먼저 새로운 경험을 즐겨보세요!',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+            'VIPA와 가장 먼저 새로운 경험을 즐겨보세요!',
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey),
           ),
           const SizedBox(height: 42),
           AuthTextField(

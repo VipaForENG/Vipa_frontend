@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+// [임포트] 각 화면 위젯 및 모델들을 가져옵니다.
 import '../models/conversation_category_model.dart';
 import '../models/level_test_model.dart';
 import '../screens/changepw/change_password_screen.dart';
@@ -40,6 +41,7 @@ class AppRoutes {
   static const String vocabularyResult = '/vocabulary-result';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    // 이동 시 전달된 데이터가 있다면 저장합니다.
     final args = settings.arguments;
 
     switch (settings.name) {

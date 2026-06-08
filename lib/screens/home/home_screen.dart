@@ -1,16 +1,19 @@
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../controllers/home_controller.dart';
 import '../../models/home_summary_model.dart';
+
 import '../ai/ai_screen.dart';
 import '../conversation/category/category_selection_screen.dart';
 import '../history/learning_history_screen.dart';
 import '../mypage/mypage_screen.dart';
 import '../vocabulary/vocabulary_dashboard_screen.dart';
+import '../robot/robot_setup_screen.dart';
 import '../login/auth_widgets.dart';
+
+import '../../../design/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,29 +40,43 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: AppColors.background,
+      appBar: _selectedIndex == 0
+          ? AppBar(
+              backgroundColor: AppColors.background,
+              elevation: 0,
+              title: const Text(
+                '홈',
+                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.smart_toy_outlined, color: Colors.black),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const RobotSetupScreen()),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined, color: Colors.black),
+                  onPressed: () => debugPrint("설정 클릭"),
+                ),
+              ],
+            )
+          : null,
       body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
         selectedItemColor: AuthColors.primary,
         unselectedItemColor: const Color(0xFFD7D7D7),
-        selectedLabelStyle: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-        ),
+        selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+        unselectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
         onTap: (index) => setState(() => _selectedIndex = index),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
           BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: '학습내역'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.smart_toy_outlined),
-            label: 'AI프리토킹',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.smart_toy_outlined), label: 'AI프리토킹'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: '마이페이지'),
         ],
       ),
@@ -67,115 +84,64 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _HomeContent extends StatefulWidget {
+class _HomeContent extends StatelessWidget {
   const _HomeContent();
 
   @override
-  State<_HomeContent> createState() => _HomeContentState();
-}
-
-class _HomeContentState extends State<_HomeContent> {
-  final HomeController controller = Get.put(HomeController());
-
-  @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Obx(() {
-        if (controller.isLoading.value) {
-          return const Center(
-            child: CircularProgressIndicator(color: AuthColors.primary),
-          );
-        }
+    final HomeController controller = Get.put(HomeController());
 
-        final data = controller.summary.value;
-        if (data == null) {
-          return const Center(child: Text('데이터가 없습니다.'));
-        }
-
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: Column(
-              children: [
-                const _HomeHeader(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(13, 16, 13, 24),
-                    child: Column(
-                      children: [
-                        _RankCard(data: data),
-                        const SizedBox(height: 14),
-                        _AttendanceCard(
-                          attendanceList: data.attendance,
-                          streakCount: data.continuousAttendanceCount,
-                        ),
-                        const SizedBox(height: 15),
-                        _HomeActionButton(
-                          color: AuthColors.primary,
-                          icon: Icons.menu_book,
-                          title: '오늘은 어떤 어휘를 배워볼까요?',
-                          subtitle: '오늘의 어휘 학습하기 >',
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const VocabularyDashboardScreen(),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        _HomeActionButton(
-                          color: const Color(0xFFFF806B),
-                          icon: Icons.record_voice_over,
-                          title: 'AI와 함께 실전에 통하는 회화!',
-                          subtitle: '실전회화 학습하기 >',
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CategorySelectionScreen(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return const Center(
+          child: CircularProgressIndicator(color: AuthColors.primary),
         );
-      }),
-    );
-  }
-}
+      }
 
-class _HomeHeader extends StatelessWidget {
-  const _HomeHeader();
+      final data = controller.summary.value;
+      if (data == null) {
+        return const Center(child: Text('데이터가 없습니다.'));
+      }
 
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 56,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const Text(
-            '홈',
-            style: TextStyle(
-              color: AuthColors.primary,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
+      return Container(
+        color: AppColors.background,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(13, 16, 13, 24),
+          child: Column(
+            children: [
+              _RankCard(data: data),
+              const SizedBox(height: 14),
+              _AttendanceCard(
+                attendanceList: data.attendance,
+                streakCount: data.continuousAttendanceCount,
+              ),
+              const SizedBox(height: 15),
+              _HomeActionButton(
+                color: AuthColors.primary,
+                icon: Icons.menu_book,
+                title: '오늘은 어떤 어휘를 배워볼까요?',
+                subtitle: '오늘의 어휘 학습하기 >',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const VocabularyDashboardScreen()),
+                ),
+              ),
+              const SizedBox(height: 14),
+              _HomeActionButton(
+                color: const Color(0xFFFF806B),
+                icon: Icons.record_voice_over,
+                title: 'AI와 함께 실전에 통하는 회화!',
+                subtitle: '실전회화 학습하기 >',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CategorySelectionScreen()),
+                ),
+              ),
+            ],
           ),
-          Positioned(
-            right: 12,
-            child: IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.settings, color: AuthColors.primary),
-            ),
-          ),
-        ],
-      ),
-    );
+        ),
+      );
+    });
   }
 }
 

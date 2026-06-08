@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../models/level_test_model.dart';
 import '../../routes/app_routes.dart';
+import '../../design/app_colors.dart';
 import '../login/auth_widgets.dart';
 
 class LevelTestResultScreen extends StatelessWidget {
@@ -31,6 +32,8 @@ class LevelTestResultScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 31),
+                  
+                  // 1. 결과 메인 카드
                   _ResultCard(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 38),
@@ -59,6 +62,8 @@ class LevelTestResultScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
+
+                  // 2. 영역별 역량 점수
                   _ResultCard(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(33, 25, 33, 23),
@@ -81,6 +86,8 @@ class LevelTestResultScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
+
+                  // 3. 나의 약점
                   _ResultCard(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(31, 20, 31, 20),
@@ -108,6 +115,8 @@ class LevelTestResultScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
+
+                  // 4. AI 피드백
                   _ResultCard(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 19, 20, 20),
@@ -137,6 +146,8 @@ class LevelTestResultScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 23),
+                  
+                  // 하단 버튼
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -182,9 +193,10 @@ class LevelTestResultScreen extends StatelessWidget {
   }
 }
 
+// --- Helper Widgets ---
+
 class _ResultCard extends StatelessWidget {
   const _ResultCard({required this.child});
-
   final Widget child;
 
   @override
@@ -196,7 +208,7 @@ class _ResultCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.20),
+            color: Colors.black.withValues(alpha: 0.20),
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),
@@ -209,7 +221,6 @@ class _ResultCard extends StatelessWidget {
 
 class _ScoreBar extends StatelessWidget {
   const _ScoreBar({required this.label, required this.score});
-
   final String label;
   final int score;
 
@@ -257,7 +268,6 @@ class _ScoreBar extends StatelessWidget {
 
 class _WeaknessChip extends StatelessWidget {
   const _WeaknessChip({required this.text});
-
   final String text;
 
   @override

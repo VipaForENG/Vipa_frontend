@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
 
 import '../../controllers/auth_controller.dart';
+import '../../design/animation_design.dart';
+import '../../design/app_colors.dart';
 import '../../design/snack_bar.dart';
 import '../../routes/app_routes.dart';
 import '../../services/auth_service.dart';
-import 'auth_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,8 +16,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // --- 상태 관리 및 컨트롤러 ---
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FocusNode _emailFocusNode = FocusNode();
+  final FocusNode _passwordFocusNode = FocusNode();
 
   bool _isNormalLoading = false;
   bool _isGoogleLoading = false;
@@ -26,8 +30,12 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
+
+  // --- 비즈니스 로직 ---
 
   Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
@@ -42,6 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final result = await AuthController.login(email: email, password: password);
     if (!mounted) return;
     setState(() => _isNormalLoading = false);
+    
     await _processLoginResult(result);
   }
 
@@ -50,6 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final result = await AuthController.loginWithGoogle();
     if (!mounted) return;
     setState(() => _isGoogleLoading = false);
+    
     await _processLoginResult(result, isSocial: true);
   }
 
@@ -58,9 +68,11 @@ class _LoginScreenState extends State<LoginScreen> {
     final result = await AuthController.loginWithKakao();
     if (!mounted) return;
     setState(() => _isKakaoLoading = false);
+    
     await _processLoginResult(result, isSocial: true);
   }
 
+  /// 로그인 결과 처리 및 네비게이션
   Future<void> _processLoginResult(
     Map<String, dynamic>? result, {
     bool isSocial = false,
@@ -80,6 +92,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final isTested = result['is_tested'] ?? false;
     VipaSnackBar.show(context, '성공적으로 로그인되었습니다!');
+    
+    // 테스트 여부에 따라 페이지 이동
     Navigator.pushNamedAndRemoveUntil(
       context,
       isTested ? AppRoutes.home : AppRoutes.levelTest,
@@ -87,96 +101,178 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // --- UI 구현 ---
+
   @override
   Widget build(BuildContext context) {
-    final isAnyLoading =
-        _isNormalLoading || _isGoogleLoading || _isKakaoLoading;
+    final isAnyLoading = _isNormalLoading || _isGoogleLoading || _isKakaoLoading;
+    const Color waveColor = AppColors.wave;
 
-    return AuthScaffold(
-      child: Column(
+    return Scaffold(
+      backgroundColor: waveColor, // 하단 단차 해결
+      resizeToAvoidBottomInset: true,
+      body: Stack(
         children: [
-          const SizedBox(height: 28),
-          const VipaMark(size: 42),
-          const SizedBox(height: 8),
-          const Text(
-            '로그인',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 31,
-              fontWeight: FontWeight.w900,
-              height: 1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'VIPA와 함께 영어회화 실력을 늘려보세요!',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 42),
-          AuthTextField(
-            controller: _emailController,
-            label: '이메일',
-            hintText: '이메일',
-            keyboardType: TextInputType.emailAddress,
-          ),
-          const SizedBox(height: 14),
-          AuthTextField(
-            controller: _passwordController,
-            label: '비밀번호',
-            hintText: '비밀번호',
-            obscureText: true,
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () =>
-                  Navigator.pushNamed(context, AppRoutes.resetPassword),
-              style: TextButton.styleFrom(
-                minimumSize: Size.zero,
-                padding: const EdgeInsets.only(top: 8, bottom: 16),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: const Text(
-                '비밀번호를 잊으셨나요?',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  decoration: TextDecoration.underline,
+          SafeArea(
+            child: SingleChildScrollView(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 85),
+                    // 로고 애니메이션
+                    FadeSlideTransition(
+                      delay: 0.0,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.asset(
+                          'assets/images/LOGO.png',
+                          width: 150,
+                          height: 150,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.image, size: 95),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // 이메일 입력
+                    FadeSlideTransition(
+                      delay: 0.2,
+                      child: _buildUnderlineTextField(
+                        controller: _emailController,
+                        focusNode: _emailFocusNode,
+                        hintText: '이메일',
+                        icon: RemixIcons.mail_fill,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // 비밀번호 입력
+                    FadeSlideTransition(
+                      delay: 0.3,
+                      child: _buildUnderlineTextField(
+                        controller: _passwordController,
+                        focusNode: _passwordFocusNode,
+                        hintText: '비밀번호',
+                        icon: RemixIcons.lock_password_fill,
+                        isObscure: true,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    // 로그인 버튼
+                    FadeSlideTransition(
+                      delay: 0.5,
+                      child: _buildPrimaryButton(
+                        text: _isNormalLoading ? '로그인 중...' : '로그인',
+                        onPressed: isAnyLoading ? () {} : _handleLogin,
+                        color: AppColors.primary,
+                        textColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+                    // 구글 로그인
+                    FadeSlideTransition(
+                      delay: 0.6,
+                      child: _buildPrimaryButton(
+                        text: _isGoogleLoading ? '처리 중...' : '구글로 로그인',
+                        onPressed: isAnyLoading ? () {} : _handleGoogleLogin,
+                        color: Colors.white,
+                        textColor: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // 카카오 로그인
+                    FadeSlideTransition(
+                      delay: 0.7,
+                      child: _buildPrimaryButton(
+                        text: _isKakaoLoading ? '처리 중...' : '카카오로 로그인',
+                        onPressed: isAnyLoading ? () {} : _handleKakaoLogin,
+                        color: const Color(0xFFFEE500),
+                        textColor: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // 회원가입 및 비밀번호 찾기
+                    FadeSlideTransition(
+                      delay: 0.9,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildLinkButton('회원가입', () => Navigator.pushNamed(context, AppRoutes.signup)),
+                          const Text('|', style: TextStyle(color: AppColors.primary)),
+                          _buildLinkButton('비밀번호 찾기', () => Navigator.pushNamed(context, AppRoutes.resetPassword)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 50),
+                  ],
                 ),
               ),
             ),
           ),
-          AuthButton(
-            text: _isNormalLoading ? '로그인 중...' : '로그인',
-            onPressed: isAnyLoading ? null : _handleLogin,
-          ),
-          const SizedBox(height: 34),
-          const DividerWithText(text: '소셜 계정 로그인'),
-          const SizedBox(height: 18),
-          SocialButton(
-            text: _isKakaoLoading ? '처리 중...' : '카카오로 로그인',
-            backgroundColor: const Color(0xFFFFDF14),
-            icon: RemixIcons.chat_1_fill,
-            iconColor: Colors.black,
-            onPressed: isAnyLoading ? null : _handleKakaoLogin,
-          ),
-          const SizedBox(height: 11),
-          SocialButton(
-            text: _isGoogleLoading ? '처리 중...' : '구글로 로그인',
-            backgroundColor: const Color(0xFFF3F4F7),
-            leading: const GoogleMark(size: 18),
-            onPressed: isAnyLoading ? null : _handleGoogleLogin,
-          ),
-          const SizedBox(height: 24),
-          AuthFooterLink(
-            prefix: '아직 계정이 없으신가요?',
-            action: '회원가입',
-            onPressed: () => Navigator.pushNamed(context, AppRoutes.signup),
-          ),
-          const SizedBox(height: 28),
         ],
       ),
+    );
+  }
+
+  // --- UI Helper Methods ---
+
+  Widget _buildUnderlineTextField({
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    required String hintText,
+    required IconData icon,
+    bool isObscure = false,
+  }) {
+    return SizedBox(
+      width: 300,
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        obscureText: isObscure,
+        cursorColor: AppColors.accent,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, size: 20, color: AppColors.accent),
+          prefixIconConstraints: const BoxConstraints(minWidth: 35),
+          hintText: hintText,
+          hintStyle: const TextStyle(color: Colors.black87, fontSize: 14),
+          enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: AppColors.accent, width: 1),
+          ),
+          focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: AppColors.accent, width: 2),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrimaryButton({
+    required String text,
+    required VoidCallback onPressed,
+    required Color color,
+    required Color textColor,
+  }) {
+    return SizedBox(
+      width: 300,
+      height: 52,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: Text(text, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textColor)),
+      ),
+    );
+  }
+
+  Widget _buildLinkButton(String text, VoidCallback onPressed) {
+    return TextButton(
+      onPressed: onPressed,
+      child: Text(text, style: const TextStyle(color: AppColors.primary)),
     );
   }
 }

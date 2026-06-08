@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../design/app_colors.dart';
 import '../../models/payment_models.dart';
 import '../../services/subscription_storage.dart';
 
@@ -8,8 +9,7 @@ class SubscriptionHistoryScreen extends StatefulWidget {
   const SubscriptionHistoryScreen({super.key});
 
   @override
-  State<SubscriptionHistoryScreen> createState() =>
-      _SubscriptionHistoryScreenState();
+  State<SubscriptionHistoryScreen> createState() => _SubscriptionHistoryScreenState();
 }
 
 class _SubscriptionHistoryScreenState extends State<SubscriptionHistoryScreen> {
@@ -17,7 +17,7 @@ class _SubscriptionHistoryScreenState extends State<SubscriptionHistoryScreen> {
   late SubscriptionState _subscription;
 
   final NumberFormat _priceFormat = NumberFormat('#,###');
-  final DateFormat _dateFormat = DateFormat('yyyy.MM.dd HH:mm');
+  final DateFormat _dateFormat = DateFormat('yyyy.MM.dd');
 
   @override
   void initState() {
@@ -26,22 +26,29 @@ class _SubscriptionHistoryScreenState extends State<SubscriptionHistoryScreen> {
   }
 
   void _load() {
-    _history = SubscriptionStorage.getHistory();
-    _subscription = SubscriptionStorage.getState();
+    // 실제 저장소에서 데이터를 로드
+    setState(() {
+      _history = SubscriptionStorage.getHistory();
+      _subscription = SubscriptionStorage.getState();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          '구독 결제 내역',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          "구독 결제 내역",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Column(
         children: [
@@ -50,12 +57,11 @@ class _SubscriptionHistoryScreenState extends State<SubscriptionHistoryScreen> {
             child: _history.isEmpty
                 ? _buildEmptyState()
                 : RefreshIndicator(
-                    onRefresh: () async => setState(_load),
+                    onRefresh: () async => _load(),
                     child: ListView.separated(
                       padding: const EdgeInsets.all(20),
                       itemCount: _history.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 12),
+                      separatorBuilder: (context, index) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         return _buildHistoryItem(_history[index]);
                       },
@@ -67,13 +73,14 @@ class _SubscriptionHistoryScreenState extends State<SubscriptionHistoryScreen> {
     );
   }
 
+  /// [위젯] 상단 요약 배너
   Widget _buildSummaryHeader() {
     final title = _subscription.active
         ? '${_subscription.planName} 이용 중'
         : '현재 활성화된 구독이 없습니다';
     final subtitle = _subscription.nextBillingDate == null
-        ? '카카오페이 결제 내역을 확인할 수 있습니다.'
-        : '다음 결제일 ${DateFormat('yyyy.MM.dd').format(_subscription.nextBillingDate!)}';
+        ? '결제 내역을 확인할 수 있습니다.'
+        : '다음 결제일 ${_dateFormat.format(_subscription.nextBillingDate!)}';
 
     return Container(
       width: double.infinity,
@@ -100,6 +107,7 @@ class _SubscriptionHistoryScreenState extends State<SubscriptionHistoryScreen> {
     );
   }
 
+  /// [위젯] 데이터가 없을 경우
   Widget _buildEmptyState() {
     return const Center(
       child: Column(
@@ -116,6 +124,7 @@ class _SubscriptionHistoryScreenState extends State<SubscriptionHistoryScreen> {
     );
   }
 
+  /// [위젯] 결제 내역 아이템 카드
   Widget _buildHistoryItem(PaymentHistoryItem item) {
     final isCancel = item.status.contains('해지');
 
@@ -153,14 +162,6 @@ class _SubscriptionHistoryScreenState extends State<SubscriptionHistoryScreen> {
                   '${_dateFormat.format(item.createdAt)} · ${item.method}',
                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
-                if (item.sid != null && item.sid!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'sid: ${item.sid}',
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.grey, fontSize: 11),
-                  ),
-                ],
               ],
             ),
           ),

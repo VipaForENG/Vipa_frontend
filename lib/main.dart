@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 // [임포트] 앱 전체의 상태 관리(Provider)를 효율적으로 하기 위한 패키지입니다.
 import 'package:provider/provider.dart';
 // [임포트] 우리가 정의한 화면 이동 경로와 전환 애니메이션 설정 파일입니다.
-import 'routes/app_routes.dart'; 
+import 'routes/app_routes.dart';
 import 'package:get/get.dart';
 // [임포트] 문법 학습 관련 데이터와 상태를 관리하는 프로바이더입니다.
 import 'screens/vocabulary/vocabulary_provider.dart';
@@ -16,6 +16,7 @@ import 'screens/conversation/chat/conversation_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // [임포트] 카카오 소셜 로그인을 사용하기 위한 SDK 패키지입니다.
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
+import 'design/app_colors.dart';
 
 import 'package:get_storage/get_storage.dart'; // [추가] 간단한 로컬 저장소 패키지입니다. 토큰 저장 등에 사용됩니다.
 
@@ -35,7 +36,7 @@ void main() async {
   // [카카오 SDK 초기화] .env 파일에서 가져온 'KAKAO_NATIVE_APP_KEY'를 사용하여
   // 카카오 로그인 기능을 사용할 수 있도록 초기화합니다. 만약 키가 없다면 빈 문자열을 전달합니다.
   KakaoSdk.init(nativeAppKey: dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '');
-  
+
   // [앱 실행] 최상위 위젯인 VipaApp을 실행하여 화면을 띄웁니다.
   runApp(const VipaApp());
 }
@@ -58,7 +59,12 @@ class VipaApp extends StatelessWidget {
         title: 'vipa',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
+          colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
+          scaffoldBackgroundColor: AppColors.background,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: AppColors.background,
+            surfaceTintColor: AppColors.background,
+          ),
           useMaterial3: true,
         ),
         initialRoute: AppRoutes.splash,

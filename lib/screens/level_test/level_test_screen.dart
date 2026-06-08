@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../controllers/level_test_controller.dart';
+import '../../design/app_colors.dart';
 import '../../design/snack_bar.dart';
 import '../../models/level_test_model.dart';
 import '../../routes/app_routes.dart';
@@ -15,6 +16,7 @@ class LevelTestScreen extends StatefulWidget {
 }
 
 class _LevelTestScreenState extends State<LevelTestScreen> {
+  // --- 상태 관리 변수 ---
   List<dynamic> _questions = [];
   final List<String> _userAnswers = [];
   int _currentIndex = 0;
@@ -29,6 +31,9 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     _fetchQuestions();
   }
 
+  // --- API 호출 및 로직 관리 ---
+
+  /// 문제를 서버에서 가져오는 함수
   Future<void> _fetchQuestions() async {
     setState(() {
       _isLoading = true;
@@ -50,27 +55,29 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     });
   }
 
+  /// 결과 제출 및 화면 이동 로직
   Future<void> _submitResults() async {
     setState(() {
       _isLoading = true;
       _loadingMessage = 'AI가 당신의 답변을 분석 중입니다';
     });
 
-    final LevelTestResult? result =
-        await LevelTestController.submitLevelTest(_userAnswers);
+    // 서버로 정답 데이터 전송
+    final LevelTestResult? result = await LevelTestController.submitLevelTest(_userAnswers);
 
     if (!mounted) return;
 
-    if (result == null) {
+    if (result != null) {
+      VipaSnackBar.show(context, '테스트가 완료되었습니다!');
+      // 데이터와 함께 결과 화면으로 이동
+      Get.offAllNamed(AppRoutes.levelTestResult, arguments: result);
+    } else {
       setState(() => _isLoading = false);
       VipaSnackBar.show(context, '제출 중 오류가 발생했습니다.', isError: true);
-      return;
     }
-
-    VipaSnackBar.show(context, '테스트가 완료되었습니다!');
-    Get.offAllNamed(AppRoutes.levelTestResult, arguments: result);
   }
 
+  /// 옵션 선택 시 실행되는 흐름 제어
   Future<void> _onOptionSelected(String answer) async {
     if (_isAnswering) return;
 
@@ -79,11 +86,13 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       _isAnswering = true;
     });
 
+    // 사용자 경험을 위해 살짝 지연 후 다음으로 이동
     await Future.delayed(const Duration(milliseconds: 180));
     if (!mounted) return;
 
     _userAnswers.add(answer);
 
+    // 마지막 문제가 아니면 인덱스 증가
     if (_currentIndex < _questions.length - 1) {
       setState(() {
         _currentIndex++;
@@ -93,14 +102,18 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       return;
     }
 
+    // 마지막 문제일 경우 결과 제출
     await _submitResults();
   }
 
+  // --- UI 구현 ---
+
   @override
   Widget build(BuildContext context) {
+    // 로딩 화면
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -149,6 +162,8 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  
+                  // 진행률 표시
                   ClipRRect(
                     borderRadius: BorderRadius.circular(99),
                     child: LinearProgressIndicator(
@@ -161,6 +176,8 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                     ),
                   ),
                   const SizedBox(height: 17),
+                  
+                  // 질문 카드
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.fromLTRB(12, 18, 12, 18),
@@ -169,7 +186,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                       borderRadius: BorderRadius.circular(6),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.24),
+                          color: Colors.black.withValues(alpha: 0.24),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -190,6 +207,8 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                     ),
                   ),
                   const SizedBox(height: 28),
+                  
+                  // 선택지 버튼
                   ...options.take(4).map((option) {
                     final text = option.toString();
                     final isSelected = _selectedAnswer == text;
