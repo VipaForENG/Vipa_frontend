@@ -1,26 +1,30 @@
 import 'package:flutter/material.dart';
 
-// [임포트] 각 화면 위젯 및 모델들을 가져옵니다.
+// [모델] 데이터 전달에 필요한 모델 임포트
 import '../models/conversation_category_model.dart';
 import '../models/level_test_model.dart';
-import '../screens/changepw/change_password_screen.dart';
-import '../screens/conversation/category/sub_category_selection_screen.dart';
-import '../screens/conversation/chat/conversation_chat_screen.dart';
-import '../screens/history/learning_history_screen.dart';
+
+// [화면] 각 도메인별 화면 위젯 임포트
 import '../screens/home/home_screen.dart';
-import '../screens/level_test/level_test_result_screen.dart';
-import '../screens/level_test/level_test_screen.dart';
 import '../screens/login/login_screen.dart';
-import '../screens/login/reset_password_screen.dart';
-import '../screens/login/verification_code_screen.dart';
-import '../screens/mypage/subscription_history_screen.dart';
-import '../screens/mypage/subscription_screen.dart';
 import '../screens/splash/splash_screen.dart';
 import '../screens/signup/signup_screen.dart';
+import '../screens/login/reset_password_screen.dart';
+import '../screens/login/verification_code_screen.dart';
+import '../screens/changepw/change_password_screen.dart';
+import '../screens/history/learning_history_screen.dart';
+import '../screens/conversation/chat/conversation_chat_screen.dart';
+import '../screens/conversation/category/sub_category_selection_screen.dart';
 import '../screens/vocabulary/vocabulary_dashboard_screen.dart';
 import '../screens/vocabulary/vocabulary_result_screen.dart';
 import '../screens/vocabulary/vocabulary_screen.dart';
+import '../screens/mypage/subscription_screen.dart';
+import '../screens/mypage/subscription_history_screen.dart';
+import '../screens/level_test/level_test_screen.dart';
+import '../screens/level_test/level_test_result_screen.dart';
 
+/// 앱 내 모든 화면 이동 경로를 관리하는 라우팅 클래스입니다.
+/// named route 방식을 사용하여 화면 전환 로직을 중앙 집중화합니다.
 class AppRoutes {
   static const String splash = '/splash';
   static const String login = '/login';
@@ -40,8 +44,8 @@ class AppRoutes {
   static const String vocabulary = '/vocabulary';
   static const String vocabularyResult = '/vocabulary-result';
 
+  /// 라우트 설정에 따라 화면을 생성하고 애니메이션을 적용합니다.
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    // 이동 시 전달된 데이터가 있다면 저장합니다.
     final args = settings.arguments;
 
     switch (settings.name) {
@@ -51,8 +55,9 @@ class AppRoutes {
         return _buildFadeRoute(const LoginScreen(), settings);
       case signup:
         return _buildFadeRoute(const SignupScreen(), settings);
+      
+      // [비밀번호 찾기] 상황에 따라 이메일 주입 및 마이페이지 진입 여부 구분
       case resetPassword:
-        // 같은 비밀번호 찾기 화면을 로그인 전/마이페이지 진입 두 상황에서 재사용한다.
         if (args is Map<String, dynamic>) {
           return _buildFadeRoute(
             ResetPasswordScreen(
@@ -63,8 +68,9 @@ class AppRoutes {
           );
         }
         return _buildFadeRoute(const ResetPasswordScreen(), settings);
+      
+      // [인증번호] 이메일 기반 인증 프로세스
       case verificationCode:
-        // 인증번호 화면은 이메일과 진입 위치를 받아 다음 비밀번호 변경 화면으로 이어준다.
         if (args is String) {
           return _buildFadeRoute(VerificationCodeScreen(email: args), settings);
         }
@@ -77,9 +83,10 @@ class AppRoutes {
             settings,
           );
         }
+        // 예외 상황 시 로그인 화면으로 복귀하거나 안내 필요
         return _buildFadeRoute(const ResetPasswordScreen(), settings);
+      
       case changePassword:
-        // isFromMyPage 값으로 변경 완료 후 로그인 화면 이동 여부를 결정한다.
         if (args is Map<String, dynamic>) {
           return _buildFadeRoute(
             ChangePasswordScreen(isFromMyPage: args['isFromMyPage'] == true),
@@ -87,10 +94,13 @@ class AppRoutes {
           );
         }
         return _buildFadeRoute(const ChangePasswordScreen(), settings);
+        
       case home:
         return _buildFadeRoute(const HomeScreen(), settings);
       case history:
         return _buildFadeRoute(const LearningHistoryScreen(), settings);
+      
+      // [대화 화면] SubCategory 객체 또는 ID 전달
       case conversation:
         if (args is SubCategory) {
           return _buildFadeRoute(
@@ -108,6 +118,8 @@ class AppRoutes {
           const ConversationChatScreen(subCatId: 1),
           settings,
         );
+      
+      // [카테고리 선택] 메인 카테고리 ID 전달
       case subCategory:
         if (args is int) {
           return _buildFadeRoute(
@@ -119,6 +131,7 @@ class AppRoutes {
           const SubCategorySelectionScreen(mainCatId: 1),
           settings,
         );
+        
       case vocabularyDashboard:
         return _buildFadeRoute(const VocabularyDashboardScreen(), settings);
       case vocabulary:
@@ -131,6 +144,8 @@ class AppRoutes {
         return _buildFadeRoute(const SubscriptionHistoryScreen(), settings);
       case levelTest:
         return _buildFadeRoute(const LevelTestScreen(), settings);
+      
+      // [레벨 테스트 결과] 결과 객체(LevelTestResult) 필수 확인
       case levelTestResult:
         if (args is LevelTestResult) {
           return _buildFadeRoute(LevelTestResultScreen(result: args), settings);
@@ -139,6 +154,7 @@ class AppRoutes {
           const Scaffold(body: Center(child: Text('결과 데이터가 없습니다.'))),
           settings,
         );
+        
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
@@ -148,6 +164,7 @@ class AppRoutes {
     }
   }
 
+  /// Fade 애니메이션이 포함된 페이지 라우트 빌더 (일관된 화면 전환 효과)
   static PageRouteBuilder _buildFadeRoute(Widget page, RouteSettings settings) {
     return PageRouteBuilder(
       settings: settings,

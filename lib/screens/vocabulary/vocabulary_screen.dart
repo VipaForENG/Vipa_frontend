@@ -20,20 +20,18 @@ class VocabularyScreen extends StatefulWidget {
 
 class _VocabularyScreenState extends State<VocabularyScreen> {
   final TextEditingController _answerController = TextEditingController();
-  bool _showHint = false;
+  bool _showHint = false; // 수동 힌트 토글 상태
   Object? _visibleQuizId;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // 전달받은 퀴즈 설정 로직
       final args = Get.arguments ?? {'new_count': 5, 'review_count': 10, 'retry_count': 10};
-      
       Provider.of<GrammarProvider>(context, listen: false).fetchQuiz(
-        args['new_count'], 
-        args['review_count'], 
-        args['retry_count']
+        args['new_count'],
+        args['review_count'],
+        args['retry_count'],
       );
     });
   }
@@ -42,6 +40,49 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   void dispose() {
     _answerController.dispose();
     super.dispose();
+  }
+
+  // 🌟 제출 및 다음으로 넘어가기 통합 핸들러
+  void _handleAction(GrammarProvider provider) {
+    if (provider.isChecking) return;
+
+    if (!provider.canRetry) {
+      _answerController.clear();
+      provider.forceNextQuestion(
+        () { setState(() => _showHint = false); }, // 다음 문제 이동 시 힌트 닫기
+        () => _finishQuiz(provider),
+      );
+      return;
+    }
+
+    provider.checkAnswer(
+      _answerController.text,
+      () {
+        _answerController.clear();
+        setState(() => _showHint = false); // 정답 시 힌트 닫기
+        VipaSnackBar.show(context, "정답입니다! 다음 문제로 갑니다! 🎉");
+      },
+      () {
+        _finishQuiz(provider);
+      },
+      () {
+        VipaSnackBar.show(context, "기회를 모두 소진했습니다. 정답을 확인하세요!");
+        _answerController.text = provider.targetWord ?? "알 수 없음";
+      }
+    );
+  }
+
+  void _finishQuiz(GrammarProvider provider) {
+    _answerController.clear();
+    Get.offNamed(
+      AppRoutes.vocabularyResult,
+      arguments: provider.completionResult ?? {
+        'total_count': provider.totalCount,
+        'correct_count': 0,
+        'score_percentage': 0.0,
+        'results': []
+      },
+    );
   }
 
   @override
@@ -89,17 +130,13 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           child: FadeSlideTransition(
             delay: 0.1,
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              margin: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 0),
               padding: const EdgeInsets.all(25),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(35),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10)),
                 ],
               ),
               child: SingleChildScrollView(
@@ -108,14 +145,45 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                   children: [
                     const Text('CEFR 등급 퀴즈', style: TextStyle(color: Colors.grey)),
                     const SizedBox(height: 20),
-                    Text(
-                      quiz['korean_hint'] ?? '',
-                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                    
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            quiz['korean_hint'] ?? '',
+                            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        // 🌟 힌트 버튼 추가
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(
+                            _showHint ? Icons.lightbulb : Icons.lightbulb_outline,
+                            color: _showHint ? Colors.amber : Colors.grey.shade400,
+                            size: 32,
+                          ),
+                          onPressed: () => setState(() => _showHint = !_showHint),
+                        ),
+                        const SizedBox(width: 12),
+                        // 즐겨찾기(북마크) 토글 버튼
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(
+                            provider.isCurrentBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
+                            color: provider.isCurrentBookmarked ? const Color(0xFFFFC107) : Colors.grey.shade400,
+                            size: 32,
+                          ),
+                          onPressed: () => provider.toggleBookmark(),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 25),
 
-                    // 틀렸을 때 나타나는 힌트 박스
-                    if (provider.isWrong && provider.currentHint != null)
+                    // 🌟 힌트 노출 로직 (오답이거나, 수동으로 힌트를 켰을 때)
+                    if ((provider.isWrong || _showHint) && provider.currentHint != null)
                       HintBox(hint: provider.currentHint!),
 
                     const SizedBox(height: 50),
@@ -131,7 +199,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     );
   }
 
-  // 텍스트 필드와 문장을 결합하는 UI
   Widget _buildInputArea(GrammarProvider provider, String maskedSentence) {
     final parts = maskedSentence.split('____');
     final engBefore = parts.isNotEmpty ? parts[0] : '';
@@ -159,9 +226,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 8),
       child: TextField(
         controller: _answerController,
-        onSubmitted: (_) => _handleCheck(provider),
+        onSubmitted: (_) => _handleAction(provider),
         textAlign: TextAlign.center,
-        enabled: !provider.isChecking,
+        enabled: !provider.isChecking && provider.canRetry,
         style: TextStyle(
           fontSize: 20,
           color: provider.isWrong ? const Color(0xFFFF4757) : AppColors.primary,
@@ -187,8 +254,14 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     );
   }
 
-  // 제출/다음 버튼 로직
   Widget _buildConfirmButton(GrammarProvider provider) {
+    String btnText = "확인";
+    if (!provider.canRetry) {
+      btnText = "다음 문제로 넘어가기";
+    } else if (provider.currentCount == provider.totalCount) {
+      btnText = "결과 보기";
+    }
+
     return SafeArea(
       child: Container(
         width: double.infinity,
@@ -196,51 +269,25 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         child: SizedBox(
           height: 56,
           child: ElevatedButton(
-            onPressed: provider.isChecking ? null : () => _handleCheck(provider),
+            onPressed: provider.isChecking ? null : () => _handleAction(provider),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               disabledBackgroundColor: Colors.grey.shade300,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
             child: provider.isChecking
-                ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                  )
                 : Text(
-                    provider.currentCount == provider.totalCount ? "결과 보기" : "확인",
+                    btnText,
                     style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
           ),
         ),
       ),
-    );
-  }
-
-  void _handleCheck(GrammarProvider provider) {
-    provider.checkAnswer(
-      _answerController.text,
-      () {
-        // 정답 처리
-        _answerController.clear();
-        setState(() => _showHint = false);
-        VipaSnackBar.show(context, '정답입니다! 다음 문제로 갑니다!');
-      },
-      () {
-        // 퀴즈 종료 (결과 화면 이동)
-        _answerController.clear();
-        Get.offNamed(
-          AppRoutes.vocabularyResult,
-          arguments: provider.completionResult ?? {
-            'total_count': provider.totalCount,
-            'correct_count': provider.totalCount,
-            'results': [],
-          },
-        );
-      },
-      () {
-        // 오답/기회 소진 처리
-        VipaSnackBar.show(context, '기회를 모두 소진했습니다. 정답을 확인하세요!');
-        _answerController.text = provider.targetWord ?? '';
-        setState(() => _showHint = true);
-      },
     );
   }
 }
