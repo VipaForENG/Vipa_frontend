@@ -20,19 +20,19 @@ class VocabularyScreen extends StatefulWidget {
 
 class _VocabularyScreenState extends State<VocabularyScreen> {
   final TextEditingController _answerController = TextEditingController();
-  bool _showHint = false; // 수동 힌트 토글 상태
   Object? _visibleQuizId;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = Get.arguments ?? {'new_count': 5, 'review_count': 10, 'retry_count': 10};
-      Provider.of<GrammarProvider>(context, listen: false).fetchQuiz(
-        args['new_count'],
-        args['review_count'],
-        args['retry_count'],
-      );
+      final args =
+          Get.arguments ??
+          {'new_count': 5, 'review_count': 10, 'retry_count': 10};
+      Provider.of<GrammarProvider>(
+        context,
+        listen: false,
+      ).fetchQuiz(args['new_count'], args['review_count'], args['retry_count']);
     });
   }
 
@@ -48,10 +48,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
 
     if (!provider.canRetry) {
       _answerController.clear();
-      provider.forceNextQuestion(
-        () { setState(() => _showHint = false); }, // 다음 문제 이동 시 힌트 닫기
-        () => _finishQuiz(provider),
-      );
+      provider.forceNextQuestion(() {}, () => _finishQuiz(provider));
       return;
     }
 
@@ -59,7 +56,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       _answerController.text,
       () {
         _answerController.clear();
-        setState(() => _showHint = false); // 정답 시 힌트 닫기
         VipaSnackBar.show(context, "정답입니다! 다음 문제로 갑니다! 🎉");
       },
       () {
@@ -67,8 +63,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       },
       () {
         VipaSnackBar.show(context, "기회를 모두 소진했습니다. 정답을 확인하세요!");
-        _answerController.text = provider.targetWord ?? "알 수 없음";
-      }
+      },
     );
   }
 
@@ -76,12 +71,14 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     _answerController.clear();
     Get.offNamed(
       AppRoutes.vocabularyResult,
-      arguments: provider.completionResult ?? {
-        'total_count': provider.totalCount,
-        'correct_count': 0,
-        'score_percentage': 0.0,
-        'results': []
-      },
+      arguments:
+          provider.completionResult ??
+          {
+            'total_count': provider.totalCount,
+            'correct_count': 0,
+            'score_percentage': 0.0,
+            'results': [],
+          },
     );
   }
 
@@ -91,10 +88,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     final quiz = provider.currentQuiz;
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.background,
         elevation: 0,
         title: GrammarProgressBar(
           current: provider.currentCount,
@@ -103,13 +99,15 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         centerTitle: true,
       ),
       body: provider.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : Background(
               fillLevel: 0.25,
               child: SafeArea(
                 bottom: false,
-                child: quiz == null 
-                    ? const SizedBox.shrink() 
+                child: quiz == null
+                    ? const SizedBox.shrink()
                     : _buildQuizBody(provider, quiz),
               ),
             ),
@@ -121,7 +119,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     final quizId = quiz['sentence_id'];
     if (_visibleQuizId != quizId) {
       _visibleQuizId = quizId;
-      _showHint = false;
     }
 
     return Column(
@@ -130,50 +127,58 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           child: FadeSlideTransition(
             delay: 0.1,
             child: Container(
-              margin: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 0),
+              margin: const EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: 0,
+              ),
               padding: const EdgeInsets.all(25),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(35),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.line),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('CEFR 등급 퀴즈', style: TextStyle(color: Colors.grey)),
+                    const Text(
+                      'CEFR 등급 퀴즈',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                     const SizedBox(height: 20),
-                    
+
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
                             quiz['korean_hint'] ?? '',
-                            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                        // 🌟 힌트 버튼 추가
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: Icon(
-                            _showHint ? Icons.lightbulb : Icons.lightbulb_outline,
-                            color: _showHint ? Colors.amber : Colors.grey.shade400,
-                            size: 32,
-                          ),
-                          onPressed: () => setState(() => _showHint = !_showHint),
-                        ),
-                        const SizedBox(width: 12),
                         // 즐겨찾기(북마크) 토글 버튼
                         IconButton(
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           icon: Icon(
-                            provider.isCurrentBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
-                            color: provider.isCurrentBookmarked ? const Color(0xFFFFC107) : Colors.grey.shade400,
+                            provider.isCurrentBookmarked
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            color: provider.isCurrentBookmarked
+                                ? const Color(0xFFFFC107)
+                                : Colors.grey.shade400,
                             size: 32,
                           ),
                           onPressed: () => provider.toggleBookmark(),
@@ -182,8 +187,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                     ),
                     const SizedBox(height: 25),
 
-                    // 🌟 힌트 노출 로직 (오답이거나, 수동으로 힌트를 켰을 때)
-                    if ((provider.isWrong || _showHint) && provider.currentHint != null)
+                    if (provider.isWrong && provider.currentHint != null)
                       HintBox(hint: provider.currentHint!),
 
                     const SizedBox(height: 50),
@@ -209,12 +213,18 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 4.0),
-          child: Text(engBefore, style: const TextStyle(fontSize: 18, height: 1.5)),
+          child: Text(
+            engBefore,
+            style: const TextStyle(fontSize: 18, height: 1.5),
+          ),
         ),
         _buildTextField(provider),
         Padding(
           padding: const EdgeInsets.only(bottom: 4.0),
-          child: Text(engAfter, style: const TextStyle(fontSize: 18, height: 1.5)),
+          child: Text(
+            engAfter,
+            style: const TextStyle(fontSize: 18, height: 1.5),
+          ),
         ),
       ],
     );
@@ -239,13 +249,17 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           contentPadding: const EdgeInsets.symmetric(vertical: 4),
           enabledBorder: UnderlineInputBorder(
             borderSide: BorderSide(
-              color: provider.isWrong ? const Color(0xFFFF4757) : Colors.grey.shade400,
+              color: provider.isWrong
+                  ? const Color(0xFFFF4757)
+                  : Colors.grey.shade400,
               width: 2,
             ),
           ),
           focusedBorder: UnderlineInputBorder(
             borderSide: BorderSide(
-              color: provider.isWrong ? const Color(0xFFFF4757) : AppColors.primary,
+              color: provider.isWrong
+                  ? const Color(0xFFFF4757)
+                  : AppColors.primary,
               width: 2,
             ),
           ),
@@ -269,21 +283,32 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         child: SizedBox(
           height: 56,
           child: ElevatedButton(
-            onPressed: provider.isChecking ? null : () => _handleAction(provider),
+            onPressed: provider.isChecking
+                ? null
+                : () => _handleAction(provider),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               disabledBackgroundColor: Colors.grey.shade300,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
             ),
             child: provider.isChecking
                 ? const SizedBox(
                     width: 24,
                     height: 24,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 3,
+                    ),
                   )
                 : Text(
                     btnText,
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
           ),
         ),

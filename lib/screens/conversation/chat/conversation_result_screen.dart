@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../routes/app_routes.dart';
+import '../../history/learning_history_screen.dart';
 import '../../login/auth_widgets.dart';
 
 class ConversationResultScreen extends StatelessWidget {
@@ -36,7 +38,7 @@ class ConversationResultScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.22),
+                          color: Colors.black.withValues(alpha: 0.22),
                           blurRadius: 5,
                           offset: const Offset(0, 2),
                         ),
@@ -74,7 +76,7 @@ class ConversationResultScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '교정 받은 문장은 ${_correctedCount}개입니다.',
+                          '교정 받은 문장은 $_correctedCount개입니다.',
                           style: const TextStyle(
                             color: AuthColors.primary,
                             fontSize: 14,
@@ -87,7 +89,11 @@ class ConversationResultScreen extends StatelessWidget {
                   const SizedBox(height: 25),
                   AuthButton(
                     text: '교정문장 확인하기',
-                    onPressed: () {},
+                    onPressed: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.history,
+                      arguments: HistoryDetailType.correctedSentences,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   SizedBox(

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../design/app_colors.dart';
+
 class VoiceWaveView extends StatefulWidget {
   final Function(String) onTextRecognized;
   const VoiceWaveView({super.key, required this.onTextRecognized});
@@ -39,7 +41,7 @@ class _VoiceWaveViewState extends State<VoiceWaveView> {
     );
   }
 
-void _relisten() async {
+  void _relisten() async {
     if (_isListening) {
       await _speech.listen(
         onResult: (val) => widget.onTextRecognized(val.recognizedWords),
@@ -89,38 +91,64 @@ void _relisten() async {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          height: 80,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: _waveHeights.map((h) => AnimatedContainer(
-              duration: const Duration(milliseconds: 80),
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-              width: 5,
-              height: h,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(10),
-              ),
-            )).toList(),
-          ),
-        ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : 150.0;
+        final compact = maxHeight < 145;
+        final waveBoxHeight = compact ? 56.0 : 80.0;
+        final buttonPadding = compact ? 12.0 : 15.0;
+        final iconSize = compact ? 30.0 : 35.0;
+        final gap = compact ? 8.0 : 15.0;
+        final waveMaxHeight = compact ? 54.0 : 80.0;
 
-        const SizedBox(height: 15),
-        ElevatedButton(
-          onPressed: _toggleListen,
-          style: ElevatedButton.styleFrom(
-            shape: const CircleBorder(),
-            padding: const EdgeInsets.all(15),
-            backgroundColor: _isListening ? Colors.black : Colors.grey,
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: waveBoxHeight,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: _waveHeights
+                      .map(
+                        (h) => AnimatedContainer(
+                          duration: const Duration(milliseconds: 80),
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          width: 5,
+                          height: h.clamp(10, waveMaxHeight).toDouble(),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+              SizedBox(height: gap),
+              ElevatedButton(
+                onPressed: _toggleListen,
+                style: ElevatedButton.styleFrom(
+                  shape: const CircleBorder(),
+                  padding: EdgeInsets.all(buttonPadding),
+                  backgroundColor: _isListening
+                      ? AppColors.primary
+                      : AppColors.accent,
+                ),
+                child: Icon(
+                  _isListening ? Icons.stop : Icons.mic,
+                  size: iconSize,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
-          child: Icon(_isListening ? Icons.stop : Icons.mic, size: 35, color: Colors.white),
-        ),
-      ],
+        );
+      },
     );
   }
 

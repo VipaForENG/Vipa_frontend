@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 
 import '../../models/level_test_model.dart';
 import '../../routes/app_routes.dart';
-import '../../design/app_colors.dart';
 import '../login/auth_widgets.dart';
 
 class LevelTestResultScreen extends StatelessWidget {

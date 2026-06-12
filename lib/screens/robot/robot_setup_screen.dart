@@ -12,9 +12,9 @@ class RobotSetupScreen extends StatefulWidget {
 class _RobotSetupScreenState extends State<RobotSetupScreen> {
   // 로직을 위한 상태 변수들
   final TextEditingController _ipController = TextEditingController();
-  bool _isConnected = true; // 현재 연결됨 상태 가정
-  double _energyLevel = 0.7; // 로봇 에너지 (0.0 ~ 1.0)
-  String _statusMessage = "상태 양호"; // 생존 상태 메시지
+  final bool _isConnected = true; // 현재 연결됨 상태 가정
+  final double _energyLevel = 0.7; // 로봇 에너지 (0.0 ~ 1.0)
+  final String _statusMessage = "상태 양호"; // 생존 상태 메시지
 
   @override
   void dispose() {

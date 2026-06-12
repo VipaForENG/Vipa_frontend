@@ -1,13 +1,15 @@
-// 1. 코틀린 버전 명시 및 구글 서비스 클래스패스 추가
+// 1. 코틀린 버전 명시 및 AGP, 구글 서비스 클래스패스 추가
 buildscript {
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        // 이 부분이 있어야 Daemon 에러를 방지할 수 있습니다.
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22")
-
+        // AGP(Android Gradle Plugin) 버전을 8.11.1 이상으로 업데이트 (경고 해결)
+        classpath("com.android.tools.build:gradle:8.11.1")
+        
+        // Kotlin 버전을 2.2.20 이상으로 업데이트 (경고 해결)
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.20")
     }
 }
 

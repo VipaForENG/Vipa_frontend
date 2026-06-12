@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../routes/app_routes.dart';
+import '../history/learning_history_screen.dart';
 import '../../design/app_colors.dart';
 import '../../design/background.dart';
 
@@ -15,20 +16,22 @@ class VocabularyResultScreen extends StatelessWidget {
     final int total = resultData['total_count'] ?? 0;
     final int correct = resultData['correct_count'] ?? 0;
     final List<dynamic> results = resultData['results'] ?? [];
-    
+
     // 정답률 계산
     final double percentage = total > 0 ? (correct / total) * 100 : 0.0;
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.background,
         elevation: 0,
         automaticallyImplyLeading: false,
         title: const Text(
           '학습 결과',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         centerTitle: true,
       ),
@@ -51,12 +54,13 @@ class VocabularyResultScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.line),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -90,7 +94,10 @@ class VocabularyResultScreen extends StatelessWidget {
 
               // 3. 버튼 영역
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 24,
+                ),
                 child: Column(
                   children: [
                     SizedBox(
@@ -98,7 +105,11 @@ class VocabularyResultScreen extends StatelessWidget {
                       height: 56,
                       child: ElevatedButton(
                         onPressed: () {
-                          // TODO: 틀린 어휘 복습 로직 연결
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.history,
+                            arguments: HistoryDetailType.wrongWords,
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
@@ -108,7 +119,11 @@ class VocabularyResultScreen extends StatelessWidget {
                         ),
                         child: const Text(
                           '틀린 어휘 확인하기',
-                          style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -131,7 +146,11 @@ class VocabularyResultScreen extends StatelessWidget {
                         ),
                         child: const Text(
                           '오늘의 어휘로 돌아가기',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -152,12 +171,13 @@ class VocabularyResultScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.line),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -175,9 +195,23 @@ class VocabularyResultScreen extends StatelessWidget {
   Widget _buildScoreInfo(String label, String value, Color color) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 8),
-        Text(value, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.w900)),
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ],
     );
   }
@@ -193,7 +227,9 @@ class VocabularyResultScreen extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: isCorrect ? Colors.blue.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+              color: isCorrect
+                  ? Colors.blue.withValues(alpha: 0.1)
+                  : Colors.red.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -209,7 +245,10 @@ class VocabularyResultScreen extends StatelessWidget {
               children: [
                 Text(
                   item['target_word'] ?? '',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   item['original_sentence'] ?? '',

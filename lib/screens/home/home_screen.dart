@@ -10,7 +10,6 @@ import '../conversation/category/category_selection_screen.dart';
 import '../history/learning_history_screen.dart';
 import '../mypage/mypage_screen.dart';
 import '../vocabulary/vocabulary_dashboard_screen.dart';
-import '../robot/robot_setup_screen.dart';
 import '../login/auth_widgets.dart';
 
 import '../../../design/app_colors.dart';
@@ -43,22 +42,23 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: AppColors.background,
       appBar: _selectedIndex == 0
           ? AppBar(
-              backgroundColor: AppColors.background,
+              backgroundColor: Colors.white,
               elevation: 0,
               title: const Text(
                 '홈',
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: AuthColors.primary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.smart_toy_outlined, color: Colors.black),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const RobotSetupScreen()),
+                  icon: const Icon(
+                    Icons.settings,
+                    color: AuthColors.primary,
+                    size: 25,
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.settings_outlined, color: Colors.black),
                   onPressed: () => debugPrint("설정 클릭"),
                 ),
               ],
@@ -67,17 +67,34 @@ class _HomeScreenState extends State<HomeScreen> {
       body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        elevation: 0,
         currentIndex: _selectedIndex,
         selectedItemColor: AuthColors.primary,
         unselectedItemColor: const Color(0xFFD7D7D7),
-        selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
-        unselectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+        selectedLabelStyle: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
         onTap: (index) => setState(() => _selectedIndex = index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: '학습내역'),
-          BottomNavigationBarItem(icon: Icon(Icons.smart_toy_outlined), label: 'AI프리토킹'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: '마이페이지'),
+          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: '홈'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.pie_chart_rounded),
+            label: '학습내역',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.smart_toy_rounded),
+            label: 'AI프리토킹',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_rounded),
+            label: '마이페이지',
+          ),
         ],
       ),
     );
@@ -106,7 +123,7 @@ class _HomeContent extends StatelessWidget {
       return Container(
         color: AppColors.background,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(13, 16, 13, 24),
+          padding: const EdgeInsets.fromLTRB(13, 20, 13, 24),
           child: Column(
             children: [
               _RankCard(data: data),
@@ -118,23 +135,27 @@ class _HomeContent extends StatelessWidget {
               const SizedBox(height: 15),
               _HomeActionButton(
                 color: AuthColors.primary,
-                icon: Icons.menu_book,
+                icon: Icons.menu_book_rounded,
                 title: '오늘은 어떤 어휘를 배워볼까요?',
                 subtitle: '오늘의 어휘 학습하기 >',
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const VocabularyDashboardScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const VocabularyDashboardScreen(),
+                  ),
                 ),
               ),
               const SizedBox(height: 14),
               _HomeActionButton(
                 color: const Color(0xFFFF806B),
-                icon: Icons.record_voice_over,
+                icon: Icons.people_alt_rounded,
                 title: 'AI와 함께 실전에 통하는 회화!',
                 subtitle: '실전회화 학습하기 >',
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const CategorySelectionScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const CategorySelectionScreen(),
+                  ),
                 ),
               ),
             ],
@@ -170,11 +191,11 @@ class _RankCard extends StatelessWidget {
 
     return _WhiteCard(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(27, 24, 27, 18),
+        padding: const EdgeInsets.fromLTRB(22, 23, 22, 19),
         child: Column(
           children: [
-            RankBadge(rank: rank, size: 76),
-            const SizedBox(height: 6),
+            RankBadge(rank: rank, size: 58),
+            const SizedBox(height: 5),
             Text(
               rank.koreanName,
               style: TextStyle(
@@ -183,14 +204,14 @@ class _RankCard extends StatelessWidget {
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 27),
+            const SizedBox(height: 19),
             ClipRRect(
               borderRadius: BorderRadius.circular(99),
               child: LinearProgressIndicator(
                 value: (data.studyAchievementRate / 100)
                     .clamp(0.0, 1.0)
                     .toDouble(),
-                minHeight: 7,
+                minHeight: 6,
                 backgroundColor: const Color(0xFFE5E5E5),
                 valueColor: const AlwaysStoppedAnimation<Color>(
                   AuthColors.primary,
@@ -272,7 +293,7 @@ class _AttendanceCard extends StatelessWidget {
 
     return _WhiteCard(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(32, 21, 32, 18),
+        padding: const EdgeInsets.fromLTRB(43, 17, 43, 15),
         child: Column(
           children: [
             Row(
@@ -286,7 +307,7 @@ class _AttendanceCard extends StatelessWidget {
                 );
               }),
             ),
-            const SizedBox(height: 17),
+            const SizedBox(height: 11),
             Text.rich(
               TextSpan(
                 text: '연속출석 : ',
@@ -299,7 +320,7 @@ class _AttendanceCard extends StatelessWidget {
               ),
               style: const TextStyle(
                 color: Colors.black,
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -323,13 +344,17 @@ class _DayDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isDone ? AuthColors.primary : Colors.black;
+    final dayColor = day == '토'
+        ? Colors.blue
+        : day == '일'
+        ? AuthColors.primary
+        : Colors.black;
 
     return Column(
       children: [
         Container(
-          width: 23,
-          height: 23,
+          width: 22,
+          height: 22,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: isDone ? AuthColors.primary : Colors.white,
@@ -344,12 +369,12 @@ class _DayDot extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 4),
         Text(
           day,
           style: TextStyle(
-            color: color,
-            fontSize: 9,
+            color: dayColor,
+            fontSize: 8,
             fontWeight: FontWeight.w900,
           ),
         ),
@@ -377,21 +402,21 @@ class _HomeActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 85,
+      height: 78,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
           elevation: 2,
-          shadowColor: Colors.black26,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-          padding: const EdgeInsets.symmetric(horizontal: 27),
+          shadowColor: Colors.black.withValues(alpha: 0.28),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          padding: const EdgeInsets.symmetric(horizontal: 28),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 31),
-            const SizedBox(width: 14),
+            Icon(icon, size: 37),
+            const SizedBox(width: 22),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -400,17 +425,23 @@ class _HomeActionButton extends StatelessWidget {
                   Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.w900,
+                      height: 1.12,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.visible,
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 7),
                   Text(
                     subtitle,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 15,
                       fontWeight: FontWeight.w800,
+                      height: 1.1,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
                   ),
                 ],
               ),
@@ -436,8 +467,8 @@ class _WhiteCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 5,
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 4,
             offset: const Offset(0, 2),
           ),
         ],
@@ -448,7 +479,7 @@ class _WhiteCard extends StatelessWidget {
 }
 
 enum VipaRank {
-  bronze('브론즈', Color(0xFFB8663B)),
+  bronze('브론즈', Color(0xFFC07A55)),
   silver('실버', Color(0xFFBFC0C0)),
   gold('골드', Color(0xFFFFA11A)),
   emerald('에메랄드', Color(0xFF28A8D7)),
@@ -497,7 +528,7 @@ class RankBadge extends StatelessWidget {
             '${rank.index + 1}',
             style: TextStyle(
               color: rank.color,
-              fontSize: 26,
+              fontSize: 20,
               fontWeight: FontWeight.w900,
               shadows: [const Shadow(color: Colors.white, blurRadius: 1)],
             ),

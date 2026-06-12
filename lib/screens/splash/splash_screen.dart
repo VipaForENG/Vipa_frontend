@@ -24,45 +24,52 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFF512F),
-              Color(0xFFF09819),
-            ],
+            colors: [Color(0xFFFF9A12), Color(0xFFFF4F39)],
           ),
         ),
-        child: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 고해상도 로고 이미지
-                Image(
-                  image: AssetImage('assets/images/splash_logo.png'),
-                  width: 240,
-                  height: 240,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                ),
-                SizedBox(height: 34),
-                // 메인 타이틀
-                Text(
-                  '최고의 영어회화 학습어플',
-                  textAlign: TextAlign.center,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/images/vipa_logo_mark.png',
+                width: 108,
+                height: 104,
+                fit: BoxFit.contain,
+                color: Colors.white,
+                colorBlendMode: BlendMode.srcIn,
+                filterQuality: FilterQuality.high,
+              ),
+              const SizedBox(height: 16),
+              RichText(
+                textAlign: TextAlign.center,
+                text: const TextSpan(
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    height: 1.2,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    height: 1.0,
+                    letterSpacing: -0.2,
                   ),
+                  children: [
+                    TextSpan(text: '최고의 '),
+                    TextSpan(
+                      text: '영어회화',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    TextSpan(text: ' 학습어플'),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

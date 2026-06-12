@@ -6,12 +6,11 @@ import 'package:get_storage/get_storage.dart'; // [추가] 토큰 저장을 위�
 import 'home_controller.dart';
 import 'package:get/get.dart';
 
-
 class AuthController {
   // [추가] 토큰 저장을 위한 인스턴스 추가
   static final _storage = GetStorage();
   static const String _tokenKey = 'access_token';
-  
+
   // [추가] 홈 데이터를 다시 불러오도록 지시하는 공통 메서드
   static void _refreshHomeData() {
     try {
@@ -23,7 +22,11 @@ class AuthController {
       debugPrint("⚠️ HomeController가 아직 등록되지 않았습니다.");
     }
   }
-  
+
+  static Future<void> _clearCachedUserProfile() async {
+    await _storage.remove('user_data');
+    await _storage.remove('local_profile_image_path');
+  }
 
   static Future<String?> signUp({
     required String email,
@@ -49,10 +52,10 @@ class AuthController {
       return "알 수 없는 오류가 발생했습니다.";
     } on DioException catch (e) {
       // 🔥 서버에서 보낸 구체적인 에러 메시지("detail")가 있으면 반환, 없으면 기본 메시지
-      final String? serverMessage = e.response?.data is Map 
-          ? e.response?.data['detail'] 
+      final String? serverMessage = e.response?.data is Map
+          ? e.response?.data['detail']
           : e.message;
-      
+
       debugPrint("❌ 회원가입 API 에러: $serverMessage");
       return serverMessage ?? "회원가입 요청 중 오류가 발생했습니다.";
     } catch (e) {
@@ -76,6 +79,7 @@ class AuthController {
         // [추가] 로그인 성공 시 토큰 저장 로직 추가
         final token = response.data['access_token'];
         await _storage.write('access_token', token);
+        await _clearCachedUserProfile();
 
         _refreshHomeData();
 
@@ -152,6 +156,7 @@ class AuthController {
         // [추가] 구글 로그인 성공 시 토큰 저장 로직 추가
         final token = response.data['access_token'];
         await _storage.write('access_token', token);
+        await _clearCachedUserProfile();
 
         _refreshHomeData();
 
@@ -182,6 +187,7 @@ class AuthController {
         // [추가] 카카오 로그인 성공 시 토큰 저장 로직 추가
         final token = response.data['access_token'];
         await _storage.write('access_token', token);
+        await _clearCachedUserProfile();
         _refreshHomeData();
         return response
             .data; // {"access_token": "VIPA_JWT...", "token_type": "bearer"} 반환
@@ -193,14 +199,15 @@ class AuthController {
     }
   }
 
-
-// --- 회원 탈퇴 ---
+  // --- 회원 탈퇴 ---
   static Future<bool> withdrawUser() async {
     try {
       final response = await ApiService.dio.delete("/users/withdraw");
       if (response.statusCode == 200) {
-        await _storage.remove(_tokenKey); // StorageService 대신 _storage 직접 사용
+        await AuthService.deleteToken();
+        await _storage.remove(_tokenKey);
         await _storage.remove('user_data');
+        await _storage.remove('local_profile_image_path');
         return true;
       }
       return false;
@@ -211,10 +218,15 @@ class AuthController {
   }
 
   // --- 비밀번호 변경 ---
-  static Future<bool> changePassword(String oldPassword, String newPassword) async {
+  static Future<bool> changePassword(
+    String oldPassword,
+    String newPassword,
+  ) async {
     try {
-      final response = await ApiService.dio.patch("/users/mypage/change-password", 
-          data: {"old_password": oldPassword, "new_password": newPassword});
+      final response = await ApiService.dio.patch(
+        "/users/mypage/change-password",
+        data: {"old_password": oldPassword, "new_password": newPassword},
+      );
       return response.statusCode == 200;
     } on DioException catch (e) {
       debugPrint("❌ 비번 변경 API 에러: ${e.response?.data}");

@@ -77,8 +77,9 @@ class LearningChartSection extends StatelessWidget {
             showTitles: true,
             getTitlesWidget: (value, meta) {
               int index = value.toInt();
-              if (index < 0 || index >= weeklyData.length)
+              if (index < 0 || index >= weeklyData.length) {
                 return const SizedBox();
+              }
               // "2026-04-27" -> "27" 또는 요일로 변환
               String dateStr = weeklyData[index].date.split('-').last;
               return Padding(

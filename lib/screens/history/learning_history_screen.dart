@@ -5,8 +5,6 @@ import 'package:provider/provider.dart';
 // -----------------------------------------------------------------------------
 // [의존성 임포트] 로직 및 UI 디자인 시스템 통합
 // -----------------------------------------------------------------------------
-// 도메인 모델 및 프로바이더 (데이터 처리 및 상태 관리 담당)
-import '../../models/learning_history_models.dart';
 import 'learning_history_provider.dart';
 import 'script_detail_screen.dart';
 
@@ -16,43 +14,54 @@ import '../../design/app_colors.dart';
 
 /// 현재 화면의 세부 보기 상태를 정의하는 열거형입니다.
 /// 이 값에 따라 메인 대시보드를 보여줄지, 특정 항목의 상세 리스트를 보여줄지 결정합니다.
-enum _HistoryDetailType {
-  correctedSentences,  // AI가 교정한 문장
-  scenario,            // 상황별 시나리오
+enum HistoryDetailType {
+  correctedSentences, // AI가 교정한 문장
+  scenario, // 상황별 시나리오
   bookmarkedSentences, // 즐겨찾기한 문장
-  wrongWords,          // 오답 단어
+  wrongWords, // 오답 단어
 }
 
 /// 사용자의 전체 학습 내역을 보여주는 메인 스크린 위젯입니다.
 /// [ChangeNotifierProvider]를 최상위에 배치하여 하위 위젯들이 학습 데이터 상태를 구독하게 합니다.
 class LearningHistoryScreen extends StatelessWidget {
-  const LearningHistoryScreen({super.key});
+  const LearningHistoryScreen({super.key, this.initialDetailType});
+
+  final HistoryDetailType? initialDetailType;
 
   @override
   Widget build(BuildContext context) {
     // 화면 빌드 시 Provider를 생성하고, 즉시 loadHistory()를 호출해 초기 데이터를 서버나 로컬에서 가져옵니다.
     return ChangeNotifierProvider(
       create: (_) => LearningHistoryProvider()..loadHistory(),
-      child: const _LearningHistoryContent(),
+      child: _LearningHistoryContent(initialDetailType: initialDetailType),
     );
   }
 }
 
 /// 학습 내역의 실제 화면(UI)을 구성하는 상태 기반 위젯입니다.
 class _LearningHistoryContent extends StatefulWidget {
-  const _LearningHistoryContent();
+  const _LearningHistoryContent({this.initialDetailType});
+
+  final HistoryDetailType? initialDetailType;
 
   @override
-  State<_LearningHistoryContent> createState() => _LearningHistoryContentState();
+  State<_LearningHistoryContent> createState() =>
+      _LearningHistoryContentState();
 }
 
 class _LearningHistoryContentState extends State<_LearningHistoryContent> {
   // 현재 선택된 상세 보기 타입입니다. null일 경우 기본 화면인 메인 대시보드를 보여줍니다.
-  _HistoryDetailType? _detailType;
+  late HistoryDetailType? _detailType;
+
+  @override
+  void initState() {
+    super.initState();
+    _detailType = widget.initialDetailType;
+  }
 
   /// 상세 보기 상태를 변경하는 함수입니다.
   /// 상태 변경 시 setState를 호출하여 UI를 해당 리스트 화면이나 대시보드로 리빌드합니다.
-  void _setDetailType(_HistoryDetailType? type) {
+  void _setDetailType(HistoryDetailType? type) {
     setState(() => _detailType = type);
   }
 
@@ -94,22 +103,30 @@ class _LearningHistoryContentState extends State<_LearningHistoryContent> {
     );
   }
 
-  /// 상단 앱바를 구성하는 함수입니다. 
+  /// 상단 앱바를 구성하는 함수입니다.
   /// _detailType 상태에 따라 타이틀 문자열과 뒤로가기 동작 로직이 동적으로 변경됩니다.
   AppBar _buildAppBar(BuildContext context) {
     String title = '학습내역'; // 기본 타이틀
     // 현재 선택된 상세 타입에 맞게 타이틀 매핑
-    if (_detailType == _HistoryDetailType.correctedSentences) title = 'AI가 교정한 문장';
-    if (_detailType == _HistoryDetailType.scenario) title = '상황별 시나리오';
-    if (_detailType == _HistoryDetailType.bookmarkedSentences) title = '즐겨찾기한 문장';
-    if (_detailType == _HistoryDetailType.wrongWords) title = '오답 단어';
+    if (_detailType == HistoryDetailType.correctedSentences) {
+      title = 'AI가 교정한 문장';
+    }
+    if (_detailType == HistoryDetailType.scenario) title = '상황별 시나리오';
+    if (_detailType == HistoryDetailType.bookmarkedSentences) {
+      title = '즐겨찾기한 문장';
+    }
+    if (_detailType == HistoryDetailType.wrongWords) title = '오답 단어';
 
     return AppBar(
       backgroundColor: AppColors.background,
       elevation: 0,
       centerTitle: true,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
+        icon: const Icon(
+          Icons.arrow_back_ios_new,
+          color: Colors.black,
+          size: 20,
+        ),
         onPressed: () {
           // 뒤로가기 버튼 클릭 시: 상세 화면이면 메인 대시보드로, 메인이면 네비게이터 팝 수행
           if (_detailType != null) {
@@ -121,7 +138,10 @@ class _LearningHistoryContentState extends State<_LearningHistoryContent> {
       ),
       title: Text(
         title,
-        style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: Colors.black,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -138,7 +158,8 @@ class _LearningHistoryContentState extends State<_LearningHistoryContent> {
     // 2. 에러 발생 시 에러 메시지 화면
     if (provider.errorMessage != null) {
       return ListView(
-        physics: const AlwaysScrollableScrollPhysics(), // 새로고침이 가능하도록 스크롤 속성 강제 부여
+        physics:
+            const AlwaysScrollableScrollPhysics(), // 새로고침이 가능하도록 스크롤 속성 강제 부여
         padding: const EdgeInsets.all(20),
         children: [
           const SizedBox(height: 120),
@@ -153,26 +174,26 @@ class _LearningHistoryContentState extends State<_LearningHistoryContent> {
     }
 
     // 3. 상세 리스트 화면 (상태값이 null이 아닐 경우 해당 리스트 렌더링)
-    if (_detailType == _HistoryDetailType.correctedSentences) {
+    if (_detailType == HistoryDetailType.correctedSentences) {
       return _HistoryListWidget(
         items: _conversationItems(context, provider),
         emptyText: '교정된 회화 문장이 없습니다.',
       );
     }
-    if (_detailType == _HistoryDetailType.scenario) {
+    if (_detailType == HistoryDetailType.scenario) {
       return _HistoryListWidget(
         items: _scenarioItems(context, provider),
         emptyText: '최근 대화 세션이 없습니다.',
         showPdfIcon: true,
       );
     }
-    if (_detailType == _HistoryDetailType.bookmarkedSentences) {
+    if (_detailType == HistoryDetailType.bookmarkedSentences) {
       return _HistoryListWidget(
         items: _bookmarkedItems(provider),
         emptyText: '즐겨찾기한 문장이 없습니다.',
       );
     }
-    if (_detailType == _HistoryDetailType.wrongWords) {
+    if (_detailType == HistoryDetailType.wrongWords) {
       return _HistoryListWidget(
         items: _wrongWordItems(provider),
         emptyText: '누적 오답 단어가 없습니다.',
@@ -189,7 +210,11 @@ class _LearningHistoryContentState extends State<_LearningHistoryContent> {
           padding: EdgeInsets.only(bottom: 20),
           child: Text(
             '내가 학습한 내역',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
           ),
         ),
 
@@ -202,20 +227,22 @@ class _LearningHistoryContentState extends State<_LearningHistoryContent> {
             children: [
               _HistoryMenuButton(
                 title: '최근 대화한 상황별 세션',
-                countText: '${provider.recentSessions.length}개', // Provider에서 갯수 동적 맵핑
+                countText:
+                    '${provider.recentSessions.length}개', // Provider에서 갯수 동적 맵핑
                 icon: Icons.forum_rounded,
-                onTap: () => _setDetailType(_HistoryDetailType.scenario),
+                onTap: () => _setDetailType(HistoryDetailType.scenario),
               ),
               _HistoryMenuButton(
                 title: 'AI 교정 받은 문장 리스트',
                 countText: '', // 교정 문장 카운트가 Provider에 있다면 추가 가능
                 icon: Icons.auto_fix_high_rounded,
-                onTap: () => _setDetailType(_HistoryDetailType.correctedSentences),
+                onTap: () =>
+                    _setDetailType(HistoryDetailType.correctedSentences),
               ),
             ],
           ),
         ),
-        
+
         const SizedBox(height: 15),
 
         // [섹션 2] 오늘의 어휘 카테고리
@@ -229,13 +256,14 @@ class _LearningHistoryContentState extends State<_LearningHistoryContent> {
                 title: '즐겨찾기한 문장',
                 countText: '${provider.bookmarkedSentences.length}개',
                 icon: Icons.star_rounded,
-                onTap: () => _setDetailType(_HistoryDetailType.bookmarkedSentences),
+                onTap: () =>
+                    _setDetailType(HistoryDetailType.bookmarkedSentences),
               ),
               _HistoryMenuButton(
                 title: '오답 단어 다시 보기',
                 countText: '${provider.wrongWords.length}개',
                 icon: Icons.error_outline_rounded,
-                onTap: () => _setDetailType(_HistoryDetailType.wrongWords),
+                onTap: () => _setDetailType(HistoryDetailType.wrongWords),
               ),
             ],
           ),
@@ -282,8 +310,12 @@ class _HistorySection extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                title, 
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
               ),
             ],
           ),
@@ -323,14 +355,25 @@ class _HistoryMenuButton extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                title, 
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
               ),
             ),
             if (countText.isNotEmpty)
-              Text(countText, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+              Text(
+                countText,
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              ),
             const SizedBox(width: 8),
-            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade400),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: Colors.grey.shade400,
+            ),
           ],
         ),
       ),
@@ -380,7 +423,11 @@ class _HistoryListWidget extends StatelessWidget {
           Center(
             child: Text(
               emptyText,
-              style: const TextStyle(color: Colors.black54, fontSize: 14, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -390,11 +437,9 @@ class _HistoryListWidget extends StatelessWidget {
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(14, 20, 14, 32),
-      itemBuilder: (context, index) => _HistoryTile(
-        item: items[index],
-        showPdfIcon: showPdfIcon,
-      ),
-      separatorBuilder: (_, __) => const SizedBox(height: 14), // 타일 간 간격
+      itemBuilder: (context, index) =>
+          _HistoryTile(item: items[index], showPdfIcon: showPdfIcon),
+      separatorBuilder: (_, _) => const SizedBox(height: 14), // 타일 간 간격
       itemCount: items.length,
     );
   }
@@ -421,7 +466,9 @@ class _HistoryTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.14), // 그림자 효과 (withOpacity 사용 권장)
+              color: Colors.black.withValues(
+                alpha: 0.14,
+              ), // 그림자 효과 (withOpacity 사용 권장)
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -435,13 +482,21 @@ class _HistoryTile extends StatelessWidget {
                 children: [
                   Text(
                     item.title.isEmpty ? '내용 없음' : item.title,
-                    style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w900),
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   if (item.subtitle.isNotEmpty) ...[
                     const SizedBox(height: 5),
                     Text(
                       item.subtitle,
-                      style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.w800),
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                 ],
@@ -459,7 +514,11 @@ class _HistoryTile extends StatelessWidget {
                 ),
                 child: const Text(
                   'PDF',
-                  style: TextStyle(color: Colors.white, fontSize: 6, fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 6,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
           ],
@@ -474,41 +533,77 @@ class _HistoryTile extends StatelessWidget {
 // -----------------------------------------------------------------------------
 
 /// '교정된 회화 문장' 데이터를 리스트 아이템 형식으로 변환합니다.
-List<_HistoryTileData> _conversationItems(BuildContext context, LearningHistoryProvider provider) {
-  return provider.recentSessions.map((item) => _HistoryTileData(
-    title: item.scenarioTitle,
-    subtitle: _formatDateTime(item.createdAt),
-    onTap: () => Navigator.push(context, MaterialPageRoute(
-      builder: (_) => ScriptDetailScreen(sessionId: item.sessionId, provider: provider),
-    )),
-  )).toList();
+List<_HistoryTileData> _conversationItems(
+  BuildContext context,
+  LearningHistoryProvider provider,
+) {
+  return provider.recentSessions
+      .map(
+        (item) => _HistoryTileData(
+          title: item.scenarioTitle,
+          subtitle: _formatDateTime(item.createdAt),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ScriptDetailScreen(
+                sessionId: item.sessionId,
+                provider: provider,
+              ),
+            ),
+          ),
+        ),
+      )
+      .toList();
 }
 
 /// '상황별 시나리오' 데이터를 리스트 아이템 형식으로 변환합니다.
-List<_HistoryTileData> _scenarioItems(BuildContext context, LearningHistoryProvider provider) {
-  return provider.recentSessions.map((item) => _HistoryTileData(
-    title: item.scenarioTitle,
-    subtitle: _formatDateTime(item.createdAt),
-    onTap: () => Navigator.push(context, MaterialPageRoute(
-      builder: (_) => ScriptDetailScreen(sessionId: item.sessionId, provider: provider),
-    )),
-  )).toList();
+List<_HistoryTileData> _scenarioItems(
+  BuildContext context,
+  LearningHistoryProvider provider,
+) {
+  return provider.recentSessions
+      .map(
+        (item) => _HistoryTileData(
+          title: item.scenarioTitle,
+          subtitle: _formatDateTime(item.createdAt),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ScriptDetailScreen(
+                sessionId: item.sessionId,
+                provider: provider,
+              ),
+            ),
+          ),
+        ),
+      )
+      .toList();
 }
 
 /// '즐겨찾기한 문장' 데이터를 리스트 아이템 형식으로 변환합니다.
 List<_HistoryTileData> _bookmarkedItems(LearningHistoryProvider provider) {
-  return provider.bookmarkedSentences.map((item) => _HistoryTileData(
-    title: item.expression.isEmpty ? item.targetWord : item.expression,
-    subtitle: item.meaning,
-  )).toList();
+  return provider.bookmarkedSentences
+      .map(
+        (item) => _HistoryTileData(
+          title: item.expression.isEmpty ? item.targetWord : item.expression,
+          subtitle: item.meaning,
+        ),
+      )
+      .toList();
 }
 
 /// '오답 단어' 데이터를 리스트 아이템 형식으로 변환합니다.
 List<_HistoryTileData> _wrongWordItems(LearningHistoryProvider provider) {
-  return provider.wrongWords.map((item) => _HistoryTileData(
-    title: item.targetWord,
-    subtitle: item.meaning.isEmpty ? '오답 ${item.incorrectCount}회' : '${item.meaning} · 오답 ${item.incorrectCount}회',
-  )).toList();
+  return provider.wrongWords
+      .map(
+        (item) => _HistoryTileData(
+          title: item.targetWord,
+          subtitle: item.meaning.isEmpty
+              ? '오답 ${item.incorrectCount}회'
+              : '${item.meaning} · 오답 ${item.incorrectCount}회',
+        ),
+      )
+      .toList();
 }
 
 /// 날짜(DateTime) 객체를 UI에 표시하기 좋은 포맷(예: 2026.06.08 14:30)으로 변환합니다.

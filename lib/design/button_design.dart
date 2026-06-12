@@ -8,33 +8,30 @@ Widget vipaPrimaryButton({
   required String title,
   required IconData icon,
   required VoidCallback onPressed,
-  double height = 120.0, // 기본 높이 설정
+  double height = 54.0,
 }) {
   return SizedBox(
     height: height,
     child: ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF2D3436), // 클릭 시 물결 효과 색상
+        backgroundColor: const Color(0xFFFF4F39),
+        foregroundColor: Colors.white,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFFEDF0F3)),
-        ),
-        padding: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
       ),
-      child: Column(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: const Color(0xFF2D3436), size: 30),
-          const SizedBox(height: 8), // 간격을 살짝 넓혀 가독성 확보
+          Icon(icon, color: Colors.white, size: 20),
+          const SizedBox(width: 8),
           Text(
             title,
             style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2D3436),
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
             ),
           ),
         ],

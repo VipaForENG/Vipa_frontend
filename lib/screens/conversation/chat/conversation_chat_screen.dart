@@ -170,7 +170,7 @@ class _LearningCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
+            color: Colors.black.withValues(alpha: 0.18),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -219,7 +219,7 @@ class _MissionBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
+            color: Colors.black.withValues(alpha: 0.18),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

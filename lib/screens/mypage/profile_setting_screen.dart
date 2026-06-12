@@ -243,7 +243,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
         fit: BoxFit.cover, 
         width: 120, 
         height: 120, 
-        errorBuilder: (_, __, ___) => imageWidget
+        errorBuilder: (_, _, _) => imageWidget
       );
     }
 

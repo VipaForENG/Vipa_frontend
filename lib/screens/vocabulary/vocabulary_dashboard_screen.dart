@@ -34,23 +34,25 @@ class _VocabularyDashboardScreenState extends State<VocabularyDashboardScreen> {
     final provider = Provider.of<VocabularyDashboardProvider>(context);
 
     return Scaffold(
-      extendBodyBehindAppBar: true, 
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         title: const Text(
-          '오늘의 어휘',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          '오늘의 어휘 목표량',
+          style: TextStyle(
+            color: AppColors.primary,
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
       ),
       body: provider.isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : Background(
               fillLevel: 0.25,
               child: SafeArea(
@@ -59,7 +61,7 @@ class _VocabularyDashboardScreenState extends State<VocabularyDashboardScreen> {
                     constraints: const BoxConstraints(maxWidth: 430),
                     child: Column(
                       children: [
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 22),
                         // 애니메이션 없이 즉시 표시
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -71,14 +73,14 @@ class _VocabularyDashboardScreenState extends State<VocabularyDashboardScreen> {
                                 onChanged: (value) =>
                                     provider.setCount('new', value),
                               ),
-                              const SizedBox(height: 15),
+                              const SizedBox(height: 12),
                               _GoalSliderCard(
                                 title: '복습할 단어는 얼마나 할까요?',
                                 value: provider.chosenReview,
                                 onChanged: (value) =>
                                     provider.setCount('review', value),
                               ),
-                              const SizedBox(height: 15),
+                              const SizedBox(height: 12),
                               _GoalSliderCard(
                                 title: '재도전 단어는 몇개나 할까요?',
                                 value: provider.chosenRetry,
@@ -88,10 +90,12 @@ class _VocabularyDashboardScreenState extends State<VocabularyDashboardScreen> {
                             ],
                           ),
                         ),
-                        const Spacer(),
+                        const SizedBox(height: 16),
                         Padding(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 24),
+                            horizontal: 52,
+                            vertical: 0,
+                          ),
                           child: AuthButton(
                             text: '이대로 시작!',
                             onPressed: () {
@@ -100,7 +104,8 @@ class _VocabularyDashboardScreenState extends State<VocabularyDashboardScreen> {
                                   provider.chosenRetry == 0) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                      content: Text('학습할 단어를 1개 이상 선택해주세요!')),
+                                    content: Text('학습할 단어를 1개 이상 선택해주세요!'),
+                                  ),
                                 );
                                 return;
                               }
@@ -180,15 +185,16 @@ class _GoalSliderCardState extends State<_GoalSliderCard> {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 25, 18, 22),
+      padding: const EdgeInsets.fromLTRB(18, 28, 18, 22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.line),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -199,13 +205,13 @@ class _GoalSliderCardState extends State<_GoalSliderCard> {
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.black87,
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           SizedBox(
-            height: 36,
+            height: 31,
             child: PageView.builder(
               controller: _controller,
               itemCount: _pageCount,
@@ -219,8 +225,8 @@ class _GoalSliderCardState extends State<_GoalSliderCard> {
                     style: TextStyle(
                       color: selected
                           ? AppColors.primary
-                          : Colors.grey.withValues(alpha: 0.45),
-                      fontSize: selected ? 25 : 12,
+                          : AppColors.primary.withValues(alpha: 0.55),
+                      fontSize: selected ? 26 : 14,
                       fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
                     ),
                   ),

@@ -55,7 +55,7 @@ class AppRoutes {
         return _buildFadeRoute(const LoginScreen(), settings);
       case signup:
         return _buildFadeRoute(const SignupScreen(), settings);
-      
+
       // [비밀번호 찾기] 상황에 따라 이메일 주입 및 마이페이지 진입 여부 구분
       case resetPassword:
         if (args is Map<String, dynamic>) {
@@ -68,7 +68,7 @@ class AppRoutes {
           );
         }
         return _buildFadeRoute(const ResetPasswordScreen(), settings);
-      
+
       // [인증번호] 이메일 기반 인증 프로세스
       case verificationCode:
         if (args is String) {
@@ -85,7 +85,7 @@ class AppRoutes {
         }
         // 예외 상황 시 로그인 화면으로 복귀하거나 안내 필요
         return _buildFadeRoute(const ResetPasswordScreen(), settings);
-      
+
       case changePassword:
         if (args is Map<String, dynamic>) {
           return _buildFadeRoute(
@@ -94,12 +94,17 @@ class AppRoutes {
           );
         }
         return _buildFadeRoute(const ChangePasswordScreen(), settings);
-        
+
       case home:
         return _buildFadeRoute(const HomeScreen(), settings);
       case history:
-        return _buildFadeRoute(const LearningHistoryScreen(), settings);
-      
+        return _buildFadeRoute(
+          LearningHistoryScreen(
+            initialDetailType: args is HistoryDetailType ? args : null,
+          ),
+          settings,
+        );
+
       // [대화 화면] SubCategory 객체 또는 ID 전달
       case conversation:
         if (args is SubCategory) {
@@ -118,7 +123,7 @@ class AppRoutes {
           const ConversationChatScreen(subCatId: 1),
           settings,
         );
-      
+
       // [카테고리 선택] 메인 카테고리 ID 전달
       case subCategory:
         if (args is int) {
@@ -131,7 +136,7 @@ class AppRoutes {
           const SubCategorySelectionScreen(mainCatId: 1),
           settings,
         );
-        
+
       case vocabularyDashboard:
         return _buildFadeRoute(const VocabularyDashboardScreen(), settings);
       case vocabulary:
@@ -144,7 +149,7 @@ class AppRoutes {
         return _buildFadeRoute(const SubscriptionHistoryScreen(), settings);
       case levelTest:
         return _buildFadeRoute(const LevelTestScreen(), settings);
-      
+
       // [레벨 테스트 결과] 결과 객체(LevelTestResult) 필수 확인
       case levelTestResult:
         if (args is LevelTestResult) {
@@ -154,7 +159,7 @@ class AppRoutes {
           const Scaffold(body: Center(child: Text('결과 데이터가 없습니다.'))),
           settings,
         );
-        
+
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

@@ -21,13 +21,20 @@ class HomeSummary {
     return HomeSummary(
       nickname: json['nickname'] ?? "사용자",
       tier: json['tier'] ?? "BRONZE",
-      topPercent: (json['top_percent'] ?? 0).toDouble(),
-      weeklyData: (json['weekly_data'] as List?)
+      topPercent: _toDouble(json['top_percent'] ?? json['topPercent']),
+      weeklyData:
+          ((json['weekly_data'] ?? json['weeklyData']) as List?)
               ?.map((i) => WeeklyData.fromJson(i))
-              .toList() ?? [],
+              .toList() ??
+          [],
       attendance: List<String>.from(json['attendance'] ?? []),
-      continuousAttendanceCount: json['continuous_attendance_count'] ?? 0, // 🔥 매핑
-      studyAchievementRate: json['study_achievement_rate'] ?? 0,
+      continuousAttendanceCount: _toInt(
+        json['continuous_attendance_count'] ??
+            json['continuousAttendanceCount'],
+      ),
+      studyAchievementRate: _toInt(
+        json['study_achievement_rate'] ?? json['studyAchievementRate'],
+      ),
     );
   }
 }
@@ -48,10 +55,21 @@ class WeeklyData {
   factory WeeklyData.fromJson(Map<String, dynamic> json) {
     return WeeklyData(
       date: json['date'] ?? "",
-      // 4. [중요] 각 에너지가 null일 때 0으로 치환하여 int 타입 보장
-      convEnergy: (json['conv_energy'] ?? 0) as int,
-      vocabEnergy: (json['vocab_energy'] ?? 0) as int,
-      totalEnergy: (json['total_energy'] ?? 0) as int,
+      convEnergy: _toInt(json['conv_energy'] ?? json['convEnergy']),
+      vocabEnergy: _toInt(json['vocab_energy'] ?? json['vocabEnergy']),
+      totalEnergy: _toInt(json['total_energy'] ?? json['totalEnergy']),
     );
   }
+}
+
+int _toInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+double _toDouble(dynamic value) {
+  if (value is double) return value;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '') ?? 0.0;
 }
