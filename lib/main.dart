@@ -59,6 +59,7 @@ class VipaApp extends StatelessWidget {
         title: 'vipa',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
+          fontFamily: 'Pretendard',
           colorScheme: ColorScheme.fromSeed(
             seedColor: AppColors.primary,
             primary: AppColors.primary,

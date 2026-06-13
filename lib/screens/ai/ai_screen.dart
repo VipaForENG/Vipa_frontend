@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../controllers/ai_controller.dart';
 import '../../design/app_colors.dart';
@@ -13,6 +15,11 @@ class AiScreen extends StatefulWidget {
 class _AiScreenState extends State<AiScreen> {
   final AiController _controller = AiController();
   final TextEditingController _textController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final stt.SpeechToText _speech = stt.SpeechToText();
+
+  bool _isListening = false;
+  String _spokenText = '';
 
   @override
   void initState() {
@@ -21,27 +28,34 @@ class _AiScreenState extends State<AiScreen> {
   }
 
   void _onControllerChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   @override
   void dispose() {
+    _speech.stop();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     _textController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final aiEnglish = _controller.aiEnText.isEmpty
-        ? 'Thank you. What is the\npurpose of your visit to our country?'
-        : _controller.aiEnText;
-    final aiKorean = _controller.aiKoText.isEmpty
-        ? '감사합니다. 우리나라를 방문한 목적이 무엇인가요?'
-        : _controller.aiKoText;
-    final feedback = _controller.aiFeedback;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -62,42 +76,75 @@ class _AiScreenState extends State<AiScreen> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 430),
-            child: Stack(
+            child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 18, 14, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _ChatBubble(
-                        text: aiEnglish,
-                        translation: aiKorean,
-                        alignRight: false,
-                      ),
-                      if (feedback.isNotEmpty && feedback != 'N/A') ...[
-                        const SizedBox(height: 18),
-                        _ChatBubble(
-                          text: feedback,
-                          translation: '확인했습니다. 즐거운 여행되세요.',
-                          alignRight: false,
-                        ),
-                      ],
-                    ],
+                Expanded(
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(14, 18, 14, 130),
+                    itemCount:
+                        _controller.messages.length +
+                        (_isListening && _spokenText.isNotEmpty ? 1 : 0) +
+                        (_controller.isLoading ? 1 : 0),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      if (index < _controller.messages.length) {
+                        final message = _controller.messages[index];
+                        return _ChatBubble(
+                          text: message.text,
+                          translation: message.translation,
+                          alignRight: message.isUser,
+                        );
+                      }
+                      if (_isListening &&
+                          _spokenText.isNotEmpty &&
+                          index == _controller.messages.length) {
+                        return _ChatBubble(
+                          text: _spokenText,
+                          translation: '듣고 있어요...',
+                          alignRight: true,
+                        );
+                      }
+                      return const Align(
+                        alignment: Alignment.centerLeft,
+                        child: _TypingBubble(),
+                      );
+                    },
                   ),
                 ),
-                Align(
-                  alignment: const Alignment(0, 0.68),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _RoundActionButton(
-                        icon: Icons.mic_none_rounded,
-                        size: 76,
-                        iconSize: 43,
-                        onTap: () {
-                          // 음성 입력 기능은 기존 화면의 컨트롤러 호출을 유지하지 않고,
-                          // 시안처럼 버튼 UI만 노출합니다.
-                        },
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _RoundActionButton(
+                            icon: _isListening
+                                ? Icons.stop_rounded
+                                : Icons.mic_none_rounded,
+                            size: 76,
+                            iconSize: 43,
+                            isActive: _isListening,
+                            onTap: _toggleListening,
+                          ),
+                          const SizedBox(height: 6),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 180),
+                            child: Text(
+                              _isListening ? '녹음 중 · 눌러서 전송' : '말하기',
+                              key: ValueKey(_isListening),
+                              style: TextStyle(
+                                color: _isListening
+                                    ? AppColors.primary
+                                    : const Color(0xFF777777),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(width: 16),
                       _RoundActionButton(
@@ -115,6 +162,67 @@ class _AiScreenState extends State<AiScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _toggleListening() async {
+    if (_isListening) {
+      await _finishListening();
+      return;
+    }
+
+    final permission = await Permission.microphone.request();
+    if (!permission.isGranted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('마이크 권한이 필요합니다.')),
+        );
+      }
+      return;
+    }
+
+    final available = await _speech.initialize(
+      onStatus: (status) {
+        if (_isListening && (status == 'done' || status == 'notListening')) {
+          _finishListening();
+        }
+      },
+      onError: (_) {
+        if (_isListening) _finishListening();
+      },
+    );
+    if (!available || !mounted) return;
+
+    setState(() {
+      _spokenText = '';
+      _isListening = true;
+    });
+    await _speech.listen(
+      localeId: 'en_US',
+      onResult: (result) {
+        if (!mounted) return;
+        setState(() => _spokenText = result.recognizedWords);
+        _scrollToBottom();
+      },
+      pauseFor: const Duration(seconds: 3),
+      listenOptions: stt.SpeechListenOptions(
+        listenMode: stt.ListenMode.dictation,
+        partialResults: true,
+        cancelOnError: false,
+      ),
+    );
+  }
+
+  Future<void> _finishListening() async {
+    if (!_isListening) return;
+    final message = _spokenText.trim();
+    setState(() {
+      _isListening = false;
+      _spokenText = '';
+    });
+    await _speech.stop();
+    if (message.isNotEmpty) {
+      _controller.sendToAi(message);
+    }
   }
 
   void _openTextSheet() {
@@ -142,7 +250,7 @@ class _AiScreenState extends State<AiScreen> {
                     autofocus: true,
                     cursorColor: AppColors.primary,
                     decoration: const InputDecoration(
-                      hintText: '영어로 말할 내용을 입력하세요',
+                      hintText: '영어로 말할 내용을 입력하세요.',
                     ),
                     onSubmitted: (_) => _sendTypedMessage(context),
                   ),
@@ -167,7 +275,6 @@ class _AiScreenState extends State<AiScreen> {
   void _sendTypedMessage(BuildContext sheetContext) {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
-
     _textController.clear();
     Navigator.pop(sheetContext);
     _controller.sendToAi(text);
@@ -195,7 +302,7 @@ class _ChatBubble extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(11, 10, 11, 8),
           decoration: BoxDecoration(
             color: alignRight ? const Color(0xFFFF806B) : Colors.white,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.18),
@@ -238,32 +345,73 @@ class _ChatBubble extends StatelessWidget {
   }
 }
 
+class _TypingBubble extends StatelessWidget {
+  const _TypingBubble();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const SizedBox(
+        width: 16,
+        height: 16,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+}
+
 class _RoundActionButton extends StatelessWidget {
   const _RoundActionButton({
     required this.icon,
     required this.size,
     required this.iconSize,
     required this.onTap,
+    this.isActive = false,
   });
 
   final IconData icon;
   final double size;
   final double iconSize;
   final VoidCallback onTap;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(99),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: const BoxDecoration(
-          color: AppColors.primary,
-          shape: BoxShape.circle,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: isActive
+            ? [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                  blurRadius: 0,
+                  spreadRadius: 8,
+                ),
+              ]
+            : null,
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(99),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: isActive ? const Color(0xFFD93624) : AppColors.primary,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white, size: iconSize),
         ),
-        child: Icon(icon, color: Colors.white, size: iconSize),
       ),
     );
   }

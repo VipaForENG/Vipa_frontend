@@ -174,7 +174,11 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 const SizedBox(height: 14),
                 _FlatMenuButton(
                   title: '비밀번호 변경',
-                  onTap: () => _showChangePasswordDialog(context),
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    AppRoutes.changePassword,
+                    arguments: {'isFromMyPage': true},
+                  ),
                 ),
               ],
               const SizedBox(height: 10),

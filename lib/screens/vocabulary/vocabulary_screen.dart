@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 
-// [도메인 및 디자인 임포트]
+import '../../design/app_colors.dart';
+import '../../design/snack_bar.dart';
+import '../../routes/app_routes.dart';
+import '../login/auth_widgets.dart';
 import 'vocabulary_provider.dart';
 import 'widgets/vocabulary_widgets.dart';
-import '../../design/snack_bar.dart';
-import '../../design/background.dart';
-import '../../design/animation_design.dart';
-import '../../routes/app_routes.dart';
-import '../../design/app_colors.dart';
 
 class VocabularyScreen extends StatefulWidget {
   const VocabularyScreen({super.key});
@@ -20,7 +18,6 @@ class VocabularyScreen extends StatefulWidget {
 
 class _VocabularyScreenState extends State<VocabularyScreen> {
   final TextEditingController _answerController = TextEditingController();
-  Object? _visibleQuizId;
 
   @override
   void initState() {
@@ -29,10 +26,11 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       final args =
           Get.arguments ??
           {'new_count': 5, 'review_count': 10, 'retry_count': 10};
-      Provider.of<GrammarProvider>(
-        context,
-        listen: false,
-      ).fetchQuiz(args['new_count'], args['review_count'], args['retry_count']);
+      Provider.of<GrammarProvider>(context, listen: false).fetchQuiz(
+        args['new_count'],
+        args['review_count'],
+        args['retry_count'],
+      );
     });
   }
 
@@ -42,7 +40,218 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     super.dispose();
   }
 
-  // 🌟 제출 및 다음으로 넘어가기 통합 핸들러
+  @override
+  Widget build(BuildContext context) {
+    final provider = Provider.of<GrammarProvider>(context);
+    final quiz = provider.currentQuiz;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F7F7),
+      body: SafeArea(
+        child: provider.isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              )
+            : quiz == null
+            ? const SizedBox.shrink()
+            : _buildQuizBody(provider, quiz),
+      ),
+    );
+  }
+
+  Widget _buildQuizBody(GrammarProvider provider, Map<String, dynamic> quiz) {
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          height: 60,
+          alignment: Alignment.center,
+          color: Colors.white,
+          child: const Text(
+            '오늘의 어휘 목표량',
+            style: TextStyle(
+              color: AuthColors.primary,
+              fontSize: 21,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        const SizedBox(height: 15),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 46),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: provider.totalCount == 0
+                  ? 0
+                  : provider.currentCount / provider.totalCount,
+              minHeight: 8,
+              backgroundColor: const Color(0xFFDADADA),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AuthColors.primary,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                constraints: const BoxConstraints(minHeight: 104),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 24,
+                ),
+                child: Text.rich(
+                  _highlightedKorean(quiz),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Container(
+                constraints: const BoxConstraints(minHeight: 112),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 24,
+                ),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFF1EF),
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(8),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildInputArea(
+                      provider,
+                      (quiz['masked_sentence'] ?? '').toString(),
+                    ),
+                    if (provider.isWrong && provider.currentHint != null) ...[
+                      const SizedBox(height: 16),
+                      HintBox(hint: provider.currentHint!),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (!provider.canRetry) ...[
+          const SizedBox(height: 18),
+          SizedBox(
+            width: 270,
+            height: 44,
+            child: ElevatedButton(
+              onPressed: provider.isChecking
+                  ? null
+                  : () => _handleAction(provider),
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                backgroundColor: AuthColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                '다음 문제로 넘어가기',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  TextSpan _highlightedKorean(Map<String, dynamic> quiz) {
+    final text = (quiz['korean_hint'] ?? '').toString();
+    final target = (quiz['target_word_ko'] ?? '').toString();
+    if (target.isEmpty || !text.contains(target)) {
+      return TextSpan(text: text);
+    }
+
+    final index = text.indexOf(target);
+    return TextSpan(
+      children: [
+        TextSpan(text: text.substring(0, index)),
+        TextSpan(
+          text: target,
+          style: const TextStyle(color: AuthColors.primary),
+        ),
+        TextSpan(text: text.substring(index + target.length)),
+      ],
+    );
+  }
+
+  Widget _buildInputArea(GrammarProvider provider, String maskedSentence) {
+    final parts = maskedSentence.split('____');
+    final before = parts.isNotEmpty ? parts.first : '';
+    final after = parts.length > 1 ? parts.sublist(1).join('____') : '';
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.end,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 3),
+          child: Text(before, style: const TextStyle(fontSize: 15)),
+        ),
+        SizedBox(
+          width: 52,
+          child: TextField(
+            controller: _answerController,
+            enabled: !provider.isChecking && provider.canRetry,
+            textAlign: TextAlign.center,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _handleAction(provider),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding: const EdgeInsets.only(bottom: 2),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(
+                  color: provider.isWrong
+                      ? AuthColors.primary
+                      : Colors.black87,
+                  width: 1.3,
+                ),
+              ),
+              focusedBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(color: AuthColors.primary, width: 1.5),
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 3),
+          child: Text(after, style: const TextStyle(fontSize: 15)),
+        ),
+      ],
+    );
+  }
+
   void _handleAction(GrammarProvider provider) {
     if (provider.isChecking) return;
 
@@ -56,14 +265,10 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       _answerController.text,
       () {
         _answerController.clear();
-        VipaSnackBar.show(context, "정답입니다! 다음 문제로 갑니다! 🎉");
+        VipaSnackBar.show(context, '정답입니다.');
       },
-      () {
-        _finishQuiz(provider);
-      },
-      () {
-        VipaSnackBar.show(context, "기회를 모두 소진했습니다. 정답을 확인하세요!");
-      },
+      () => _finishQuiz(provider),
+      () => VipaSnackBar.show(context, '정답을 확인하고 다음 문제로 넘어가세요.'),
     );
   }
 
@@ -79,240 +284,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             'score_percentage': 0.0,
             'results': [],
           },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = Provider.of<GrammarProvider>(context);
-    final quiz = provider.currentQuiz;
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        title: GrammarProgressBar(
-          current: provider.currentCount,
-          total: provider.totalCount,
-        ),
-        centerTitle: true,
-      ),
-      body: provider.isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : Background(
-              fillLevel: 0.25,
-              child: SafeArea(
-                bottom: false,
-                child: quiz == null
-                    ? const SizedBox.shrink()
-                    : _buildQuizBody(provider, quiz),
-              ),
-            ),
-    );
-  }
-
-  Widget _buildQuizBody(GrammarProvider provider, Map<String, dynamic> quiz) {
-    // 퀴즈 ID 변경 시 힌트 초기화
-    final quizId = quiz['sentence_id'];
-    if (_visibleQuizId != quizId) {
-      _visibleQuizId = quizId;
-    }
-
-    return Column(
-      children: [
-        Expanded(
-          child: FadeSlideTransition(
-            delay: 0.1,
-            child: Container(
-              margin: const EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: 0,
-              ),
-              padding: const EdgeInsets.all(25),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: AppColors.line),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'CEFR 등급 퀴즈',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 20),
-
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            quiz['korean_hint'] ?? '',
-                            style: const TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        // 즐겨찾기(북마크) 토글 버튼
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: Icon(
-                            provider.isCurrentBookmarked
-                                ? Icons.star_rounded
-                                : Icons.star_border_rounded,
-                            color: provider.isCurrentBookmarked
-                                ? const Color(0xFFFFC107)
-                                : Colors.grey.shade400,
-                            size: 32,
-                          ),
-                          onPressed: () => provider.toggleBookmark(),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 25),
-
-                    if (provider.isWrong && provider.currentHint != null)
-                      HintBox(hint: provider.currentHint!),
-
-                    const SizedBox(height: 50),
-                    _buildInputArea(provider, quiz['masked_sentence'] ?? ''),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        _buildConfirmButton(provider),
-      ],
-    );
-  }
-
-  Widget _buildInputArea(GrammarProvider provider, String maskedSentence) {
-    final parts = maskedSentence.split('____');
-    final engBefore = parts.isNotEmpty ? parts[0] : '';
-    final engAfter = parts.length > 1 ? parts[1] : '';
-
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.end,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4.0),
-          child: Text(
-            engBefore,
-            style: const TextStyle(fontSize: 18, height: 1.5),
-          ),
-        ),
-        _buildTextField(provider),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4.0),
-          child: Text(
-            engAfter,
-            style: const TextStyle(fontSize: 18, height: 1.5),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField(GrammarProvider provider) {
-    return Container(
-      width: 120,
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      child: TextField(
-        controller: _answerController,
-        onSubmitted: (_) => _handleAction(provider),
-        textAlign: TextAlign.center,
-        enabled: !provider.isChecking && provider.canRetry,
-        style: TextStyle(
-          fontSize: 20,
-          color: provider.isWrong ? const Color(0xFFFF4757) : AppColors.primary,
-          fontWeight: FontWeight.bold,
-        ),
-        decoration: InputDecoration(
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 4),
-          enabledBorder: UnderlineInputBorder(
-            borderSide: BorderSide(
-              color: provider.isWrong
-                  ? const Color(0xFFFF4757)
-                  : Colors.grey.shade400,
-              width: 2,
-            ),
-          ),
-          focusedBorder: UnderlineInputBorder(
-            borderSide: BorderSide(
-              color: provider.isWrong
-                  ? const Color(0xFFFF4757)
-                  : AppColors.primary,
-              width: 2,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildConfirmButton(GrammarProvider provider) {
-    String btnText = "확인";
-    if (!provider.canRetry) {
-      btnText = "다음 문제로 넘어가기";
-    } else if (provider.currentCount == provider.totalCount) {
-      btnText = "결과 보기";
-    }
-
-    return SafeArea(
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: SizedBox(
-          height: 56,
-          child: ElevatedButton(
-            onPressed: provider.isChecking
-                ? null
-                : () => _handleAction(provider),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              disabledBackgroundColor: Colors.grey.shade300,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
-            child: provider.isChecking
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 3,
-                    ),
-                  )
-                : Text(
-                    btnText,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-          ),
-        ),
-      ),
     );
   }
 }

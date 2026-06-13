@@ -80,7 +80,12 @@ class _HomeScreenState extends State<HomeScreen> {
           fontSize: 10,
           fontWeight: FontWeight.w700,
         ),
-        onTap: (index) => setState(() => _selectedIndex = index),
+        onTap: (index) {
+          setState(() => _selectedIndex = index);
+          if (index == 0 && Get.isRegistered<HomeController>()) {
+            Get.find<HomeController>().fetchHomeSummary();
+          }
+        },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: '홈'),
           BottomNavigationBarItem(
@@ -129,7 +134,7 @@ class _HomeContent extends StatelessWidget {
               _RankCard(data: data),
               const SizedBox(height: 14),
               _AttendanceCard(
-                attendanceList: data.attendance,
+                attendanceDates: data.attendanceDates,
                 streakCount: data.continuousAttendanceCount,
               ),
               const SizedBox(height: 15),
@@ -138,12 +143,15 @@ class _HomeContent extends StatelessWidget {
                 icon: Icons.menu_book_rounded,
                 title: '오늘은 어떤 어휘를 배워볼까요?',
                 subtitle: '오늘의 어휘 학습하기 >',
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const VocabularyDashboardScreen(),
-                  ),
-                ),
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const VocabularyDashboardScreen(),
+                    ),
+                  );
+                  controller.fetchHomeSummary();
+                },
               ),
               const SizedBox(height: 14),
               _HomeActionButton(
@@ -151,12 +159,15 @@ class _HomeContent extends StatelessWidget {
                 icon: Icons.people_alt_rounded,
                 title: 'AI와 함께 실전에 통하는 회화!',
                 subtitle: '실전회화 학습하기 >',
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const CategorySelectionScreen(),
-                  ),
-                ),
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CategorySelectionScreen(),
+                    ),
+                  );
+                  controller.fetchHomeSummary();
+                },
               ),
             ],
           ),
@@ -174,20 +185,9 @@ class _RankCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rank = VipaRank.fromTier(data.tier);
-    final totalEnergy = data.weeklyData.fold<int>(
-      0,
-      (sum, item) => sum + item.totalEnergy,
-    );
-    final today = DateTime.now().toIso8601String().split('T').first;
-    WeeklyData? todayData;
-    for (final item in data.weeklyData) {
-      if (item.date == today) {
-        todayData = item;
-        break;
-      }
-    }
-    final todayVocabulary = todayData?.vocabEnergy ?? 0;
-    final todayConversation = todayData?.convEnergy ?? 0;
+    final totalEnergy = data.totalLearningCount;
+    final todayVocabulary = data.todayVocabularyCount;
+    final todayConversation = data.todayConversationCount;
 
     return _WhiteCard(
       child: Padding(
@@ -213,9 +213,7 @@ class _RankCard extends StatelessWidget {
                     .toDouble(),
                 minHeight: 6,
                 backgroundColor: const Color(0xFFE5E5E5),
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  AuthColors.primary,
-                ),
+                valueColor: AlwaysStoppedAnimation<Color>(rank.color),
               ),
             ),
             const SizedBox(height: 8),
@@ -226,12 +224,12 @@ class _RankCard extends StatelessWidget {
                 children: [
                   _EnergyLine(label: '총 학습량', value: '$totalEnergy개'),
                   _EnergyLine(
-                    label: '오늘의 어휘 학습량',
+                    label: '오늘의 어휘 총 학습량',
                     value: '$todayVocabulary개',
                     valueColor: AuthColors.primary,
                   ),
                   _EnergyLine(
-                    label: '실전회화 학습량',
+                    label: '실전회화 총 학습량',
                     value: '$todayConversation개',
                     valueColor: AuthColors.primary,
                   ),
@@ -280,16 +278,22 @@ class _EnergyLine extends StatelessWidget {
 
 class _AttendanceCard extends StatelessWidget {
   const _AttendanceCard({
-    required this.attendanceList,
+    required this.attendanceDates,
     required this.streakCount,
   });
 
-  final List<String> attendanceList;
+  final List<String> attendanceDates;
   final int streakCount;
 
   @override
   Widget build(BuildContext context) {
     const days = ['월', '화', '수', '목', '금', '토', '일'];
+    final now = DateTime.now();
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
 
     return _WhiteCard(
       child: Padding(
@@ -299,9 +303,14 @@ class _AttendanceCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(days.length, (index) {
-                final isDone = attendanceList.contains(days[index]);
+                final date = monday.add(Duration(days: index));
+                final dateKey =
+                    '${date.year.toString().padLeft(4, '0')}-'
+                    '${date.month.toString().padLeft(2, '0')}-'
+                    '${date.day.toString().padLeft(2, '0')}';
+                final isDone = attendanceDates.contains(dateKey);
                 return _DayDot(
-                  number: index + 1,
+                  number: date.day,
                   day: days[index],
                   isDone: isDone,
                 );
@@ -402,7 +411,7 @@ class _HomeActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 78,
+      height: 100,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
@@ -410,12 +419,12 @@ class _HomeActionButton extends StatelessWidget {
           foregroundColor: Colors.white,
           elevation: 2,
           shadowColor: Colors.black.withValues(alpha: 0.28),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          padding: const EdgeInsets.symmetric(horizontal: 28),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 30),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 37),
+            Icon(icon, size: 36),
             const SizedBox(width: 22),
             Expanded(
               child: Column(
@@ -425,18 +434,18 @@ class _HomeActionButton extends StatelessWidget {
                   Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 17,
                       fontWeight: FontWeight.w900,
                       height: 1.12,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.visible,
                   ),
-                  const SizedBox(height: 7),
+                  const SizedBox(height: 5),
                   Text(
                     subtitle,
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
                       height: 1.1,
                     ),

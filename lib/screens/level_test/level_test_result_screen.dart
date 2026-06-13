@@ -13,164 +13,165 @@ class LevelTestResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: const Color(0xFFF7F7F7),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 430),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(14, 16, 14, 30),
-              child: Column(
-                children: [
-                  const Text(
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 54,
+                  alignment: Alignment.center,
+                  color: Colors.white,
+                  child: const Text(
                     '레벨테스트',
                     style: TextStyle(
                       color: AuthColors.primary,
-                      fontSize: 18,
+                      fontSize: 20,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 31),
-                  
-                  // 1. 결과 메인 카드
-                  _ResultCard(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 38),
-                      child: Column(
-                        children: [
-                          const Text(
-                            '예상 CEFR 레벨',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                            ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+                    child: Column(
+                      children: [
+                        _ResultCard(
+                          minHeight: 170,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                '예상 CEFR 레벨',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                result.cefrLevel,
+                                style: const TextStyle(
+                                  color: AuthColors.primary,
+                                  fontSize: 66,
+                                  height: 1,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 14),
-                          Text(
-                            result.cefrLevel,
-                            style: const TextStyle(
-                              color: AuthColors.primary,
-                              fontSize: 68,
-                              fontWeight: FontWeight.w900,
-                              height: 0.95,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // 2. 영역별 역량 점수
-                  _ResultCard(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(33, 25, 33, 23),
-                      child: Column(
-                        children: [
-                          const Text(
-                            '영역별 역량 점수',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 21),
-                          _ScoreBar(label: '문법의 베이스', score: result.grammarScore),
-                          const SizedBox(height: 17),
-                          _ScoreBar(label: '어휘의 섬세함', score: result.vocabularyScore),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // 3. 나의 약점
-                  _ResultCard(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(31, 20, 31, 20),
-                      child: Column(
-                        children: [
-                          const Text(
-                            '나의 약점',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          Wrap(
-                            spacing: 9,
-                            runSpacing: 8,
-                            alignment: WrapAlignment.center,
-                            children: _weaknessTags
-                                .map((tag) => _WeaknessChip(text: tag))
-                                .toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // 4. AI 피드백
-                  _ResultCard(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 19, 20, 20),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'AI 상세 피드백',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            _feedback,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 12,
-                              height: 1.25,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 23),
-                  
-                  // 하단 버튼
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () => Get.offAllNamed(AppRoutes.home),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AuthColors.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
                         ),
-                      ),
-                      child: const Text(
-                        '홈',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
+                        const SizedBox(height: 10),
+                        _ResultCard(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(25, 18, 25, 18),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  '영역별 역량 점수',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                _ScoreBar(
+                                  label: '문법의 베이스',
+                                  score: result.grammarScore,
+                                ),
+                                const SizedBox(height: 10),
+                                _ScoreBar(
+                                  label: '어휘의 섬세함',
+                                  score: result.vocabularyScore,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 10),
+                        _ResultCard(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  '나의 약점',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                const SizedBox(height: 13),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  alignment: WrapAlignment.center,
+                                  children: _weaknessTags
+                                      .map((tag) => _WeaknessChip(text: tag))
+                                      .toList(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _ResultCard(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  'AI 상세 피드백',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _feedback,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    height: 1.35,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          width: 198,
+                          height: 36,
+                          child: ElevatedButton(
+                            onPressed: () => Get.offAllNamed(AppRoutes.home),
+                            style: ElevatedButton.styleFrom(
+                              elevation: 0,
+                              backgroundColor: AuthColors.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                            ),
+                            child: const Text(
+                              '홈',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -182,33 +183,35 @@ class LevelTestResultScreen extends StatelessWidget {
     if (result.weaknessTags.isNotEmpty) {
       return result.weaknessTags.take(4).toList();
     }
-    return const ['시제훈련', '동사활용법', '어휘부족', '문장구조훈련'];
+    return const ['시제관계', '동사활용법', '어휘력', '문장구조연결'];
   }
 
   String get _feedback {
-    final text = result.detailedFeedback.trim();
-    if (text.isNotEmpty) return text;
-    return '기초 문법과 빈칸 추론은 비교적 안정적이지만, 시제 일치와 동사 형태 선택에서 실수가 보입니다. 특히 3인칭 단수, 현재완료, 과거 시제 구분 그리고 문맥에 맞는 동사 선택에서 흔들림이 있습니다. 어휘는 일상적 수준은 이미 일부 갖추고 있지만, 익숙하지 않은 단어의 뜻을 유추하는 문맥에서는 정확도가 떨어집니다. 전반적으로 A2를 넘어 B1 초입 수준이며, B2 수준의 정교한 문장 독해는 아직 부족합니다.';
+    final feedback = result.detailedFeedback.trim();
+    if (feedback.isNotEmpty) return feedback;
+    return '기초 문법과 빈칸 추론 비교는 안정적이지만, 시제 일치와 동사 형태 선택에서 실수가 보입니다. '
+        '다양한 문장을 반복해서 연습하면 더욱 자연스럽고 정확한 표현을 사용할 수 있습니다.';
   }
 }
 
-// --- Helper Widgets ---
-
 class _ResultCard extends StatelessWidget {
-  const _ResultCard({required this.child});
+  const _ResultCard({required this.child, this.minHeight});
+
   final Widget child;
+  final double? minHeight;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
+      constraints: BoxConstraints(minHeight: minHeight ?? 0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(7),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.20),
-            blurRadius: 5,
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 4,
             offset: const Offset(0, 2),
           ),
         ],
@@ -220,12 +223,13 @@ class _ResultCard extends StatelessWidget {
 
 class _ScoreBar extends StatelessWidget {
   const _ScoreBar({required this.label, required this.score});
+
   final String label;
   final int score;
 
   @override
   Widget build(BuildContext context) {
-    final normalizedScore = (score / 100).clamp(0.0, 1.0).toDouble();
+    final value = (score / 100).clamp(0.0, 1.0).toDouble();
 
     return Column(
       children: [
@@ -234,30 +238,24 @@ class _ScoreBar extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
             ),
             Text(
               '$score점',
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
             ),
           ],
         ),
-        const SizedBox(height: 7),
+        const SizedBox(height: 4),
         ClipRRect(
           borderRadius: BorderRadius.circular(99),
           child: LinearProgressIndicator(
-            value: normalizedScore,
-            minHeight: 6,
-            backgroundColor: const Color(0xFFE2E2E2),
-            valueColor: const AlwaysStoppedAnimation<Color>(AuthColors.primary),
+            value: value,
+            minHeight: 5,
+            backgroundColor: const Color(0xFFD9D9D9),
+            valueColor: const AlwaysStoppedAnimation<Color>(
+              Color(0xFFFF806B),
+            ),
           ),
         ),
       ],
@@ -267,12 +265,13 @@ class _ScoreBar extends StatelessWidget {
 
 class _WeaknessChip extends StatelessWidget {
   const _WeaknessChip({required this.text});
+
   final String text;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFFFF806B),
         borderRadius: BorderRadius.circular(99),
@@ -281,8 +280,8 @@ class _WeaknessChip extends StatelessWidget {
         text,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
+          fontSize: 8,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

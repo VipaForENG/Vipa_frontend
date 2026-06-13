@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../controllers/auth_controller.dart';
-import '../../design/snack_bar.dart';
+import '../../design/app_colors.dart';
 import '../../routes/app_routes.dart';
-import 'auth_widgets.dart';
 
 class VerificationCodeScreen extends StatefulWidget {
   const VerificationCodeScreen({
@@ -23,17 +22,21 @@ class VerificationCodeScreen extends StatefulWidget {
 }
 
 class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
-  final List<TextEditingController> _controllers = List.generate(
-    6,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  final _controllers = List.generate(6, (_) => TextEditingController());
+  final _focusNodes = List.generate(6, (_) => FocusNode());
 
   Timer? _timer;
   int _remainingSeconds = 600;
   bool _isVerifying = false;
   bool _isResending = false;
   String? _codeError;
+
+  String get _code => _controllers.map((item) => item.text).join();
+  String get _timeText {
+    final minutes = (_remainingSeconds ~/ 60).toString().padLeft(2, '0');
+    final seconds = (_remainingSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
 
   @override
   void initState() {
@@ -54,51 +57,54 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   }
 
   void _startTimer() {
-    // 인증번호 유효시간 10분을 화면에 표시하고, 재전송 시 같은 로직을 다시 시작한다.
     _timer?.cancel();
-    setState(() => _remainingSeconds = 600);
+    _remainingSeconds = 600;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
-      if (_remainingSeconds <= 0) {
+      if (_remainingSeconds == 0) {
         timer.cancel();
-        return;
+      } else {
+        setState(() => _remainingSeconds--);
       }
-      setState(() => _remainingSeconds--);
     });
   }
 
-  String get _code => _controllers.map((controller) => controller.text).join();
-
-  String get _timeText {
-    final minutes = (_remainingSeconds ~/ 60).toString().padLeft(2, '0');
-    final seconds = (_remainingSeconds % 60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
+  void _onDigitChanged(String value, int index) {
+    setState(() => _codeError = null);
+    if (value.isNotEmpty && index < 5) {
+      _focusNodes[index + 1].requestFocus();
+    }
+    if (_code.length == 6) FocusScope.of(context).unfocus();
   }
 
-  Future<void> _handleVerifyCode() async {
+  KeyEventResult _onKeyEvent(FocusNode _, KeyEvent event, int index) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.backspace &&
+        _controllers[index].text.isEmpty &&
+        index > 0) {
+      _focusNodes[index - 1].requestFocus();
+      _controllers[index - 1].clear();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  Future<void> _verify() async {
     if (_code.length != 6) {
-      setState(() => _codeError = '인증번호를 모두 입력해주세요.');
+      setState(() => _codeError = '인증번호를 확인해주세요!');
       return;
     }
-
     setState(() {
       _isVerifying = true;
       _codeError = null;
     });
-
-    final isVerified = await AuthController.verifyRecoveryCode(
-      widget.email,
-      _code,
-    );
+    final verified = await AuthController.verifyRecoveryCode(widget.email, _code);
     if (!mounted) return;
     setState(() => _isVerifying = false);
-
-    if (!isVerified) {
-      setState(() => _codeError = '인증번호가 일치하지 않습니다.');
+    if (!verified) {
+      setState(() => _codeError = '인증번호를 확인해주세요!');
       return;
     }
-
-    // 인증 성공 후 새 비밀번호 화면에서 reset API를 호출할 수 있도록 이메일과 코드를 전달한다.
     Navigator.pushNamed(
       context,
       AppRoutes.changePassword,
@@ -110,155 +116,135 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
     );
   }
 
-  Future<void> _handleResendCode() async {
+  Future<void> _resend() async {
     setState(() {
       _isResending = true;
       _codeError = null;
     });
-
     final success = await AuthController.sendRecoveryCode(widget.email);
     if (!mounted) return;
     setState(() => _isResending = false);
-
     if (!success) {
-      VipaSnackBar.show(context, '인증번호 재전송에 실패했습니다.', isError: true);
+      setState(() => _codeError = '인증번호 재전송에 실패했습니다.');
       return;
     }
-
     for (final controller in _controllers) {
       controller.clear();
     }
     _focusNodes.first.requestFocus();
-    _startTimer();
-    VipaSnackBar.show(context, '인증번호를 다시 보냈습니다.');
-  }
-
-  void _handleDigitChanged(String value, int index) {
-    setState(() => _codeError = null);
-
-    // 한 자리 입력이 끝나면 다음 칸으로 포커스를 이동해 6자리 입력 UX를 자연스럽게 만든다.
-    if (value.isNotEmpty && index < _focusNodes.length - 1) {
-      _focusNodes[index + 1].requestFocus();
-    }
-
-    if (_code.length == 6) {
-      FocusScope.of(context).unfocus();
-    }
-  }
-
-  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event, int index) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey != LogicalKeyboardKey.backspace) {
-      return KeyEventResult.ignored;
-    }
-    if (_controllers[index].text.isEmpty && index > 0) {
-      _focusNodes[index - 1].requestFocus();
-      _controllers[index - 1].clear();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
+    setState(_startTimer);
   }
 
   @override
   Widget build(BuildContext context) {
-    return AuthScaffold(
-      horizontalPadding: 30,
-      child: Column(
-        children: [
-          const SizedBox(height: 91),
-          const Text(
-            '인증번호를 보냈어요!',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              height: 1.05,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '휴대폰으로 확인해 주세요.',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 63),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              6,
-              (index) => Padding(
-                padding: EdgeInsets.only(right: index == 5 ? 0 : 7),
-                child: _CodeBox(
-                  controller: _controllers[index],
-                  focusNode: _focusNodes[index],
-                  onChanged: (value) => _handleDigitChanged(value, index),
-                  onKeyEvent: (node, event) =>
-                      _handleKeyEvent(node, event, index),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 350),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 160),
+                        const Text(
+                          '인증번호를 보냈어요!',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 32,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '휴대폰을 확인해 주세요!',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 110),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: List.generate(
+                            6,
+                            (index) => _CodeBox(
+                              controller: _controllers[index],
+                              focusNode: _focusNodes[index],
+                              onChanged: (value) => _onDigitChanged(value, index),
+                              onKeyEvent: (node, event) =>
+                                  _onKeyEvent(node, event, index),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 20,
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              _codeError ?? '',
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              '유효시간',
+                              style: TextStyle(
+                                color: Color(0xFF777777),
+                                fontSize: 17,
+                              ),
+                            ),
+                            const SizedBox(width: 20),
+                            Text(
+                              _timeText,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 23),
+                        _VerificationButton(
+                          text: _isVerifying ? '확인 중...' : '인증번호 입력',
+                          filled: true,
+                          onPressed:
+                              _isVerifying || _isResending ? null : _verify,
+                        ),
+                        const SizedBox(height: 13),
+                        _VerificationButton(
+                          text: _isResending ? '재전송 중...' : '인증번호 재전송',
+                          onPressed:
+                              _isVerifying || _isResending ? null : _resend,
+                        ),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          SizedBox(
-            height: 23,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                _codeError ?? '',
-                style: const TextStyle(
-                  color: AuthColors.primary,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                '유효시간',
-                style: TextStyle(fontSize: 12, color: Color(0xFF777777)),
-              ),
-              const SizedBox(width: 21),
-              Text(
-                _timeText,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.black,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          AuthButton(
-            text: _isVerifying ? '확인 중...' : '인증번호 입력',
-            onPressed: _isVerifying || _isResending ? null : _handleVerifyCode,
-          ),
-          const SizedBox(height: 15),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: OutlinedButton(
-              onPressed: _isVerifying || _isResending ? null : _handleResendCode,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFB0B0B0),
-                side: const BorderSide(color: Color(0xFFC8C8C8)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text(
-                _isResending ? '재전송 중...' : '인증번호 재전송',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ),
-          const Spacer(),
-        ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -281,7 +267,7 @@ class _CodeBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 36,
-      height: 36,
+      height: 48,
       child: Focus(
         onKeyEvent: onKeyEvent,
         child: TextField(
@@ -290,14 +276,12 @@ class _CodeBox extends StatelessWidget {
           textAlign: TextAlign.center,
           keyboardType: TextInputType.number,
           maxLength: 1,
-          cursorColor: AuthColors.primary,
+          cursorColor: AppColors.primary,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w500),
           decoration: InputDecoration(
             counterText: '',
             contentPadding: EdgeInsets.zero,
-            filled: true,
-            fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: Colors.black),
@@ -308,12 +292,70 @@ class _CodeBox extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AuthColors.primary, width: 2),
+              borderSide: const BorderSide(color: Colors.black, width: 2),
             ),
           ),
           onChanged: onChanged,
         ),
       ),
+    );
+  }
+}
+
+class _VerificationButton extends StatelessWidget {
+  const _VerificationButton({
+    required this.text,
+    required this.onPressed,
+    this.filled = false,
+  });
+
+  final String text;
+  final VoidCallback? onPressed;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 212,
+      height: 56,
+      child: filled
+          ? ElevatedButton(
+              onPressed: onPressed,
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                backgroundColor: AppColors.primary,
+                disabledBackgroundColor:
+                    AppColors.primary.withValues(alpha: 0.65),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            )
+          : OutlinedButton(
+              onPressed: onPressed,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFB7B7B7),
+                side: const BorderSide(color: Color(0xFFB7B7B7)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
     );
   }
 }

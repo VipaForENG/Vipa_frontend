@@ -13,14 +13,13 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _nicknameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _nicknameController = TextEditingController();
 
   bool _isLoading = false;
   bool _isEmailValid = false;
   bool _isPasswordValid = false;
-  String? _emailError;
 
   @override
   void dispose() {
@@ -47,99 +46,212 @@ class _SignupScreenState extends State<SignupScreen> {
     }
 
     setState(() => _isLoading = true);
-    final errorDetail = await AuthController.signUp(
+    final error = await AuthController.signUp(
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
       nickname: _nicknameController.text.trim(),
     );
-
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (errorDetail == null) {
+    if (error == null) {
       VipaSnackBar.show(context, '회원가입이 완료되었습니다. 로그인해주세요.');
       Navigator.pushReplacementNamed(context, AppRoutes.login);
-      return;
-    }
-
-    VipaSnackBar.show(context, errorDetail, isError: true);
-    if (errorDetail.contains('이메일') || errorDetail.toLowerCase().contains('email')) {
-      setState(() => _emailError = errorDetail);
+    } else {
+      VipaSnackBar.show(context, error, isError: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final canSubmit = _isEmailValid &&
-        _isPasswordValid &&
-        _nicknameController.text.trim().length >= 2 &&
-        !_isLoading;
+    return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 330),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 68),
+                        const VipaMark(size: 72),
+                        const SizedBox(height: 22),
+                        const Text(
+                          '회원가입',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 42,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                        const Text(
+                          'VIPA에 가입해 새로운 경험을 즐겨보세요!',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 56),
+                        _SignupField(
+                          label: '이메일',
+                          hint: '이메일',
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          onChanged: (value) => setState(
+                            () => _isEmailValid = _checkEmailFormat(value),
+                          ),
+                        ),
+                        const SizedBox(height: 13),
+                        _SignupField(
+                          label: '비밀번호',
+                          hint: '비밀번호',
+                          controller: _passwordController,
+                          obscureText: true,
+                          onChanged: (value) => setState(
+                            () => _isPasswordValid = _checkPasswordFormat(value),
+                          ),
+                        ),
+                        const SizedBox(height: 13),
+                        _SignupField(
+                          label: '닉네임',
+                          hint: '닉네임',
+                          controller: _nicknameController,
+                          onChanged: (_) => setState(() {}),
+                        ),
+                        const SizedBox(height: 27),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _handleSignUp,
+                            style: ElevatedButton.styleFrom(
+                              elevation: 0,
+                              backgroundColor: AuthColors.primary,
+                              disabledBackgroundColor: AuthColors.primary
+                                  .withValues(alpha: 0.65),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              _isLoading ? '처리 중...' : 'VIPA 시작하기!',
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 39),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: const Text.rich(
+                            TextSpan(
+                              text: '이미 계정이 있으신가요? ',
+                              children: [
+                                TextSpan(
+                                  text: '로그인',
+                                  style: TextStyle(fontWeight: FontWeight.w900),
+                                ),
+                              ],
+                            ),
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 42),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
 
-    return AuthScaffold(
-      child: Column(
-        children: [
-          const SizedBox(height: 25),
-          const VipaMark(size: 42),
-          const SizedBox(height: 8),
-          const Text(
-            '회원가입',
-            style: TextStyle(
-              color: Color(0xFF2D3436), // 정의되지 않은 textMain 대신 기존 디자인 색상 적용
-              fontSize: 31,
-              fontWeight: FontWeight.w900,
-              height: 1,
+class _SignupField extends StatelessWidget {
+  const _SignupField({
+    required this.label,
+    required this.hint,
+    required this.controller,
+    required this.onChanged,
+    this.obscureText = false,
+    this.keyboardType = TextInputType.text,
+  });
+
+  final String label;
+  final String hint;
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final bool obscureText;
+  final TextInputType keyboardType;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 9),
+        SizedBox(
+          height: 56,
+          child: TextField(
+            controller: controller,
+            onChanged: onChanged,
+            obscureText: obscureText,
+            keyboardType: keyboardType,
+            cursorColor: AuthColors.primary,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: const TextStyle(
+                color: Color(0xFFB9BCC5),
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+              ),
+              filled: true,
+              fillColor: const Color(0xFFF2F3F6),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF2196F3)),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'VIPA와 가장 먼저 새로운 경험을 즐겨보세요!',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey),
-          ),
-          const SizedBox(height: 42),
-          AuthTextField(
-            controller: _emailController,
-            label: '이메일',
-            hintText: '이메일',
-            keyboardType: TextInputType.emailAddress,
-            errorText: _emailError,
-            onChanged: (value) {
-              setState(() {
-                _isEmailValid = _checkEmailFormat(value);
-                _emailError = null;
-              });
-            },
-          ),
-          const SizedBox(height: 14),
-          AuthTextField(
-            controller: _passwordController,
-            label: '비밀번호',
-            hintText: '비밀번호',
-            obscureText: true,
-            onChanged: (value) {
-              setState(() => _isPasswordValid = _checkPasswordFormat(value));
-            },
-          ),
-          const SizedBox(height: 14),
-          AuthTextField(
-            controller: _nicknameController,
-            label: '닉네임',
-            hintText: '닉네임',
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 31),
-          AuthButton(
-            text: _isLoading ? '처리 중...' : 'VIPA 시작하기!',
-            onPressed: canSubmit ? _handleSignUp : null,
-          ),
-          const SizedBox(height: 29),
-          AuthFooterLink(
-            prefix: '이미 계정이 있으신가요?',
-            action: '로그인',
-            onPressed: () => Navigator.pop(context),
-          ),
-          const Spacer(),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

@@ -169,7 +169,7 @@ class AuthTextField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 6),
         TextField(
@@ -178,20 +178,20 @@ class AuthTextField extends StatelessWidget {
           keyboardType: keyboardType,
           onChanged: onChanged,
           cursorColor: AuthColors.primary,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
           decoration: InputDecoration(
             filled: true,
             fillColor: AuthColors.input,
             hintText: hintText,
             hintStyle: const TextStyle(
               color: AuthColors.hint,
-              fontSize: 12,
+              fontSize: 17,
               fontWeight: FontWeight.w600,
             ),
             errorText: errorText,
             errorStyle: const TextStyle(
               color: AuthColors.primary,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
             contentPadding: const EdgeInsets.symmetric(
@@ -223,7 +223,7 @@ class AuthButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 50,
+      height: 56,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
@@ -235,7 +235,7 @@ class AuthButton extends StatelessWidget {
         ),
         child: Text(
           text,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
         ),
       ),
     );
@@ -264,7 +264,7 @@ class SocialButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 43,
+      height: 54,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
@@ -283,7 +283,7 @@ class SocialButton extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               text,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -308,7 +308,7 @@ class DividerWithText extends StatelessWidget {
             text,
             style: const TextStyle(
               color: Color(0xFFC3C6CF),
-              fontSize: 10,
+              fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -345,7 +345,7 @@ class AuthFooterLink extends StatelessWidget {
         text: TextSpan(
           style: const TextStyle(
             color: Colors.black,
-            fontSize: 10,
+            fontSize: 15,
             fontWeight: FontWeight.w700,
           ),
           children: [

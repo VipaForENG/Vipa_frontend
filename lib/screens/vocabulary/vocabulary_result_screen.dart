@@ -3,271 +3,176 @@ import 'package:get/get.dart';
 
 import '../../routes/app_routes.dart';
 import '../history/learning_history_screen.dart';
-import '../../design/app_colors.dart';
-import '../../design/background.dart';
+import '../login/auth_widgets.dart';
 
 class VocabularyResultScreen extends StatelessWidget {
   const VocabularyResultScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // 결과 데이터 처리
     final Map<String, dynamic> resultData = Get.arguments ?? {};
-    final int total = resultData['total_count'] ?? 0;
-    final int correct = resultData['correct_count'] ?? 0;
-    final List<dynamic> results = resultData['results'] ?? [];
-
-    // 정답률 계산
-    final double percentage = total > 0 ? (correct / total) * 100 : 0.0;
+    final int total = _asInt(resultData['total_count']);
+    final int correct = _asInt(resultData['correct_count']);
+    final int percentage = total > 0 ? ((correct / total) * 100).round() : 0;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          '학습 결과',
-          style: TextStyle(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Background(
-        fillLevel: 0.2,
-        child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-
-              // 1. 점수 요약 카드
-              _buildScoreCard(total, correct, percentage),
-
-              const SizedBox(height: 20),
-
-              // 2. 상세 결과 리스트 (화이트 컨테이너 UI 적용)
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppColors.line),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "학습 상세 내역",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const Divider(height: 30),
-                      Expanded(
-                        child: ListView.builder(
-                          padding: EdgeInsets.zero,
-                          itemCount: results.length,
-                          itemBuilder: (context, index) {
-                            return _buildResultItem(results[index]);
-                          },
-                        ),
-                      ),
-                    ],
+      backgroundColor: const Color(0xFFF7F7F7),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 62,
+                  alignment: Alignment.center,
+                  color: Colors.white,
+                  child: const Text(
+                    '오늘의 어휘 학습완료',
+                    style: TextStyle(
+                      color: AuthColors.primary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 25),
-
-              // 3. 버튼 영역
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 24,
-                ),
-                child: Column(
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.history,
-                            arguments: HistoryDetailType.wrongWords,
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 0),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(52, 48, 32, 50),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.22),
+                          blurRadius: 5,
+                          offset: const Offset(0, 2),
                         ),
-                        child: const Text(
-                          '틀린 어휘 확인하기',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          AppRoutes.home,
-                          (route) => false,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _ResultText(
+                          title: '총 문항',
+                          description: '모든 문제의 개수는 $total개입니다.',
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF806B),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                        const SizedBox(height: 25),
+                        _ResultText(
+                          title: '정답 개수',
+                          description: '만점님의 정답 개수는 $correct개 입니다.',
                         ),
-                        child: const Text(
-                          '오늘의 어휘로 돌아가기',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                          ),
+                        const SizedBox(height: 25),
+                        _ResultText(
+                          title: '정답률',
+                          description: '총 정답률은 $percentage% 입니다.',
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 29),
+                _ResultButton(
+                  text: '틀린 어휘 확인하기',
+                  color: AuthColors.primary,
+                  onPressed: () => Navigator.pushNamed(
+                    context,
+                    AppRoutes.history,
+                    arguments: HistoryDetailType.wrongWords,
+                  ),
+                ),
+                const SizedBox(height: 11),
+                _ResultButton(
+                  text: '오늘의 어휘로 돌아가기',
+                  color: const Color(0xFFFF806B),
+                  onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    AppRoutes.vocabularyDashboard,
+                    (route) => route.settings.name == AppRoutes.home,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  // 점수 요약 카드
-  Widget _buildScoreCard(int total, int correct, double percentage) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.line),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildScoreInfo("총 문항", "$total", Colors.black87),
-          _buildScoreInfo("정답", "$correct", Colors.blue),
-          _buildScoreInfo("정답률", "${percentage.toInt()}%", AppColors.primary),
-        ],
-      ),
-    );
+  int _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
+}
 
-  Widget _buildScoreInfo(String label, String value, Color color) {
+class _ResultText extends StatelessWidget {
+  const _ResultText({required this.title, required this.description});
+
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
+          title,
           style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+            color: Colors.black,
+            fontSize: 27,
+            height: 1.05,
+            fontWeight: FontWeight.w900,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
+          description,
+          style: const TextStyle(
+            color: AuthColors.primary,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ],
     );
   }
+}
 
-  // 리스트 아이템
-  Widget _buildResultItem(dynamic item) {
-    final bool isCorrect = item['is_correct'] ?? false;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: isCorrect
-                  ? Colors.blue.withValues(alpha: 0.1)
-                  : Colors.red.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              isCorrect ? Icons.check : Icons.close,
-              color: isCorrect ? Colors.blue : Colors.red,
-              size: 20,
-            ),
+class _ResultButton extends StatelessWidget {
+  const _ResultButton({
+    required this.text,
+    required this.color,
+    required this.onPressed,
+  });
+
+  final String text;
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 266,
+      height: 45,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
           ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item['target_word'] ?? '',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  item['original_sentence'] ?? '',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          if (!isCorrect)
-            Text(
-              item['user_answer'] ?? '',
-              style: const TextStyle(
-                color: Colors.redAccent,
-                fontSize: 13,
-                decoration: TextDecoration.lineThrough,
-              ),
-            ),
-        ],
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+        ),
       ),
     );
   }

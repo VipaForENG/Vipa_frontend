@@ -225,7 +225,10 @@ class AuthController {
     try {
       final response = await ApiService.dio.patch(
         "/users/mypage/change-password",
-        data: {"old_password": oldPassword, "new_password": newPassword},
+        data: {
+          if (oldPassword.isNotEmpty) "old_password": oldPassword,
+          "new_password": newPassword,
+        },
       );
       return response.statusCode == 200;
     } on DioException catch (e) {

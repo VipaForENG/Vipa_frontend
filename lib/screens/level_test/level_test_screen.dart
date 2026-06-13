@@ -87,7 +87,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     });
 
     // 사용자 경험을 위해 살짝 지연 후 다음으로 이동
-    await Future.delayed(const Duration(milliseconds: 180));
+    await Future.delayed(const Duration(seconds: 1));
     if (!mounted) return;
 
     _userAnswers.add(answer);
@@ -143,116 +143,138 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     final progress = (_currentIndex + 1) / _questions.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 430),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
-                  const Text(
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 62,
+                  color: Colors.white,
+                  alignment: Alignment.center,
+                  child: const Text(
                     '레벨테스트',
                     style: TextStyle(
                       color: AuthColors.primary,
-                      fontSize: 18,
+                      fontSize: 20,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  
-                  // 진행률 표시
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(99),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 7,
-                      backgroundColor: const Color(0xFFE5E5E5),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        AuthColors.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 17),
-                  
-                  // 질문 카드
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(12, 18, 12, 18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(6),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.24),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          displayQuestion,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                ),
+                Expanded(
+                  child: ListView(
+                      padding: const EdgeInsets.fromLTRB(14, 18, 14, 36),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(99),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            minHeight: 7,
+                            backgroundColor: const Color(0xFFDADCE0),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              AuthColors.primary,
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  
-                  // 선택지 버튼
-                  ...options.take(4).map((option) {
-                    final text = option.toString();
-                    final isSelected = _selectedAnswer == text;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: SizedBox(
+                      ),
+                      const SizedBox(height: 11),
+                      Container(
                         width: double.infinity,
-                        height: 42,
-                        child: ElevatedButton(
-                          onPressed: _isAnswering
-                              ? null
-                              : () => _onOptionSelected(text),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isSelected
-                                ? AuthColors.primary
-                                : Colors.white,
-                            disabledBackgroundColor: isSelected
-                                ? AuthColors.primary
-                                : Colors.white,
-                            foregroundColor:
-                                isSelected ? Colors.white : Colors.black26,
-                            disabledForegroundColor:
-                                isSelected ? Colors.white : Colors.black26,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                        constraints: const BoxConstraints(minHeight: 98),
+                        padding: const EdgeInsets.fromLTRB(12, 20, 12, 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(
+                            color: const Color(0xFF2196F3),
+                            width: 2,
                           ),
-                          child: Text(
-                            text,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: isSelected
-                                  ? FontWeight.w900
-                                  : FontWeight.w700,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.18),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
                             ),
-                          ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              '빈칸에 들어갈 단어를 골라주세요!',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              displayQuestion,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    );
-                  }),
-                  const Spacer(),
-                ],
-              ),
+                      const SizedBox(height: 25),
+                      ...options.take(4).map((option) {
+                        final text = option.toString();
+                        final isSelected = _selectedAnswer == text;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 40,
+                            child: ElevatedButton(
+                              onPressed: _isAnswering
+                                  ? null
+                                  : () => _onOptionSelected(text),
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                backgroundColor: isSelected
+                                    ? AuthColors.primary
+                                    : const Color(0xFFF7F7F7),
+                                disabledBackgroundColor: isSelected
+                                    ? AuthColors.primary
+                                    : const Color(0xFFF7F7F7),
+                                foregroundColor: isSelected
+                                    ? Colors.white
+                                    : const Color(0xFFD1D1D1),
+                                disabledForegroundColor: isSelected
+                                    ? Colors.white
+                                    : const Color(0xFFD1D1D1),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(7),
+                                ),
+                              ),
+                              child: Text(
+                                text,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w900
+                                      : FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
