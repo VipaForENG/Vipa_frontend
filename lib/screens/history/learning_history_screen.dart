@@ -131,7 +131,6 @@ class _LearningHistoryContentState extends State<_LearningHistoryContent> {
       HistoryDetailType.scenario => _SessionList(
         sessions: provider.recentSessions,
         provider: provider,
-        showPdf: true,
       ),
       HistoryDetailType.bookmarkedSentences => _BookmarkedList(
         items: provider.bookmarkedSentences,
@@ -231,12 +230,10 @@ class _SessionList extends StatelessWidget {
   const _SessionList({
     required this.sessions,
     required this.provider,
-    this.showPdf = false,
   });
 
   final List<RecentConversationSession> sessions;
   final LearningHistoryProvider provider;
-  final bool showPdf;
 
   @override
   Widget build(BuildContext context) {
@@ -251,9 +248,6 @@ class _SessionList extends StatelessWidget {
         return _DetailCard(
           title: item.scenarioTitle,
           subtitle: _formatDateTime(item.createdAt),
-          trailing: showPdf
-              ? const Icon(Icons.picture_as_pdf_rounded, color: AppColors.primary)
-              : null,
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(

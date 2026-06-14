@@ -255,47 +255,150 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
   /// 회원 탈퇴 최종 확인 알림창 및 트랜잭션 처리
   void _showWithdrawalDialog(BuildContext context) {
-    showDialog<void>(
+    showGeneralDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          '회원 탈퇴',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      barrierDismissible: false,
+      barrierLabel: '회원 탈퇴 확인',
+      barrierColor: Colors.black.withValues(alpha: .55),
+      transitionDuration: const Duration(milliseconds: 180),
+      transitionBuilder: (context, animation, _, child) => FadeTransition(
+        opacity: animation,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: .96, end: 1).animate(animation),
+          child: child,
         ),
-        content: const Text('탈퇴하면 계정과 모든 학습 데이터가 삭제되며 복구할 수 없습니다. 계속할까요?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () async {
-              final success = await AuthController.withdrawUser();
-              if (!context.mounted) return;
+      ),
+      pageBuilder: (dialogContext, _, _) {
+        bool isWithdrawing = false;
+        String? errorMessage;
 
-              if (success) {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  AppRoutes.login,
-                  (route) => false,
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('탈퇴 처리에 실패했습니다. 다시 시도해주세요.')),
-                );
-              }
-            },
-            child: const Text(
-              '탈퇴',
-              style: TextStyle(
-                color: Colors.redAccent,
-                fontWeight: FontWeight.bold,
+        return StatefulBuilder(
+          builder: (context, setDialogState) => Material(
+            color: Colors.transparent,
+            child: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 370),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: const EdgeInsets.fromLTRB(26, 30, 26, 22),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF0ED),
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: .25),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '회원 탈퇴',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 26),
+                        const Text(
+                          '탈퇴하면 계정과 모든 학습 데이터가 삭제되며 복구할 수 없습니다. 계속할까요?',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 18,
+                            height: 1.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (errorMessage != null) ...[
+                          const SizedBox(height: 14),
+                          Text(
+                            errorMessage!,
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 28),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: isWithdrawing
+                                  ? null
+                                  : () => Navigator.pop(dialogContext),
+                              child: const Text(
+                                '취소',
+                                style: TextStyle(
+                                  color: Color(0xFFAAAAAA),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 18),
+                            TextButton(
+                              onPressed: isWithdrawing
+                                  ? null
+                                  : () async {
+                                      setDialogState(() {
+                                        isWithdrawing = true;
+                                        errorMessage = null;
+                                      });
+                                      final success =
+                                          await AuthController.withdrawUser();
+                                      if (!context.mounted) return;
+
+                                      if (success) {
+                                        Navigator.pushNamedAndRemoveUntil(
+                                          context,
+                                          AppRoutes.login,
+                                          (route) => false,
+                                        );
+                                      } else {
+                                        setDialogState(() {
+                                          isWithdrawing = false;
+                                          errorMessage =
+                                              '탈퇴 처리에 실패했습니다. 다시 시도해주세요.';
+                                        });
+                                      }
+                                    },
+                              child: isWithdrawing
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary,
+                                      ),
+                                    )
+                                  : const Text(
+                                      '탈퇴',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

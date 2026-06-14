@@ -527,19 +527,20 @@ class RankBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _RankBadgePainter(color: rank.color),
-        child: Center(
-          child: Text(
-            '${rank.index + 1}',
-            style: TextStyle(
-              color: rank.color,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              shadows: [const Shadow(color: Colors.white, blurRadius: 1)],
+    return ClipRect(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: CustomPaint(
+          painter: _RankBadgePainter(color: rank.color),
+          child: Center(
+            child: Text(
+              '${rank.index + 1}',
+              style: TextStyle(
+                color: rank.color,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ),

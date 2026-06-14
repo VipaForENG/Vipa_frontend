@@ -48,8 +48,13 @@ class LearningHistoryProvider extends ChangeNotifier {
     final response = await ApiService.dio.get('/conversation/dashboard/history');
     final data = asMap(response.data); // ✨ 이제 public 함수로 호출
 
-    recentSessions = asList(data['recent_sessions']) 
-        .map((item) => RecentConversationSession.fromJson(asMap(item))).toList();
+    recentSessions = asList(data['recent_sessions'])
+        .map((item) => RecentConversationSession.fromJson(asMap(item)))
+        .where((session) {
+          final title = session.scenarioTitle.replaceAll(' ', '');
+          return title != '자유대화' && session.category != 'Free';
+        })
+        .toList();
   }
 
   Future<ConversationScriptDetail?> fetchSessionScript(int sessionId) async {

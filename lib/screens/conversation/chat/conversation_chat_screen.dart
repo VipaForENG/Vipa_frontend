@@ -16,6 +16,8 @@ class ConversationChatScreen extends StatefulWidget {
 
 class _ConversationChatScreenState extends State<ConversationChatScreen> {
   final TextEditingController _textController = TextEditingController();
+  final PageController _hintPageController = PageController(viewportFraction: .9);
+  int _hintPage = 0;
 
   @override
   void initState() {
@@ -33,12 +35,13 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
   @override
   void dispose() {
     _textController.dispose();
+    _hintPageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<ConversationProvider>(context);
+    final provider = context.watch<ConversationProvider>();
 
     if (provider.completionResult != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -55,12 +58,15 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: Column(
-              children: [
+      resizeToAvoidBottomInset: true,
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 430),
+                child: Column(
+                  children: [
                 Container(
                   width: double.infinity,
                   height: 66,
@@ -75,76 +81,88 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 17),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 50),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(99),
-                    child: LinearProgressIndicator(
-                      value: provider.progress,
-                      minHeight: 8,
-                      backgroundColor: const Color(0xFFE0E0E0),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        AuthColors.primary,
-                      ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.fromLTRB(17, 17, 17, 28),
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 33),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(99),
+                            child: LinearProgressIndicator(
+                              value: provider.progress,
+                              minHeight: 8,
+                              backgroundColor: const Color(0xFFE0E0E0),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                AuthColors.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 17),
+                        _LearningCard(
+                          english: provider.aiEnglish,
+                          korean: provider.aiKorean,
+                        ),
+                        const SizedBox(height: 12),
+                        _MissionBox(text: provider.userTargetSentence),
+                        if (provider.hints.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          _HintCarousel(
+                            hints: provider.hints,
+                            currentPage: _hintPage,
+                            controller: _hintPageController,
+                            onPageChanged: (page) {
+                              setState(() => _hintPage = page);
+                            },
+                          ),
+                        ],
+                        if (provider.isTextMode) ...[
+                          const SizedBox(height: 14),
+                          _TextAnswerBox(
+                            controller: _textController,
+                            onSubmit: () => _handleTextSubmit(provider),
+                          ),
+                        ],
+                        const SizedBox(height: 34),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _RoundToolButton(
+                              icon: Icons.lightbulb,
+                              onTap: () => _requestHint(provider),
+                            ),
+                            const SizedBox(width: 20),
+                            _MicButton(provider: provider),
+                            const SizedBox(width: 20),
+                            _RoundToolButton(
+                              icon: Icons.keyboard,
+                              onTap: provider.toggleTextMode,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 17),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 17),
-                  child: _LearningCard(
-                    english: provider.aiEnglish,
-                    korean: provider.aiKorean,
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 17),
-                  child: _MissionBox(text: provider.userTargetSentence),
-                ),
-                if (provider.isTextMode)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(17, 14, 17, 0),
-                    child: _TextAnswerBox(
-                      controller: _textController,
-                      onMicTap: provider.toggleTextMode,
-                      onSubmit: () => _handleTextSubmit(provider),
-                    ),
-                  ),
-                if (provider.isAnswered)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(17, 14, 17, 0),
-                    child: _FeedbackBox(
-                      feedback: provider.feedbackKo,
-                      corrected: provider.correctedEn,
-                      onNext: provider.nextStep,
-                    ),
-                  ),
-                const Spacer(),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 124),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _RoundToolButton(
-                        icon: Icons.lightbulb,
-                        onTap: () => _showHint(provider),
-                      ),
-                      const SizedBox(width: 20),
-                      _MicButton(provider: provider),
-                      const SizedBox(width: 20),
-                      _RoundToolButton(
-                        icon: Icons.keyboard,
-                        onTap: provider.toggleTextMode,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+          if (provider.isAnswered)
+            Positioned.fill(
+              child: _FeedbackOverlay(
+                feedback: provider.feedbackKo,
+                corrected: provider.correctedEn,
+                onNext: provider.nextStep,
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -156,45 +174,117 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
     _textController.clear();
   }
 
-  Future<void> _showHint(ConversationProvider provider) async {
+  Future<void> _requestHint(ConversationProvider provider) async {
+    final previousCount = provider.hints.length;
     await provider.requestHintStepByStep(textController: _textController);
-    if (!mounted || provider.hints.isEmpty) return;
+    if (!mounted || provider.hints.length == previousCount) return;
 
-    await showDialog<void>(
-      context: context,
-      builder: (context) => Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 7),
-        backgroundColor: const Color(0xFFFFFFC9),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 128),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
-            child: Center(
-              child: Text(
-                _hintMessage(provider),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
+    final lastPage = provider.hints.length - 1;
+    setState(() => _hintPage = lastPage);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_hintPageController.hasClients) {
+        _hintPageController.animateToPage(
+          lastPage,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+}
+
+class _HintCarousel extends StatelessWidget {
+  const _HintCarousel({
+    required this.hints,
+    required this.currentPage,
+    required this.controller,
+    required this.onPageChanged,
+  });
+
+  final List<String> hints;
+  final int currentPage;
+  final PageController controller;
+  final ValueChanged<int> onPageChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 104,
+          child: PageView.builder(
+            controller: controller,
+            itemCount: hints.length,
+            onPageChanged: onPageChanged,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 15,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFFC9),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: .12),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      _displayHint(hints[index], index),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        height: 1.25,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        if (hints.length > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              hints.length,
+              (index) => AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: index == currentPage ? 18 : 7,
+                height: 7,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  color: index == currentPage
+                      ? AuthColors.primary
+                      : const Color(0xFFD4D4D4),
+                  borderRadius: BorderRadius.circular(99),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        ],
+      ],
     );
   }
 
-  String _hintMessage(ConversationProvider provider) {
-    if (provider.currentHintLevel == 3) {
+  String _displayHint(String hint, int index) {
+    if (index == 2) {
       return '한 번 더 누르면 정답이 입력창에 자동 완성됩니다.';
     }
-
-    final hint = provider.hints.last;
     final separator = hint.indexOf(': ');
-    return separator == -1 ? hint : hint.substring(separator + 2);
+    return separator < 0 ? hint : hint.substring(separator + 2);
   }
 }
 
@@ -270,12 +360,10 @@ class _MissionBox extends StatelessWidget {
 class _TextAnswerBox extends StatelessWidget {
   const _TextAnswerBox({
     required this.controller,
-    required this.onMicTap,
     required this.onSubmit,
   });
 
   final TextEditingController controller;
-  final VoidCallback onMicTap;
   final VoidCallback onSubmit;
 
   @override
@@ -288,10 +376,6 @@ class _TextAnswerBox extends StatelessWidget {
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: onMicTap,
-            icon: const Icon(Icons.mic, color: AuthColors.primary),
-          ),
           Expanded(
             child: TextField(
               controller: controller,
@@ -313,8 +397,8 @@ class _TextAnswerBox extends StatelessWidget {
   }
 }
 
-class _FeedbackBox extends StatelessWidget {
-  const _FeedbackBox({
+class _FeedbackOverlay extends StatelessWidget {
+  const _FeedbackOverlay({
     required this.feedback,
     required this.corrected,
     required this.onNext,
@@ -326,53 +410,96 @@ class _FeedbackBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(7),
-      ),
-      child: Column(
-        children: [
-          Text(
-            feedback.isEmpty ? '답변을 확인했습니다.' : feedback,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-          ),
-          if (corrected.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              corrected,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AuthColors.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
+    return Material(
+      color: Colors.black.withValues(alpha: .48),
+      child: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 390, maxHeight: 560),
+            child: Container(
+              margin: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(22, 28, 22, 22),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: .25),
+                    blurRadius: 14,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'AI 피드백',
+                    style: TextStyle(
+                      color: AuthColors.primary,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          Text(
+                            feedback.isEmpty ? '답변을 확인했습니다.' : feedback,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              height: 1.45,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (corrected.isNotEmpty) ...[
+                            const SizedBox(height: 22),
+                            Text(
+                              corrected,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: AuthColors.primary,
+                                fontSize: 18,
+                                height: 1.35,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: onNext,
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: AuthColors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        '다음으로',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 40,
-            child: ElevatedButton(
-              onPressed: onNext,
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                backgroundColor: AuthColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(7),
-                ),
-              ),
-              child: const Text(
-                '다음으로',
-                style: TextStyle(fontWeight: FontWeight.w900),
-              ),
-            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -435,7 +562,7 @@ BoxDecoration _cardDecoration(Color color) {
     borderRadius: BorderRadius.circular(8),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withValues(alpha: 0.2),
+        color: Colors.black.withValues(alpha: .2),
         blurRadius: 4,
         offset: const Offset(0, 2),
       ),

@@ -17,6 +17,7 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
   late Future<List<MainCategory>> _mainCategoriesFuture;
   Future<List<SubCategory>>? _subCategoriesFuture;
   MainCategory? _selectedCategory;
+  SubCategory? _selectedSubCategory;
 
   @override
   void initState() {
@@ -27,10 +28,21 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
   void _selectCategory(MainCategory category) {
     setState(() {
       _selectedCategory = category;
+      _selectedSubCategory = null;
       _subCategoriesFuture = ConversationController.fetchSubCategories(
         category.mainCatId,
       );
     });
+  }
+
+  void _selectSubCategory(SubCategory subCategory) {
+    setState(() => _selectedSubCategory = subCategory);
+  }
+
+  void _startConversation() {
+    final selected = _selectedSubCategory;
+    if (selected == null) return;
+    Navigator.pushNamed(context, AppRoutes.conversation, arguments: selected);
   }
 
   @override
@@ -45,163 +57,155 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
           '실전회화 리스트',
           style: TextStyle(
             color: AppColors.primary,
-            fontSize: 20,
+            fontSize: 24,
             fontWeight: FontWeight.w900,
           ),
         ),
         centerTitle: true,
       ),
-      body: FutureBuilder<List<MainCategory>>(
-        future: _mainCategoriesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
+      body: SafeArea(
+        top: false,
+        bottom: true,
+        child: FutureBuilder<List<MainCategory>>(
+          future: _mainCategoriesFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              );
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Text(
+                  '회화 주제를 불러오지 못했습니다.\n${snapshot.error}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.primary),
+                ),
+              );
+            }
 
-          if (snapshot.hasError) {
+            final categories = snapshot.data ?? [];
+            if (categories.isEmpty) {
+              return const Center(child: Text('사용 가능한 회화 주제가 없습니다.'));
+            }
+
+            final selectedCategory = _selectedCategory ?? categories.first;
+            _subCategoriesFuture ??=
+                ConversationController.fetchSubCategories(
+                  selectedCategory.mainCatId,
+                );
+
             return Center(
-              child: Text(
-                '주제를 불러오는 중 오류가 발생했습니다.\n${snapshot.error}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.primary),
-              ),
-            );
-          }
-
-          final categories = snapshot.data ?? [];
-          if (categories.isEmpty) {
-            return const Center(child: Text('사용 가능한 대화 주제가 없습니다.'));
-          }
-
-          final selected = _selectedCategory ?? categories.first;
-          _subCategoriesFuture ??= ConversationController.fetchSubCategories(
-            selected.mainCatId,
-          );
-
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 430),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
-                child: Column(
-                  children: [
-                    _SelectionCard(
-                      title: '회화 주제',
-                      child: Column(
-                        children: categories
-                            .map(
-                              (category) => _TopicLine(
-                                text: category.title,
-                                selected:
-                                    category.mainCatId == selected.mainCatId,
-                                onTap: () => _selectCategory(category),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    FutureBuilder<List<SubCategory>>(
-                      future: _subCategoriesFuture,
-                      builder: (context, subSnapshot) {
-                        final subCategories = subSnapshot.data ?? [];
-                        final loading =
-                            subSnapshot.connectionState ==
-                            ConnectionState.waiting;
-                        final hasError = subSnapshot.hasError;
-
-                        return _SelectionCard(
-                          title: '상세 상황',
-                          child: loading
-                              ? const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 28),
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.primary,
-                                  ),
-                                )
-                              : hasError
-                              ? const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 20),
-                                  child: Text(
-                                    '상세 상황을 불러오지 못했습니다.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                )
-                              : subCategories.isEmpty
-                              ? const Text(
-                                  '등록된 시나리오가 없습니다.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Color(0xFF9B9B9B),
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                )
-                              : Column(
-                                  children: subCategories
-                                      .map(
-                                        (sub) => _TopicLine(
-                                          text: sub.subTitle,
-                                          selected: sub == subCategories.first,
-                                          onTap: () => Navigator.pushNamed(
-                                            context,
-                                            AppRoutes.conversation,
-                                            arguments: sub,
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 430),
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(22, 20, 22, 36),
+                  child: Column(
+                    children: [
+                      _SelectionCard(
+                        title: '회화 주제',
+                        child: Column(
+                          children: categories
+                              .map(
+                                (category) => _TopicLine(
+                                  text: category.title,
+                                  selected:
+                                      category.mainCatId ==
+                                      selectedCategory.mainCatId,
+                                  onTap: () => _selectCategory(category),
                                 ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final future = _subCategoriesFuture;
-                          if (future == null) return;
-                          final subs = await future;
-                          if (!context.mounted || subs.isEmpty) {
-                            return;
+                              )
+                              .toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      FutureBuilder<List<SubCategory>>(
+                        future: _subCategoriesFuture,
+                        builder: (context, subSnapshot) {
+                          if (subSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const _SelectionCard(
+                              title: '상세 상황',
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 28),
+                                child: CircularProgressIndicator(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            );
                           }
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.conversation,
-                            arguments: subs.first,
+                          if (subSnapshot.hasError) {
+                            return const _SelectionCard(
+                              title: '상세 상황',
+                              child: Text(
+                                '상세 상황을 불러오지 못했습니다.',
+                                style: TextStyle(color: AppColors.primary),
+                              ),
+                            );
+                          }
+
+                          final subCategories = subSnapshot.data ?? [];
+                          return _SelectionCard(
+                            title: '상세 상황',
+                            child: subCategories.isEmpty
+                                ? const Text(
+                                    '등록된 상세 상황이 없습니다.',
+                                    style: TextStyle(color: Color(0xFF9B9B9B)),
+                                  )
+                                : Column(
+                                    children: subCategories
+                                        .map(
+                                          (sub) => _TopicLine(
+                                            text: sub.subTitle,
+                                            selected:
+                                                _selectedSubCategory
+                                                    ?.subCatId ==
+                                                sub.subCatId,
+                                            onTap: () =>
+                                                _selectSubCategory(sub),
+                                          ),
+                                        )
+                                        .toList(),
+                                  ),
                           );
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _selectedSubCategory == null
+                              ? null
+                              : _startConversation,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            disabledBackgroundColor: const Color(0xFFFFB3A8),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                        ),
-                        child: const Text(
-                          '이대로 시작!',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
+                          child: const Text(
+                            '이대로 시작!',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -217,10 +221,10 @@ class _SelectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 22),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 26),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.18),
@@ -235,11 +239,11 @@ class _SelectionCard extends StatelessWidget {
             title,
             style: const TextStyle(
               color: Colors.black,
-              fontSize: 13,
+              fontSize: 20,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 22),
           child,
         ],
       ),
@@ -248,24 +252,29 @@ class _SelectionCard extends StatelessWidget {
 }
 
 class _TopicLine extends StatelessWidget {
-  const _TopicLine({required this.text, required this.selected, this.onTap});
+  const _TopicLine({
+    required this.text,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String text;
   final bool selected;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Text(
           text,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: selected ? AppColors.primary : const Color(0xFF9B9B9B),
-            fontSize: 18,
+            fontSize: 22,
             fontWeight: FontWeight.w900,
             height: 1.15,
           ),

@@ -22,6 +22,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   @override
   void initState() {
     super.initState();
+    _answerController.addListener(_refreshInputWidth);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args =
           Get.arguments ??
@@ -36,8 +37,13 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
 
   @override
   void dispose() {
+    _answerController.removeListener(_refreshInputWidth);
     _answerController.dispose();
     super.dispose();
+  }
+
+  void _refreshInputWidth() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -46,6 +52,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     final quiz = provider.currentQuiz;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFFF7F7F7),
       body: SafeArea(
         child: provider.isLoading
@@ -60,8 +67,15 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   }
 
   Widget _buildQuizBody(GrammarProvider provider, Map<String, dynamic> quiz) {
-    return Column(
-      children: [
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.only(bottom: 32),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              children: [
         Container(
           width: double.infinity,
           height: 60,
@@ -160,8 +174,8 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         if (!provider.canRetry) ...[
           const SizedBox(height: 18),
           SizedBox(
-            width: 270,
-            height: 44,
+            width: MediaQuery.sizeOf(context).width - 104,
+            height: 56,
             child: ElevatedButton(
               onPressed: provider.isChecking
                   ? null
@@ -176,12 +190,17 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
               ),
               child: const Text(
                 '다음 문제로 넘어가기',
-                style: TextStyle(fontWeight: FontWeight.w900),
+                maxLines: 1,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
               ),
             ),
           ),
         ],
-      ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -218,31 +237,61 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           padding: const EdgeInsets.only(bottom: 3),
           child: Text(before, style: const TextStyle(fontSize: 15)),
         ),
-        SizedBox(
-          width: 52,
-          child: TextField(
-            controller: _answerController,
-            enabled: !provider.isChecking && provider.canRetry,
-            textAlign: TextAlign.center,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _handleAction(provider),
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-            decoration: InputDecoration(
-              isDense: true,
-              contentPadding: const EdgeInsets.only(bottom: 2),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(
-                  color: provider.isWrong
-                      ? AuthColors.primary
-                      : Colors.black87,
-                  width: 1.3,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final textPainter = TextPainter(
+              text: TextSpan(
+                text: _answerController.text.isEmpty
+                    ? '____'
+                    : '${_answerController.text}  ',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              focusedBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: AuthColors.primary, width: 1.5),
+              maxLines: 1,
+              textDirection: TextDirection.ltr,
+              textScaler: MediaQuery.textScalerOf(context),
+            )..layout();
+            final inputWidth = (textPainter.width + 32).clamp(
+              52.0,
+              MediaQuery.sizeOf(context).width * 0.82,
+            ).toDouble();
+
+            return SizedBox(
+              width: inputWidth,
+              child: TextField(
+                controller: _answerController,
+                enabled: !provider.isChecking && provider.canRetry,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _handleAction(provider),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.only(bottom: 2),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: provider.isWrong
+                          ? AuthColors.primary
+                          : Colors.black87,
+                      width: 1.3,
+                    ),
+                  ),
+                  focusedBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: AuthColors.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
         Padding(
           padding: const EdgeInsets.only(bottom: 3),
