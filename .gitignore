@@ -43,3 +43,6 @@ build/
 # 플랫폼별 임시 파일들
 **/ephemeral/
 **/.plugin_symlinks/
+
+# [추가 항목: Dart 분석기 로컬 캐시 (찌꺼기 파일 방지)]
+.tool-local/
