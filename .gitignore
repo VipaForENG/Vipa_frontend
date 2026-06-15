@@ -33,3 +33,13 @@ proxies.json
 
 # [추가 항목] API 설정 파일 (개인 IP 주소 포함)
 lib/api/api_config.dart
+# Flutter/Dart/Pub 관련 임시 파일들
+.dart_tool/
+.packages
+build/
+.pub-cache/
+.pub/
+
+# 플랫폼별 임시 파일들
+**/ephemeral/
+**/.plugin_symlinks/
