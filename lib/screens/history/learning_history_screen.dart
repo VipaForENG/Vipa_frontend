@@ -140,29 +140,45 @@ class _LearningHistoryContentState extends State<_LearningHistoryContent> {
     };
   }
 
-  Widget _mainDashboard(LearningHistoryProvider provider) {
+ Widget _mainDashboard(LearningHistoryProvider provider) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 36),
       children: [
-        const _SimpleSectionTitle(title: '실전회화'),
-        const SizedBox(height: 8),
-        _SimpleHistoryButton(
+        // 🌟 1. 상단 요약 섹션 추가
+        _SummaryStats(
+          sessionCount: provider.recentSessions.length,
+          bookmarkCount: provider.bookmarkedSentences.length,
+        ),
+        const SizedBox(height: 32),
+        
+        // 🌟 2. 섹션별 카드 레이아웃
+        const _SimpleSectionTitle(title: '실전회화 기록'),
+        const SizedBox(height: 12),
+        _FeatureCard(
           title: '상황별 시나리오',
+          subtitle: '${provider.recentSessions.length}개의 세션 기록',
+          icon: Icons.chat_bubble_outline_rounded,
+          color: const Color(0xFFE8F5E9), // 연한 초록
           onTap: () => setState(() => _detailType = HistoryDetailType.scenario),
         ),
-        const SizedBox(height: 22),
-        const _SimpleSectionTitle(title: '오늘의 어휘'),
-        const SizedBox(height: 8),
-        _SimpleHistoryButton(
+        
+        const SizedBox(height: 32),
+        const _SimpleSectionTitle(title: '어휘 학습 기록'),
+        const SizedBox(height: 12),
+        _FeatureCard(
           title: '즐겨찾기한 문장',
-          onTap: () => setState(
-            () => _detailType = HistoryDetailType.bookmarkedSentences,
-          ),
+          subtitle: '${provider.bookmarkedSentences.length}개의 중요 표현',
+          icon: Icons.bookmark_border_rounded,
+          color: const Color(0xFFFFF3E0), // 연한 주황
+          onTap: () => setState(() => _detailType = HistoryDetailType.bookmarkedSentences),
         ),
-        const SizedBox(height: 8),
-        _SimpleHistoryButton(
+        const SizedBox(height: 12),
+        _FeatureCard(
           title: '오답 단어',
+          subtitle: '${provider.wrongWords.length}개의 복습 필요 단어',
+          icon: Icons.error_outline_rounded,
+          color: const Color(0xFFFCE4EC), // 연한 핑크
           onTap: () => setState(() => _detailType = HistoryDetailType.wrongWords),
         ),
       ],
@@ -183,43 +199,6 @@ class _SimpleSectionTitle extends StatelessWidget {
           color: Colors.black,
           fontSize: 16,
           fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-  }
-}
-
-class _SimpleHistoryButton extends StatelessWidget {
-  const _SimpleHistoryButton({required this.title, required this.onTap});
-  final String title;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        height: 48,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.20),
-              blurRadius: 4,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Text(
-          title,
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
         ),
       ),
     );
@@ -347,36 +326,32 @@ class _DetailCard extends StatelessWidget {
           ],
         ),
         child: Row(
-          children: [
-            if (leading != null) ...[leading!, const SizedBox(width: 12)],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: Color(0xFFB7B7B7),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+        children: [
+          // 1. leading 영역
+          if (leading != null) ...[
+            leading!, 
+            const SizedBox(width: 12),
+          ],
+          
+          // 2. 타이틀/서브타이틀 영역
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(title, style: const TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.w900)),
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: const TextStyle(color: Color(0xFFB7B7B7), fontSize: 12, fontWeight: FontWeight.w700)),
                 ],
-              ),
+              ],
             ),
-            if (trailing != null) trailing!,
+          ),
+            // 3. trailing 영역 (수정: 간격 추가)
+            if (trailing != null) ...[
+              const SizedBox(width: 12), // 확장된 컬럼과 trailing 사이 간격 확보
+              trailing!,
+            ],
           ],
         ),
       ),
@@ -412,4 +387,76 @@ class _EmptyHistory extends StatelessWidget {
 String _formatDateTime(DateTime? date) {
   if (date == null) return '';
   return DateFormat('yyyy.MM.dd HH:mm').format(date.toLocal());
+}
+
+
+
+// 상단 요약 카드
+class _SummaryStats extends StatelessWidget {
+  final int sessionCount;
+  final int bookmarkCount;
+
+  const _SummaryStats({required this.sessionCount, required this.bookmarkCount});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _statItem('총 학습 세션', '$sessionCount'),
+          Container(width: 1, height: 30, color: Colors.white24),
+          _statItem('즐겨찾기', '$bookmarkCount'),
+        ],
+      ),
+    );
+  }
+
+  Widget _statItem(String label, String value) => Column(
+        children: [
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        ],
+      );
+}
+
+// 아이콘이 포함된 카드형 버튼
+class _FeatureCard extends StatelessWidget {
+  final String title, subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _FeatureCard({
+    required this.title, required this.subtitle, 
+    required this.icon, required this.color, required this.onTap
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.5))),
+        child: Row(
+          children: [
+            Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: Colors.black87)),
+            const SizedBox(width: 16),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+              Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            ]),
+            const Spacer(),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
 }

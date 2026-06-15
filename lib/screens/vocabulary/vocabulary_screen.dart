@@ -8,6 +8,7 @@ import '../../routes/app_routes.dart';
 import '../login/auth_widgets.dart';
 import 'vocabulary_provider.dart';
 import 'widgets/vocabulary_widgets.dart';
+import '../../services/tts_service.dart';
 
 class VocabularyScreen extends StatefulWidget {
   const VocabularyScreen({super.key});
@@ -18,10 +19,28 @@ class VocabularyScreen extends StatefulWidget {
 
 class _VocabularyScreenState extends State<VocabularyScreen> {
   final TextEditingController _answerController = TextEditingController();
+  int? _lastQuizId;
+
+
+  void _speakCurrentSentence(GrammarProvider provider, Map<String, dynamic> quiz) {
+    final masked = (quiz['masked_sentence'] ?? '').toString();
+    
+    // 1. 정답이 공개된 경우 (targetWord가 존재할 때)
+    if (provider.targetWord != null && provider.targetWord!.isNotEmpty) {
+      final text = masked.replaceAll('____', provider.targetWord!);
+      TtsService().speak(text);
+    } 
+    // 2. 처음 문제를 보여줄 때: 빈칸을 '...'으로 치환
+    else {
+      final text = masked.replaceAll('____', '...');
+      TtsService().speak(text);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    TtsService().init();
     _answerController.addListener(_refreshInputWidth);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args =
@@ -50,6 +69,13 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   Widget build(BuildContext context) {
     final provider = Provider.of<GrammarProvider>(context);
     final quiz = provider.currentQuiz;
+
+    if (quiz != null && quiz['sentence_id'] != _lastQuizId) {
+      _lastQuizId = quiz['sentence_id'];
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _speakCurrentSentence(provider, quiz);
+      });
+    }
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -124,13 +150,20 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  icon: Icon(
+                    provider.isCurrentBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                    color: AuthColors.primary,
+                  ),
+                  onPressed: () => provider.toggleBookmark(),
+                ),
+              ),
               Container(
                 constraints: const BoxConstraints(minHeight: 104),
                 alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 24,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
                 child: Text.rich(
                   _highlightedKorean(quiz),
                   textAlign: TextAlign.center,
@@ -155,15 +188,24 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                   ),
                 ),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisSize: MainAxisSize.min, // 🌟 레이아웃 꼬임 방지
                   children: [
                     _buildInputArea(
                       provider,
                       (quiz['masked_sentence'] ?? '').toString(),
                     ),
-                    if (provider.isWrong && provider.currentHint != null) ...[
+
+                    // 🌟 핵심: canRetry 변수로 상태를 확실하게 구분합니다.
+                    if (provider.isWrong) ...[
                       const SizedBox(height: 16),
-                      HintBox(hint: provider.currentHint!),
+                      
+                      // 1. 재시도 기회가 남았다면 -> 힌트만 보여줌
+                      if (provider.canRetry && provider.currentHint != null)
+                        HintBox(hint: provider.currentHint!),
+
+                      // 2. 재시도 기회가 끝났다면 -> 정답을 보여줌
+                      if (!provider.canRetry && provider.targetWord != null)
+                        _CorrectAnswerBox(answer: provider.targetWord!),
                     ],
                   ],
                 ),
@@ -305,21 +347,23 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     if (provider.isChecking) return;
 
     if (!provider.canRetry) {
-      _answerController.clear();
-      provider.forceNextQuestion(() {}, () => _finishQuiz(provider));
-      return;
+       _speakCurrentSentence(provider, provider.currentQuiz!); // 오답 후 정답 공개 시 읽기
+       _answerController.clear();
+       provider.forceNextQuestion(() {}, () => _finishQuiz(provider));
+       return;
     }
 
-    provider.checkAnswer(
-      _answerController.text,
-      () {
-        _answerController.clear();
-        VipaSnackBar.show(context, '정답입니다.');
-      },
-      () => _finishQuiz(provider),
-      () => VipaSnackBar.show(context, '정답을 확인하고 다음 문제로 넘어가세요.'),
-    );
-  }
+      provider.checkAnswer(
+          _answerController.text,
+          () {
+            _speakCurrentSentence(provider, provider.currentQuiz!); // 정답 맞췄을 때 읽기
+            _answerController.clear();
+            VipaSnackBar.show(context, '정답입니다.');
+          },
+          () => _finishQuiz(provider),
+          () => VipaSnackBar.show(context, '정답을 확인하고 다음 문제로 넘어가세요.'),
+        );
+      }
 
   void _finishQuiz(GrammarProvider provider) {
     _answerController.clear();
@@ -333,6 +377,43 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             'score_percentage': 0.0,
             'results': [],
           },
+    );
+  }
+}
+
+
+// 🔥 추가된 정답 표시 위젯
+class _CorrectAnswerBox extends StatelessWidget {
+  final String answer;
+
+  const _CorrectAnswerBox({required this.answer});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.5)),
+      ),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            const TextSpan(
+              text: '정답: ',
+              style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blue),
+            ),
+            TextSpan(
+              text: answer,
+              style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.blue),
+            ),
+          ],
+        ),
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 14),
+      ),
     );
   }
 }

@@ -182,12 +182,25 @@ class _RankCard extends StatelessWidget {
 
   final HomeSummary data;
 
+  // 🌟 다음 등급까지 남은 에너지를 계산하는 로직 추가
+  int _getRemainingEnergy(int currentEnergy) {
+    const thresholds = [50, 150, 300, 600, 1000];
+    for (var limit in thresholds) {
+      if (currentEnergy < limit) return limit - currentEnergy;
+    }
+    return 0; // 이미 마스터(1000 초과)
+  }
+
   @override
   Widget build(BuildContext context) {
     final rank = VipaRank.fromTier(data.tier);
-    final totalEnergy = data.totalLearningCount;
-    final todayVocabulary = data.todayVocabularyCount;
-    final todayConversation = data.todayConversationCount;
+    final totalEnergy = data.totalLearningEnergy;
+    final todayVocabulary = data.todayVocabularyEnergy;
+    final todayConversation = data.todayConversationEnergy;
+    
+    // 🌟 남은 에너지 계산 실행
+    final remaining = _getRemainingEnergy(totalEnergy);
+    final isMaster = totalEnergy >= 1000;
 
     return _WhiteCard(
       child: Padding(
@@ -205,6 +218,20 @@ class _RankCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 19),
+            // 🌟 승급까지 남은 에너지 메시지 추가 (프로그래스바 위쪽)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Text(
+                isMaster 
+                    ? "최고 등급 마스터입니다! 축하합니다! 🎉"
+                    : "다음 등급까지 $remaining EXP 남았어요!",
+                style: TextStyle(
+                  color: isMaster ? AuthColors.primary : Colors.grey[600],
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
             ClipRRect(
               borderRadius: BorderRadius.circular(99),
               child: LinearProgressIndicator(
@@ -216,21 +243,21 @@ class _RankCard extends StatelessWidget {
                 valueColor: AlwaysStoppedAnimation<Color>(rank.color),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 18), // 간격 조정
             Align(
               alignment: Alignment.centerLeft,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _EnergyLine(label: '총 학습량', value: '$totalEnergy개'),
+                  _EnergyLine(label: '총 누적 획득 에너지', value: '$totalEnergy EXP'),
                   _EnergyLine(
-                    label: '오늘의 어휘 총 학습량',
-                    value: '$todayVocabulary개',
+                    label: '오늘의 어휘 획득 에너지',
+                    value: '$todayVocabulary EXP',
                     valueColor: AuthColors.primary,
                   ),
                   _EnergyLine(
-                    label: '실전회화 총 학습량',
-                    value: '$todayConversation개',
+                    label: '오늘의 실전회화 획득 에너지',
+                    value: '$todayConversation EXP',
                     valueColor: AuthColors.primary,
                   ),
                 ],

@@ -136,61 +136,43 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background, // 디자인 시스템 일관성 유지
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          '마이페이지',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            color: AppColors.primary,
-            fontSize: 20,
-          ),
-        ),
+        title: const Text('마이페이지', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.black, fontSize: 18)),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
-      // Pull-to-Refresh 당겨서 새로고침 기능 바인딩 (main 브랜치 기능)
-      body: RefreshIndicator(
-        onRefresh: () => _loadUserInfo(forceRefresh: true),
-        child: SingleChildScrollView(
-          physics:
-              const AlwaysScrollableScrollPhysics(), // 콘텐츠가 적어도 스크롤 가능하도록 보장
-          padding: const EdgeInsets.only(bottom: 40),
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              _ProfileCard(
-                nickname: nickname,
-                email: email,
-                avatar: _buildProfileAvatar(radius: 28),
-                onEdit: _openProfileSetting,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        child: Column(
+          children: [
+            // 1. 프로필 카드
+            _ProfileCard(nickname: nickname, email: email, avatar: _buildProfileAvatar(radius: 28), onEdit: _openProfileSetting),
+            const SizedBox(height: 32),
+
+            // 2. 계정 관리 카드 (메뉴 그룹화)
+            _MenuSectionTitle(title: '계정 설정'),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))]),
+              child: Column(
+                children: [
+                  if (!isSocialUser) _FlatMenuButton(title: '비밀번호 변경', onTap: () => Navigator.pushNamed(context, AppRoutes.changePassword, arguments: {'isFromMyPage': true})),
+                  _FlatMenuButton(title: '회원 탈퇴', textColor: AppColors.primary, onTap: () => _showWithdrawalDialog(context)),
+                  _FlatMenuButton(title: '로그아웃', textColor: Colors.grey, onTap: _logout),
+                ],
               ),
-              if (!isSocialUser) ...[
-                const SizedBox(height: 14),
-                _FlatMenuButton(
-                  title: '비밀번호 변경',
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    AppRoutes.changePassword,
-                    arguments: {'isFromMyPage': true},
-                  ),
-                ),
-              ],
-              const SizedBox(height: 10),
-              _FlatMenuButton(
-                title: '회원 탈퇴',
-                textColor: AppColors.primary,
-                onTap: () => _showWithdrawalDialog(context),
-              ),
-              const SizedBox(height: 20),
-              _buildLogoutButton(context),
-            ],
-          ),
+            ),
+            
+            // 3. 하단 여백 및 앱 정보
+            const SizedBox(height: 40),
+            const Center(child: Text('v1.0.0', style: TextStyle(color: Colors.grey, fontSize: 12))),
+          ],
         ),
       ),
     );
@@ -234,22 +216,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-  /// 화면 최하단에 배치되는 단순 언더라인 스타일 로그아웃 버튼
-  Widget _buildLogoutButton(BuildContext context) {
-    return Center(
-      child: TextButton(
-        onPressed: _logout,
-        child: const Text(
-          '로그아웃',
-          style: TextStyle(
-            color: Color(0xFF9B9B9B),
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ),
-    );
-  }
 
   // --- 다이얼로그 모달 구현체 (AuthController 인터페이스 통합) ---
 
@@ -401,77 +367,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
       },
     );
   }
-
-  /// 이메일 회원 전용 비밀번호 변경 폼 다이얼로그
-  void _showChangePasswordDialog(BuildContext context) {
-    final oldPwController = TextEditingController();
-    final newPwController = TextEditingController();
-
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          '비밀번호 변경',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: oldPwController,
-              decoration: const InputDecoration(labelText: '현재 비밀번호'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: newPwController,
-              decoration: const InputDecoration(labelText: '새 비밀번호'),
-              obscureText: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () async {
-              if (oldPwController.text.isEmpty ||
-                  newPwController.text.isEmpty) {
-                return;
-              }
-
-              final success = await AuthController.changePassword(
-                oldPwController.text,
-                newPwController.text,
-              );
-              if (!context.mounted) return;
-
-              if (success) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('비밀번호가 성공적으로 변경되었습니다.')),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('변경 실패. 현재 비밀번호를 확인해주세요.')),
-                );
-              }
-            },
-            child: const Text(
-              '변경',
-              style: TextStyle(
-                color: Colors.blueAccent,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _ProfileCard extends StatelessWidget {
@@ -560,44 +455,31 @@ class _ProfileCard extends StatelessWidget {
 }
 
 class _FlatMenuButton extends StatelessWidget {
-  const _FlatMenuButton({
-    required this.title,
-    required this.onTap,
-    this.textColor = Colors.black,
-  });
-
+  const _FlatMenuButton({required this.title, required this.onTap, this.textColor = Colors.black});
   final String title;
   final VoidCallback onTap;
   final Color textColor;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 46,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: TextButton(
-        onPressed: onTap,
-        child: Text(
-          title,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 13,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFF5F5F5)))),
+        child: Text(title, style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w700)),
       ),
     );
   }
+}
+
+class _MenuSectionTitle extends StatelessWidget {
+  final String title;
+  const _MenuSectionTitle({required this.title});
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(left: 8, bottom: 8),
+    child: Align(alignment: Alignment.centerLeft, child: Text(title, style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w800))),
+  );
 }

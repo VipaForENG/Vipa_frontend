@@ -2,22 +2,22 @@ class HomeSummary {
   final String nickname;
   final String tier;
   final double topPercent;
-  final int totalLearningCount;
-  final int todayVocabularyCount;
-  final int todayConversationCount;
+  final int totalLearningEnergy;      
+  final int todayVocabularyEnergy;    
+  final int todayConversationEnergy;  
   final List<WeeklyData> weeklyData;
   final List<String> attendance;
   final List<String> attendanceDates;
   final int continuousAttendanceCount;
-  final int studyAchievementRate; // 목표 대비 달성률
+  final int studyAchievementRate; 
 
   HomeSummary({
     required this.nickname,
     required this.tier,
     required this.topPercent,
-    required this.totalLearningCount,
-    required this.todayVocabularyCount,
-    required this.todayConversationCount,
+    required this.totalLearningEnergy,
+    required this.todayVocabularyEnergy,
+    required this.todayConversationEnergy,
     required this.weeklyData,
     required this.attendance,
     required this.attendanceDates,
@@ -30,15 +30,17 @@ class HomeSummary {
       nickname: json['nickname'] ?? "사용자",
       tier: json['tier'] ?? "BRONZE",
       topPercent: _toDouble(json['top_percent'] ?? json['topPercent']),
-      totalLearningCount: _toInt(
-        json['total_learning_count'] ?? json['totalLearningCount'],
+      
+      totalLearningEnergy: _toInt(
+        json['total_learning_energy'] ?? json['totalLearningEnergy'],
       ),
-      todayVocabularyCount: _toInt(
-        json['today_vocabulary_count'] ?? json['todayVocabularyCount'],
+      todayVocabularyEnergy: _toInt(
+        json['today_vocabulary_energy'] ?? json['todayVocabularyEnergy'],
       ),
-      todayConversationCount: _toInt(
-        json['today_conversation_count'] ?? json['todayConversationCount'],
+      todayConversationEnergy: _toInt(
+        json['today_conversation_energy'] ?? json['todayConversationEnergy'],
       ),
+      
       weeklyData:
           ((json['weekly_data'] ?? json['weeklyData']) as List?)
               ?.map((i) => WeeklyData.fromJson(i))

@@ -1,5 +1,6 @@
 plugins {
     id("com.android.application")
+    id("kotlin-android") // 🌟 이 줄을 반드시 추가해야 kotlinOptions를 인식합니다!
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 
