@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../login/auth_widgets.dart';
+import '../../../services/tts_service.dart';
 import 'conversation_provider.dart';
 import 'conversation_result_screen.dart';
 
@@ -18,22 +19,30 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final PageController _hintPageController = PageController(viewportFraction: .9);
   int _hintPage = 0;
+  String? _lastSpokenEnglish;
+  bool _sessionReady = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await TtsService().stop();
+      if (!mounted) return;
       final provider = Provider.of<ConversationProvider>(
         context,
         listen: false,
       );
       provider.reset();
-      provider.initializeScenario(widget.subCatId);
+      await provider.initializeScenario(widget.subCatId);
+      if (mounted) {
+        setState(() => _sessionReady = true);
+      }
     });
   }
 
   @override
   void dispose() {
+    TtsService().stop();
     _textController.dispose();
     _hintPageController.dispose();
     super.dispose();
@@ -42,6 +51,17 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ConversationProvider>();
+    final english = provider.aiEnglish.trim();
+
+    if (_sessionReady &&
+        english.isNotEmpty &&
+        english != '시나리오를 생성 중입니다...' &&
+        english != _lastSpokenEnglish) {
+      _lastSpokenEnglish = english;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _speakEnglish(english);
+      });
+    }
 
     if (provider.completionResult != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -106,6 +126,7 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
                         _LearningCard(
                           english: provider.aiEnglish,
                           korean: provider.aiKorean,
+                          onSpeak: () => _speakEnglish(provider.aiEnglish),
                         ),
                         const SizedBox(height: 12),
                         _MissionBox(text: provider.userTargetSentence),
@@ -172,6 +193,14 @@ class _ConversationChatScreenState extends State<ConversationChatScreen> {
     if (text.isEmpty) return;
     provider.evaluateSpeech(text);
     _textController.clear();
+  }
+
+  Future<void> _speakEnglish(String text) async {
+    final english = text.trim();
+    if (english.isEmpty || english == '시나리오를 생성 중입니다...') return;
+    await TtsService().init();
+    if (!mounted) return;
+    await TtsService().speak(english);
   }
 
   Future<void> _requestHint(ConversationProvider provider) async {
@@ -289,39 +318,63 @@ class _HintCarousel extends StatelessWidget {
 }
 
 class _LearningCard extends StatelessWidget {
-  const _LearningCard({required this.english, required this.korean});
+  const _LearningCard({
+    required this.english,
+    required this.korean,
+    required this.onSpeak,
+  });
 
   final String english;
   final String korean;
+  final VoidCallback onSpeak;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 128),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
       decoration: _cardDecoration(Colors.white),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
         children: [
-          Text(
-            english,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              height: 1.2,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 48, 20, 25),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  english,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  korean,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFFAAAAAA),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            korean,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFFAAAAAA),
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+          Positioned(
+            top: 8,
+            right: 10,
+            child: IconButton(
+              tooltip: '영어 다시 듣기',
+              onPressed: onSpeak,
+              icon: const Icon(
+                Icons.volume_up_rounded,
+                color: AuthColors.primary,
+                size: 27,
+              ),
             ),
           ),
         ],

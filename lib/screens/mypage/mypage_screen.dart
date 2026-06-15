@@ -136,42 +136,63 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF7F7F7),
       appBar: AppBar(
-        title: const Text('마이페이지', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.black, fontSize: 18)),
+        title: const Text(
+          '마이페이지',
+          style: TextStyle(
+            color: AppColors.primary,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
         child: Column(
           children: [
-            // 1. 프로필 카드
-            _ProfileCard(nickname: nickname, email: email, avatar: _buildProfileAvatar(radius: 28), onEdit: _openProfileSetting),
-            const SizedBox(height: 32),
-
-            // 2. 계정 관리 카드 (메뉴 그룹화)
-            _MenuSectionTitle(title: '계정 설정'),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))]),
-              child: Column(
-                children: [
-                  if (!isSocialUser) _FlatMenuButton(title: '비밀번호 변경', onTap: () => Navigator.pushNamed(context, AppRoutes.changePassword, arguments: {'isFromMyPage': true})),
-                  _FlatMenuButton(title: '회원 탈퇴', textColor: AppColors.primary, onTap: () => _showWithdrawalDialog(context)),
-                  _FlatMenuButton(title: '로그아웃', textColor: Colors.grey, onTap: _logout),
-                ],
+            _ProfileCard(
+              nickname: nickname,
+              email: email,
+              avatar: _buildProfileAvatar(radius: 30),
+              onEdit: _openProfileSetting,
+            ),
+            const SizedBox(height: 16),
+            if (!isSocialUser) ...[
+              _MyPageActionButton(
+                title: '비밀번호 변경',
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  AppRoutes.changePassword,
+                  arguments: {'isFromMyPage': true},
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            _MyPageActionButton(
+              title: '회원 탈퇴',
+              textColor: AppColors.primary,
+              onTap: () => _showWithdrawalDialog(context),
+            ),
+            const SizedBox(height: 14),
+            TextButton(
+              onPressed: _logout,
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF9E9E9E),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              ),
+              child: const Text(
+                '로그아웃',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
               ),
             ),
-            
-            // 3. 하단 여백 및 앱 정보
-            const SizedBox(height: 40),
-            const Center(child: Text('v1.0.0', style: TextStyle(color: Colors.grey, fontSize: 12))),
           ],
         ),
       ),
@@ -188,8 +209,8 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
     // 기본 대체 아이콘 빌딩
     Widget imageFallback = Container(
-      color: Colors.blueAccent.withValues(alpha: 0.2),
-      child: const Icon(Icons.person, color: Colors.blueAccent, size: 30),
+      color: const Color(0xFFDEDEDE),
+      child: const Icon(Icons.person, color: Colors.white, size: 27),
     );
 
     Widget activeImage = imageFallback;
@@ -386,23 +407,22 @@ class _ProfileCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.fromLTRB(20, 18, 22, 18),
+      padding: const EdgeInsets.fromLTRB(20, 20, 22, 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 3,
+            offset: const Offset(0, 2.5),
           ),
         ],
       ),
       child: Row(
         children: [
           avatar,
-          const SizedBox(width: 18),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -411,26 +431,26 @@ class _ProfileCard extends StatelessWidget {
                   nickname,
                   style: const TextStyle(
                     color: Colors.black,
-                    fontSize: 19,
+                    fontSize: 21,
                     fontWeight: FontWeight.w900,
-                    height: 1.0,
+                    height: 1.05,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   email,
                   style: const TextStyle(
                     color: Color(0xFFB3B3B3),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
           SizedBox(
-            width: 56,
-            height: 32,
+            width: 70,
+            height: 38,
             child: ElevatedButton(
               onPressed: onEdit,
               style: ElevatedButton.styleFrom(
@@ -444,7 +464,7 @@ class _ProfileCard extends StatelessWidget {
               ),
               child: const Text(
                 '수정',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
               ),
             ),
           ),
@@ -454,32 +474,44 @@ class _ProfileCard extends StatelessWidget {
   }
 }
 
-class _FlatMenuButton extends StatelessWidget {
-  const _FlatMenuButton({required this.title, required this.onTap, this.textColor = Colors.black});
+class _MyPageActionButton extends StatelessWidget {
+  const _MyPageActionButton({
+    required this.title,
+    required this.onTap,
+    this.textColor = Colors.black,
+  });
+
   final String title;
   final VoidCallback onTap;
   final Color textColor;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFF5F5F5)))),
-        child: Text(title, style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w700)),
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: Material(
+        color: Colors.white,
+        elevation: 2,
+        shadowColor: Colors.black.withValues(alpha: 0.35),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(7),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(7),
+          child: Center(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
-}
-
-class _MenuSectionTitle extends StatelessWidget {
-  final String title;
-  const _MenuSectionTitle({required this.title});
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(left: 8, bottom: 8),
-    child: Align(alignment: Alignment.centerLeft, child: Text(title, style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w800))),
-  );
 }

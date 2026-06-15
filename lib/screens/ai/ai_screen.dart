@@ -4,6 +4,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../controllers/ai_controller.dart';
 import '../../design/app_colors.dart';
+import '../../services/tts_service.dart';
 
 class AiScreen extends StatefulWidget {
   const AiScreen({super.key});
@@ -20,15 +21,29 @@ class _AiScreenState extends State<AiScreen> {
 
   bool _isListening = false;
   String _spokenText = '';
+  int _knownMessageCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _knownMessageCount = _controller.messages.length;
     _controller.addListener(_onControllerChanged);
   }
 
   void _onControllerChanged() {
     if (!mounted) return;
+    final messages = _controller.messages;
+    if (messages.length > _knownMessageCount) {
+      final newMessages = messages.skip(_knownMessageCount);
+      final newAiMessages = newMessages
+          .where((message) => !message.isUser && message.text.isNotEmpty)
+          .toList();
+      _knownMessageCount = messages.length;
+
+      if (newAiMessages.isNotEmpty) {
+        _speakAiMessage(newAiMessages.last.text);
+      }
+    }
     setState(() {});
     _scrollToBottom();
   }
@@ -47,6 +62,7 @@ class _AiScreenState extends State<AiScreen> {
   @override
   void dispose() {
     _speech.stop();
+    TtsService().stop();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     _textController.dispose();
@@ -94,6 +110,9 @@ class _AiScreenState extends State<AiScreen> {
                           text: message.text,
                           translation: message.translation,
                           alignRight: message.isUser,
+                          onSpeak: message.isUser
+                              ? null
+                              : () => _speakAiMessage(message.text),
                         );
                       }
                       if (_isListening &&
@@ -103,6 +122,7 @@ class _AiScreenState extends State<AiScreen> {
                           text: _spokenText,
                           translation: '듣고 있어요...',
                           alignRight: true,
+                          onSpeak: null,
                         );
                       }
                       return const Align(
@@ -170,6 +190,7 @@ class _AiScreenState extends State<AiScreen> {
       return;
     }
 
+    await TtsService().stop();
     final permission = await Permission.microphone.request();
     if (!permission.isGranted) {
       if (mounted) {
@@ -279,6 +300,14 @@ class _AiScreenState extends State<AiScreen> {
     Navigator.pop(sheetContext);
     _controller.sendToAi(text);
   }
+
+  Future<void> _speakAiMessage(String text) async {
+    final english = text.trim();
+    if (english.isEmpty) return;
+    await TtsService().init();
+    if (!mounted || _isListening) return;
+    await TtsService().speak(english);
+  }
 }
 
 class _ChatBubble extends StatelessWidget {
@@ -286,11 +315,13 @@ class _ChatBubble extends StatelessWidget {
     required this.text,
     required this.translation,
     required this.alignRight,
+    required this.onSpeak,
   });
 
   final String text;
   final String translation;
   final bool alignRight;
+  final VoidCallback? onSpeak;
 
   @override
   Widget build(BuildContext context) {
@@ -299,7 +330,6 @@ class _ChatBubble extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 292),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(11, 10, 11, 8),
           decoration: BoxDecoration(
             color: alignRight ? const Color(0xFFFF806B) : Colors.white,
             borderRadius: BorderRadius.circular(8),
@@ -311,32 +341,58 @@ class _ChatBubble extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Text(
-                text,
-                style: TextStyle(
-                  color: alignRight ? Colors.white : Colors.black,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  height: 1.12,
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  11,
+                  10,
+                  onSpeak == null ? 11 : 42,
+                  8,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      text,
+                      style: TextStyle(
+                        color: alignRight ? Colors.white : Colors.black,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        height: 1.12,
+                      ),
+                    ),
+                    if (translation.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        translation,
+                        style: TextStyle(
+                          color: alignRight
+                              ? Colors.white.withValues(alpha: 0.85)
+                              : const Color(0xFF9B9B9B),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          height: 1.05,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              if (translation.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(
-                  translation,
-                  style: TextStyle(
-                    color: alignRight
-                        ? Colors.white.withValues(alpha: 0.85)
-                        : const Color(0xFF9B9B9B),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    height: 1.05,
+              if (onSpeak != null)
+                Positioned(
+                  top: 2,
+                  right: 3,
+                  child: IconButton(
+                    tooltip: '영어 다시 듣기',
+                    onPressed: onSpeak,
+                    icon: const Icon(
+                      Icons.volume_up_rounded,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
                   ),
                 ),
-              ],
             ],
           ),
         ),

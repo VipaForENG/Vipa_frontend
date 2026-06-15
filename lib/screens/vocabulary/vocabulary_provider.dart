@@ -7,6 +7,7 @@ class GrammarProvider extends ChangeNotifier {
 
   bool isLoading = true;
   bool isChecking = false;
+  bool isBookmarking = false;
   
   List<dynamic> quizList = [];
   List<Map<String, dynamic>> userAnswers = [];
@@ -29,7 +30,8 @@ class GrammarProvider extends ChangeNotifier {
 
   bool get isCurrentBookmarked {
     if (currentQuiz == null) return false;
-    return _bookmarkedIds.contains(currentQuiz!['sentence_id']);
+    final id = int.tryParse(currentQuiz!['sentence_id'].toString());
+    return id != null && _bookmarkedIds.contains(id);
   }
   int get currentCount => _currentIndex + 1;
   int get totalCount => quizList.isEmpty ? 10 : quizList.length;
@@ -50,6 +52,7 @@ class GrammarProvider extends ChangeNotifier {
   Future<void> fetchQuiz(int newCount, int reviewCount, int retryCount) async {
     isLoading = true;
     _currentIndex = 0;
+    quizList = [];
     _resetTurnStats(); // 시작 시 초기화
     userAnswers.clear();
     notifyListeners();
@@ -138,13 +141,13 @@ class GrammarProvider extends ChangeNotifier {
 
   // ✨ [신규 추가] 즐겨찾기 토글 로직 (낙관적 UI 업데이트 적용)
   Future<void> toggleBookmark() async {
-    if (currentQuiz == null) return;
+    if (currentQuiz == null || isBookmarking) return;
     
-    final int vocabId = currentQuiz!['sentence_id'];
+    final int vocabId = int.parse(currentQuiz!['sentence_id'].toString());
     final bool currentState = _bookmarkedIds.contains(vocabId);
     final bool newState = !currentState;
 
-    // 1. 서버 통신 전에 화면(UI)부터 즉시 변경 (낙관적 업데이트)
+    isBookmarking = true;
     if (newState) {
       _bookmarkedIds.add(vocabId);
     } else {
@@ -157,12 +160,13 @@ class GrammarProvider extends ChangeNotifier {
       await _vocabularyController.toggleBookmark(vocabId, newState);
     } catch (e) {
       debugPrint("즐겨찾기 토글 실패: $e");
-      // 3. 만약 서버 통신이 실패하면 원래 상태로 롤백(복구)
       if (currentState) {
         _bookmarkedIds.add(vocabId);
       } else {
         _bookmarkedIds.remove(vocabId);
       }
+    } finally {
+      isBookmarking = false;
       notifyListeners();
     }
   }

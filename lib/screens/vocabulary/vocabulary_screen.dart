@@ -20,20 +20,21 @@ class VocabularyScreen extends StatefulWidget {
 class _VocabularyScreenState extends State<VocabularyScreen> {
   final TextEditingController _answerController = TextEditingController();
   int? _lastQuizId;
+  bool _sessionReady = false;
 
-
-  void _speakCurrentSentence(GrammarProvider provider, Map<String, dynamic> quiz) {
+  Future<void> _speakCurrentSentence(
+    GrammarProvider provider,
+    Map<String, dynamic> quiz,
+  ) async {
     final masked = (quiz['masked_sentence'] ?? '').toString();
-    
-    // 1. 정답이 공개된 경우 (targetWord가 존재할 때)
+    await TtsService().init();
+    if (!mounted) return;
+
     if (provider.targetWord != null && provider.targetWord!.isNotEmpty) {
       final text = masked.replaceAll('____', provider.targetWord!);
-      TtsService().speak(text);
-    } 
-    // 2. 처음 문제를 보여줄 때: 빈칸을 '...'으로 치환
-    else {
-      final text = masked.replaceAll('____', '...');
-      TtsService().speak(text);
+      await TtsService().speak(text);
+    } else {
+      await TtsService().speakWithBlankPause(masked);
     }
   }
 
@@ -42,20 +43,26 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     super.initState();
     TtsService().init();
     _answerController.addListener(_refreshInputWidth);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await TtsService().stop();
+      if (!mounted) return;
       final args =
           Get.arguments ??
           {'new_count': 5, 'review_count': 10, 'retry_count': 10};
-      Provider.of<GrammarProvider>(context, listen: false).fetchQuiz(
+      await Provider.of<GrammarProvider>(context, listen: false).fetchQuiz(
         args['new_count'],
         args['review_count'],
         args['retry_count'],
       );
+      if (mounted) {
+        setState(() => _sessionReady = true);
+      }
     });
   }
 
   @override
   void dispose() {
+    TtsService().stop();
     _answerController.removeListener(_refreshInputWidth);
     _answerController.dispose();
     super.dispose();
@@ -70,9 +77,12 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     final provider = Provider.of<GrammarProvider>(context);
     final quiz = provider.currentQuiz;
 
-    if (quiz != null && quiz['sentence_id'] != _lastQuizId) {
+    if (_sessionReady &&
+        quiz != null &&
+        quiz['sentence_id'] != _lastQuizId) {
       _lastQuizId = quiz['sentence_id'];
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_sessionReady) return;
         _speakCurrentSentence(provider, quiz);
       });
     }
@@ -81,7 +91,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFFF7F7F7),
       body: SafeArea(
-        child: provider.isLoading
+        child: !_sessionReady || provider.isLoading
             ? const Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               )
@@ -150,27 +160,57 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: IconButton(
-                  icon: Icon(
-                    provider.isCurrentBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                    color: AuthColors.primary,
-                  ),
-                  onPressed: () => provider.toggleBookmark(),
-                ),
-              ),
               Container(
-                constraints: const BoxConstraints(minHeight: 104),
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                child: Text.rich(
-                  _highlightedKorean(quiz),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                constraints: const BoxConstraints(minHeight: 190),
+                child: SizedBox(
+                  height: 190,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(30, 52, 30, 26),
+                        child: Text.rich(
+                          _highlightedKorean(quiz),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 18,
+                            height: 1.45,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: Row(
+                          children: [
+                            IconButton(
+                              tooltip: '영어 다시 듣기',
+                              icon: const Icon(
+                                Icons.volume_up_rounded,
+                                color: AuthColors.primary,
+                              ),
+                              onPressed: () async {
+                                await _speakCurrentSentence(provider, quiz);
+                              },
+                            ),
+                            IconButton(
+                              tooltip: '북마크',
+                              icon: Icon(
+                                provider.isCurrentBookmarked
+                                    ? Icons.bookmark
+                                    : Icons.bookmark_border,
+                                color: AuthColors.primary,
+                              ),
+                              onPressed: provider.isBookmarking
+                                  ? null
+                                  : () => provider.toggleBookmark(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -259,7 +299,10 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         TextSpan(text: text.substring(0, index)),
         TextSpan(
           text: target,
-          style: const TextStyle(color: AuthColors.primary),
+          style: const TextStyle(
+            color: Color(0xFFFF8A00),
+            fontWeight: FontWeight.w900,
+          ),
         ),
         TextSpan(text: text.substring(index + target.length)),
       ],
@@ -268,17 +311,23 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
 
   Widget _buildInputArea(GrammarProvider provider, String maskedSentence) {
     final parts = maskedSentence.split('____');
-    final before = parts.isNotEmpty ? parts.first : '';
-    final after = parts.length > 1 ? parts.sublist(1).join('____') : '';
+    final before = parts.isNotEmpty ? parts.first.trim() : '';
+    final after = parts.length > 1 ? parts.sublist(1).join('____').trim() : '';
+    const sentenceStyle = TextStyle(
+      color: Color(0xFF211A19),
+      fontSize: 17,
+      height: 1.45,
+      fontWeight: FontWeight.w800,
+    );
 
     return Wrap(
       alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.end,
+      runAlignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 5,
+      runSpacing: 8,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 3),
-          child: Text(before, style: const TextStyle(fontSize: 15)),
-        ),
+        ..._buildSentenceWords(before, sentenceStyle),
         LayoutBuilder(
           builder: (context, constraints) {
             final textPainter = TextPainter(
@@ -286,10 +335,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                 text: _answerController.text.isEmpty
                     ? '____'
                     : '${_answerController.text}  ',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: sentenceStyle,
               ),
               maxLines: 1,
               textDirection: TextDirection.ltr,
@@ -310,8 +356,8 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _handleAction(provider),
                 style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
                 ),
                 decoration: InputDecoration(
                   isDense: true,
@@ -335,12 +381,19 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             );
           },
         ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 3),
-          child: Text(after, style: const TextStyle(fontSize: 15)),
-        ),
+        ..._buildSentenceWords(after, sentenceStyle),
       ],
     );
+  }
+
+  List<Widget> _buildSentenceWords(String text, TextStyle style) {
+    if (text.isEmpty) return const [];
+
+    return text
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .map((word) => Text(word, textAlign: TextAlign.center, style: style))
+        .toList();
   }
 
   void _handleAction(GrammarProvider provider) {
@@ -356,7 +409,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       provider.checkAnswer(
           _answerController.text,
           () {
-            _speakCurrentSentence(provider, provider.currentQuiz!); // 정답 맞췄을 때 읽기
             _answerController.clear();
             VipaSnackBar.show(context, '정답입니다.');
           },
