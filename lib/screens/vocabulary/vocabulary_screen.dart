@@ -118,7 +118,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           alignment: Alignment.center,
           color: Colors.white,
           child: const Text(
-            '오늘의 어휘 목표량',
+            '오늘의 어휘는?',
             style: TextStyle(
               color: AuthColors.primary,
               fontSize: 21,
@@ -288,25 +288,60 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
 
   TextSpan _highlightedKorean(Map<String, dynamic> quiz) {
     final text = (quiz['korean_hint'] ?? '').toString();
-    final target = (quiz['target_word_ko'] ?? '').toString();
-    if (target.isEmpty || !text.contains(target)) {
+    final target = (quiz['target_word_ko'] ?? '').toString().trim();
+    final highlightedText = _findKoreanHighlight(text, target, quiz);
+    if (highlightedText.isEmpty) {
       return TextSpan(text: text);
     }
 
-    final index = text.indexOf(target);
+    final match = RegExp(
+      '${RegExp.escape(highlightedText)}[\\uAC00-\\uD7A3]*',
+    ).firstMatch(text);
+    if (match == null) {
+      return TextSpan(text: text);
+    }
+
+    final index = match.start;
+    final matchedText = match.group(0) ?? highlightedText;
     return TextSpan(
       children: [
         TextSpan(text: text.substring(0, index)),
         TextSpan(
-          text: target,
+          text: matchedText,
           style: const TextStyle(
             color: Color(0xFFFF8A00),
             fontWeight: FontWeight.w900,
           ),
         ),
-        TextSpan(text: text.substring(index + target.length)),
+        TextSpan(text: text.substring(index + matchedText.length)),
       ],
     );
+  }
+
+  String _findKoreanHighlight(
+    String koreanText,
+    String target,
+    Map<String, dynamic> quiz,
+  ) {
+    if (target.isNotEmpty && koreanText.contains(target)) {
+      return target;
+    }
+
+    final words = RegExp(r'[\uAC00-\uD7A3]+')
+        .allMatches(koreanText)
+        .map((match) => match.group(0) ?? '')
+        .where((word) => word.isNotEmpty)
+        .toList();
+    if (words.isEmpty) return '';
+
+    final maskedSentence = (quiz['masked_sentence'] ?? '').toString();
+    final blankIndex = maskedSentence.indexOf('____');
+    if (blankIndex <= 0) return words.first;
+
+    final sentenceLength = maskedSentence.replaceAll('____', '').length;
+    final ratio = sentenceLength == 0 ? 0.0 : blankIndex / sentenceLength;
+    final wordIndex = (ratio * (words.length - 1)).round();
+    return words[wordIndex.clamp(0, words.length - 1).toInt()];
   }
 
   Widget _buildInputArea(GrammarProvider provider, String maskedSentence) {

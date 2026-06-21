@@ -39,7 +39,7 @@ class _VocabularyDashboardScreenState extends State<VocabularyDashboardScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         title: const Text(
-          '오늘의 어휘 목표량',
+          '오늘의 어휘는?',
           style: TextStyle(
             color: AppColors.primary,
             fontSize: 20,
@@ -151,13 +151,14 @@ class _GoalSliderCard extends StatefulWidget {
 class _GoalSliderCardState extends State<_GoalSliderCard> {
   late PageController _controller;
 
-  int get _pageCount => VocabularyDashboardProvider.maxGoalWords;
-  int get _currentValue => widget.value.clamp(0, _pageCount).toInt();
+  int get _pageCount => VocabularyDashboardProvider.maxGoalWords + 1;
+  int get _currentValue =>
+      widget.value.clamp(0, VocabularyDashboardProvider.maxGoalWords).toInt();
 
   @override
   void initState() {
     super.initState();
-    final initialPage = (_currentValue <= 0 ? 1 : _currentValue) - 1;
+    final initialPage = _currentValue;
     _controller = PageController(
       initialPage: initialPage,
       viewportFraction: 0.14,
@@ -167,7 +168,7 @@ class _GoalSliderCardState extends State<_GoalSliderCard> {
   @override
   void didUpdateWidget(covariant _GoalSliderCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final targetPage = ((_currentValue <= 0 ? 1 : _currentValue) - 1)
+    final targetPage = _currentValue
         .clamp(0, _pageCount - 1)
         .toInt();
     if (_controller.hasClients && targetPage != _controller.page?.round()) {
@@ -215,9 +216,9 @@ class _GoalSliderCardState extends State<_GoalSliderCard> {
             child: PageView.builder(
               controller: _controller,
               itemCount: _pageCount,
-              onPageChanged: (index) => widget.onChanged(index + 1),
+              onPageChanged: (index) => widget.onChanged(index),
               itemBuilder: (context, index) {
-                final number = index + 1;
+                final number = index;
                 final selected = number == _currentValue;
                 return Center(
                   child: Text(

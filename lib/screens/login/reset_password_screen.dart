@@ -51,7 +51,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _isLoading = true;
       _emailError = null;
     });
-    final success = await AuthController.sendRecoveryCode(email);
+    final success = await AuthController.sendRecoveryCode(email).timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => true,
+    );
     if (!mounted) return;
     setState(() => _isLoading = false);
 

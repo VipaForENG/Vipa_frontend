@@ -189,10 +189,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                         padding: const EdgeInsets.fromLTRB(12, 20, 12, 20),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          border: Border.all(
-                            color: const Color(0xFF2196F3),
-                            width: 2,
-                          ),
+                          borderRadius: BorderRadius.circular(7),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.18),

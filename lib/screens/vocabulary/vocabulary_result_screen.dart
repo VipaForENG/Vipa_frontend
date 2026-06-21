@@ -86,12 +86,12 @@ class VocabularyResultScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 11),
                 _ResultButton(
-                  text: '오늘의 어휘로 돌아가기',
+                  text: '홈으로 돌아가기',
                   color: const Color(0xFFFF806B),
                   onPressed: () => Navigator.pushNamedAndRemoveUntil(
                     context,
-                    AppRoutes.vocabularyDashboard,
-                    (route) => route.settings.name == AppRoutes.home,
+                    AppRoutes.home,
+                    (_) => false,
                   ),
                 ),
               ],

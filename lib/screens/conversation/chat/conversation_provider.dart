@@ -175,28 +175,20 @@ class ConversationProvider with ChangeNotifier {
     _currentHintLevel++;
 
     if (_currentHintLevel == 1) {
-      await _fetchAndAddHint(1, "초성 힌트: ");
+      await _fetchAndAddHint(1, "\uCD08\uC131 \uD78C\uD2B8: ");
     } else if (_currentHintLevel == 2) {
-      await _fetchAndAddHint(2, "시작 문구: ");
+      await _fetchAndAddHint(2, "\uC2DC\uC791 \uBB38\uAD6C: ");
     } else if (_currentHintLevel == 3) {
-      _hints.add("⚠️ 한 번 더 누르면 정답이 입력창에 자동 완성됩니다.");
+      _hints.add("\uD55C \uBC88 \uB354 \uB204\uB974\uBA74 \uC624\uB2F5 \uCC98\uB9AC\uB429\uB2C8\uB2E4.");
       notifyListeners();
     } else if (_currentHintLevel == 4) {
-      String exactAnswer = await _fetchAndAddHint(3, "정답: ");
-      
-      _userSpokenText = exactAnswer;
-      _isTextMode = true; 
-      
-      // ✨ 핵심: UI에서 넘겨받은 컨트롤러에 정답을 직접 타이핑해줍니다!
       if (textController != null) {
-        textController.text = exactAnswer;
+        textController.clear();
       }
-      
-      notifyListeners();
+      await evaluateSpeech("\uD78C\uD2B8\uB97C \uBAA8\uB450 \uC0AC\uC6A9\uD588\uC2B5\uB2C8\uB2E4.");
     }
   }
 
-  // 📝 🌟 수정 2: 평가 API에 힌트 사용 여부를 같이 쏴줍니다.
   Future<void> evaluateSpeech(String userInput) async {
     try {
       setUserSpokenText(userInput);
@@ -214,7 +206,9 @@ class ConversationProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         feedbackKo = response.data['feedback_ko'] ?? "";
         correctedEn = response.data['corrected_en'] ?? "";
-        await Future.delayed(const Duration(milliseconds: 1500));
+        if (_currentHintLevel < 4) {
+          await Future.delayed(const Duration(milliseconds: 1500));
+        }
         _isAnswered = true;
         notifyListeners();
       }

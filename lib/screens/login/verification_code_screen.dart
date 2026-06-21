@@ -149,20 +149,20 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
               ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Center(
+                child: Align(
+                  alignment: Alignment.topCenter,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 350),
+                    constraints: const BoxConstraints(maxWidth: 330),
                     child: Column(
                       children: [
-                        const SizedBox(height: 160),
+                        const SizedBox(height: 118),
                         const Text(
                           '인증번호를 보냈어요!',
                           style: TextStyle(
                             color: Colors.black,
-                            fontSize: 32,
+                            fontSize: 23,
                             height: 1,
                             fontWeight: FontWeight.w900,
-                            letterSpacing: -0.8,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -170,33 +170,42 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                           '휴대폰을 확인해 주세요!',
                           style: TextStyle(
                             color: Colors.black,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 110),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: List.generate(
-                            6,
-                            (index) => _CodeBox(
-                              controller: _controllers[index],
-                              focusNode: _focusNodes[index],
-                              onChanged: (value) => _onDigitChanged(value, index),
-                              onKeyEvent: (node, event) =>
-                                  _onKeyEvent(node, event, index),
-                            ),
+                        const SizedBox(height: 112),
+                        SizedBox(
+                          width: 280,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(6, (index) {
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  right: index == 5 ? 0 : 8,
+                                ),
+                                child: _CodeBox(
+                                  controller: _controllers[index],
+                                  focusNode: _focusNodes[index],
+                                  onChanged: (value) =>
+                                      _onDigitChanged(value, index),
+                                  onKeyEvent: (node, event) =>
+                                      _onKeyEvent(node, event, index),
+                                ),
+                              );
+                            }),
                           ),
                         ),
                         SizedBox(
-                          height: 20,
+                          width: 280,
+                          height: 18,
                           child: Align(
                             alignment: Alignment.centerRight,
                             child: Text(
                               _codeError ?? '',
                               style: const TextStyle(
                                 color: AppColors.primary,
-                                fontSize: 12,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -209,7 +218,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                               '유효시간',
                               style: TextStyle(
                                 color: Color(0xFF777777),
-                                fontSize: 17,
+                                fontSize: 16,
                               ),
                             ),
                             const SizedBox(width: 20),
@@ -217,13 +226,13 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                               _timeText,
                               style: const TextStyle(
                                 color: Colors.black,
-                                fontSize: 20,
+                                fontSize: 18,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 23),
+                        const SizedBox(height: 27),
                         _VerificationButton(
                           text: _isVerifying ? '확인 중...' : '인증번호 입력',
                           filled: true,
@@ -266,8 +275,8 @@ class _CodeBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 36,
-      height: 48,
+      width: 38,
+      height: 44,
       child: Focus(
         onKeyEvent: onKeyEvent,
         child: TextField(
@@ -278,7 +287,7 @@ class _CodeBox extends StatelessWidget {
           maxLength: 1,
           cursorColor: AppColors.primary,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w500),
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
           decoration: InputDecoration(
             counterText: '',
             contentPadding: EdgeInsets.zero,
@@ -316,8 +325,8 @@ class _VerificationButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 212,
-      height: 56,
+      width: 262,
+      height: 44,
       child: filled
           ? ElevatedButton(
               onPressed: onPressed,
@@ -334,7 +343,7 @@ class _VerificationButton extends StatelessWidget {
               child: Text(
                 text,
                 style: const TextStyle(
-                  fontSize: 22,
+                  fontSize: 17,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -351,7 +360,7 @@ class _VerificationButton extends StatelessWidget {
               child: Text(
                 text,
                 style: const TextStyle(
-                  fontSize: 17,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700,
                 ),
               ),

@@ -100,7 +100,8 @@ class AuthController {
         "/users/password-recovery/send-code",
         data: {"email": email},
       );
-      return response.statusCode == 200;
+      final statusCode = response.statusCode ?? 0;
+      return statusCode >= 200 && statusCode < 300;
     } on DioException catch (e) {
       debugPrint("❌ 코드 발송 에러: ${e.response?.data ?? e.message}");
       return false;

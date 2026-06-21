@@ -103,9 +103,13 @@ class ConversationResultScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 11),
                 _ResultButton(
-                  text: '실전회화로 돌아가기',
+                  text: '홈으로 돌아가기',
                   color: const Color(0xFFFF806B),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    AppRoutes.home,
+                    (_) => false,
+                  ),
                 ),
               ],
             ),

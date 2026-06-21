@@ -29,10 +29,10 @@ class VocabularyDashboardProvider extends ChangeNotifier {
         maxReview = data['review_words_count'] ?? 0;
         maxRetry = data['retry_words_count'] ?? 0;
 
-        // 초기값은 최대치로 꽉 채워둠
-        chosenNew = maxNew.clamp(0, maxGoalWords).toInt();
-        chosenReview = maxReview.clamp(0, maxGoalWords).toInt();
-        chosenRetry = maxRetry.clamp(0, maxGoalWords).toInt();
+        // 목표량은 사용자가 직접 고르도록 0부터 시작합니다.
+        chosenNew = 0;
+        chosenReview = 0;
+        chosenRetry = 0;
       }
     } catch (e) {
       debugPrint("대시보드 로드 에러: $e");

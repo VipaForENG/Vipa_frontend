@@ -310,7 +310,7 @@ class _HintCarousel extends StatelessWidget {
 
   String _displayHint(String hint, int index) {
     if (index == 2) {
-      return '한 번 더 누르면 정답이 입력창에 자동 완성됩니다.';
+      return '한 번 더 누르면 오답 처리됩니다.';
     }
     final separator = hint.indexOf(': ');
     return separator < 0 ? hint : hint.substring(separator + 2);
@@ -336,32 +336,37 @@ class _LearningCard extends StatelessWidget {
       decoration: _cardDecoration(Colors.white),
       child: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 48, 20, 25),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  english,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                  ),
+          SizedBox(
+            width: double.infinity,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 48, 20, 25),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      english,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      korean,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFFAAAAAA),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  korean,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFFAAAAAA),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
           Positioned(
