@@ -18,8 +18,6 @@ import '../screens/conversation/category/sub_category_selection_screen.dart';
 import '../screens/vocabulary/vocabulary_dashboard_screen.dart';
 import '../screens/vocabulary/vocabulary_result_screen.dart';
 import '../screens/vocabulary/vocabulary_screen.dart';
-import '../screens/mypage/subscription_screen.dart';
-import '../screens/mypage/subscription_history_screen.dart';
 import '../screens/level_test/level_test_screen.dart';
 import '../screens/level_test/level_test_result_screen.dart';
 
@@ -35,8 +33,6 @@ class AppRoutes {
   static const String resetPassword = '/reset-password';
   static const String verificationCode = '/verification-code';
   static const String changePassword = '/change-password';
-  static const String subscription = '/subscription';
-  static const String subscriptionHistory = '/subscription-history';
   static const String levelTest = '/level-test';
   static const String levelTestResult = '/level-test-result';
   static const String subCategory = '/sub-category';
@@ -143,10 +139,6 @@ class AppRoutes {
         return _buildFadeRoute(const VocabularyScreen(), settings);
       case vocabularyResult:
         return _buildFadeRoute(const VocabularyResultScreen(), settings);
-      case subscription:
-        return _buildFadeRoute(const SubscriptionScreen(), settings);
-      case subscriptionHistory:
-        return _buildFadeRoute(const SubscriptionHistoryScreen(), settings);
       case levelTest:
         return _buildFadeRoute(const LevelTestScreen(), settings);
 

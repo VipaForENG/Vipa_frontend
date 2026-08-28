@@ -227,6 +227,7 @@ class _SessionList extends StatelessWidget {
         return _DetailCard(
           title: item.scenarioTitle,
           subtitle: _formatDateTime(item.createdAt),
+          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFFC7C7CC)),
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(

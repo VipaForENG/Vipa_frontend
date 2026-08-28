@@ -218,14 +218,14 @@ class _AiScreenState extends State<AiScreen> {
       _isListening = true;
     });
     await _speech.listen(
-      localeId: 'en_US',
       onResult: (result) {
         if (!mounted) return;
         setState(() => _spokenText = result.recognizedWords);
         _scrollToBottom();
       },
-      pauseFor: const Duration(seconds: 3),
       listenOptions: stt.SpeechListenOptions(
+        localeId: 'en_US',
+        pauseFor: const Duration(seconds: 3),
         listenMode: stt.ListenMode.dictation,
         partialResults: true,
         cancelOnError: false,

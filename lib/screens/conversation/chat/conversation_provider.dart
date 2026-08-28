@@ -141,12 +141,11 @@ class ConversationProvider with ChangeNotifier {
           _currentSoundLevel = level;
           notifyListeners();
         },
-        localeId: "en_US",
-        // 🚨 Deprecated 경고 해결: listenMode 대신 listenOptions 사용
         listenOptions: stt.SpeechListenOptions(
+          localeId: "en_US",
+          pauseFor: const Duration(seconds: 3),
           listenMode: stt.ListenMode.confirmation,
         ),
-        pauseFor: const Duration(seconds: 3),
       );
     }
   }

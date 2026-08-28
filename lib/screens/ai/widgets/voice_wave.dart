@@ -45,10 +45,9 @@ class _VoiceWaveViewState extends State<VoiceWaveView> {
     if (_isListening) {
       await _speech.listen(
         onResult: (val) => widget.onTextRecognized(val.recognizedWords),
-        localeId: 'en_US',
         onSoundLevelChange: (level) => _lastSoundLevel = level,
-        // 아래 옵션들을 listenOptions 묶어줍니다.
         listenOptions: stt.SpeechListenOptions(
+          localeId: 'en_US',
           listenMode: stt.ListenMode.dictation,
           cancelOnError: false,
           partialResults: true,

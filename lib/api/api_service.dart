@@ -7,7 +7,7 @@ import '../routes/app_routes.dart';
 import 'api_config.dart';
 
 class ApiService {
-  static const String baseUrl = ApiConfig.baseUrl;
+  static final String baseUrl = ApiConfig.baseUrl;
   static const _storage = FlutterSecureStorage();
 
   static final dio_pkg.Dio dio = dio_pkg.Dio(
