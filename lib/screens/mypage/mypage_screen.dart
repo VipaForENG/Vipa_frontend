@@ -54,8 +54,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
         data['local_profile_image_path'] = cachedLocalImagePath;
       }
       await storage.write('user_data', data);
-    } catch (e) {
-      debugPrint('프로필 조회 실패: $e');
+    } catch (_) {
       if (!forceRefresh && cachedData is Map) {
         data = cachedData;
       } else {

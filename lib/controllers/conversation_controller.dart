@@ -19,8 +19,7 @@ class ConversationController {
       } else {
         throw Exception('서버 응답 오류: ${response.statusCode}');
       }
-    } on DioException catch (e) {
-      debugPrint("🚨 [Conversation API Error] ${e.message}");
+    } on DioException {
       throw Exception('네트워크 오류가 발생했습니다.');
     }
   }
@@ -38,8 +37,7 @@ class ConversationController {
       } else {
         throw Exception('소분류 로드 실패: ${response.statusCode}');
       }
-    } on DioException catch (e) {
-      debugPrint("🚨 [SubCategory API Error] ${e.message}");
+    } on DioException {
       throw Exception('소분류를 불러오는 중 네트워크 오류가 발생했습니다.');
     }
   }

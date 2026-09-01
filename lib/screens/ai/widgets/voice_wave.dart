@@ -31,13 +31,11 @@ class _VoiceWaveViewState extends State<VoiceWaveView> {
   void _initSpeech() async {
     _speechEnabled = await _speech.initialize(
       onStatus: (s) {
-        debugPrint('상태: $s');
-
         if (_isListening && (s == 'done' || s == 'notListening')) {
           _relisten();
         }
       },
-      onError: (e) => debugPrint('에러: $e'),
+      onError: (_) {},
     );
   }
 

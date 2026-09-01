@@ -1,5 +1,4 @@
 // services/tts_service.dart
-import 'package:flutter/foundation.dart'; // debugPrint용
 import 'package:flutter_tts/flutter_tts.dart';
 
 class TtsService {
@@ -15,13 +14,11 @@ class TtsService {
     await _tts.setSpeechRate(0.5);
     await _tts.setVolume(1.0);
     await _tts.awaitSpeakCompletion(true);
-    debugPrint('TTS: 초기화 완료'); // 로그 확인
   }
 
   Future<void> speak(String text) async {
     if (text.isEmpty) return;
     final playbackId = ++_playbackId;
-    debugPrint('TTS: 다음 문장을 읽습니다 -> $text'); // 🌟 로그가 찍히는지 꼭 확인하세요!
     await _tts.stop();
     if (playbackId != _playbackId) return;
     await _tts.speak(text);

@@ -48,8 +48,7 @@
 
         // 4. 백엔드로 보낼 accessToken 반환
         return authorization.accessToken;
-      } catch (e) {
-        debugPrint("❌ 구글 SDK 로그인 에러 또는 취소: $e");
+      } catch (_) {
         return null;
       }
     }
@@ -82,7 +81,6 @@
         if (e is PlatformException && e.code == 'CANCELED') {
           return null;
         }
-        debugPrint("❌ 카카오 SDK 로그인 에러 또는 취소: $e");
         return null;
       }
     }

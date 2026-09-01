@@ -23,22 +23,15 @@ class ApiService {
           final token = await _storage.read(key: 'access_token');
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
-            debugPrint('[AUTH] Access token injected');
           }
           return handler.next(options);
         },
         onError: (dio_pkg.DioException e, handler) {
           if (e.response?.statusCode == 401) {
-            debugPrint('[AUTH] Unauthorized');
             Get.offAllNamed(AppRoutes.login);
           }
           return handler.next(e);
         },
-      ),
-      dio_pkg.LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        logPrint: (obj) => debugPrint('[DIO] $obj'),
       ),
     ]);
 

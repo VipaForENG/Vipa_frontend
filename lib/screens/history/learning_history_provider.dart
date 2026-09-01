@@ -35,11 +35,9 @@ class LearningHistoryProvider extends ChangeNotifier {
     try {
       await loader();
       return true;
-    } on DioException catch (e) {
-      debugPrint('Learning history API error: ${e.message}');
+    } on DioException {
       return false;
-    } catch (e) {
-      debugPrint('Learning history error: $e');
+    } catch (_) {
       return false;
     }
   }
@@ -61,8 +59,7 @@ class LearningHistoryProvider extends ChangeNotifier {
     try {
       final response = await ApiService.dio.get('/conversation/dashboard/history/$sessionId');
       return ConversationScriptDetail.fromJson(asMap(response.data));
-    } catch (e) {
-      debugPrint('스크립트 상세 로드 에러: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -79,12 +76,8 @@ class LearningHistoryProvider extends ChangeNotifier {
   Future<void> _loadBookmarkedSentences() async {
     try {
       final response = await ApiService.dio.get('/vocabulary/bookmarks');
-      
-      // 🌟 이 로그를 통해 서버가 데이터를 보내는지 확인합니다.
-      debugPrint('🔍 [DEBUG] Bookmark Response Data: ${response.data}');
 
       if (response.data != null) {
-        // 서버 응답이 map 인지 list 인지 확인 후 처리
         if (response.data is Map && response.data.containsKey('items')) {
            bookmarkedSentences = asList(response.data['items'])
               .map((item) => BookmarkedSentenceItem.fromJson(asMap(item))).toList();
@@ -93,11 +86,9 @@ class LearningHistoryProvider extends ChangeNotifier {
               .map((item) => BookmarkedSentenceItem.fromJson(asMap(item))).toList();
         }
       }
-      
-      debugPrint('✅ [DEBUG] Bookmarked list loaded: ${bookmarkedSentences.length} items');
+
       notifyListeners();
-    } catch (e) {
-      debugPrint('❌ [ERROR] Bookmark Load failed: $e');
+    } catch (_) {
     }
   }
 }

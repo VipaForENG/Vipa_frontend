@@ -81,31 +81,32 @@ class ScriptLineItem {
 class ConversationScriptDetail {
   final int sessionId;
   final String scenarioTitle;
-  final String aiPassageEn; 
-  final String aiPassageKo; 
-  final List<dynamic> fullTurns; // ✨ 추가
+  final String aiPassageEn;
+  final String aiPassageKo;
+  final List<dynamic> fullTurns;
   final List<ScriptLineItem> scripts;
+  final String? audioUrl;
 
   ConversationScriptDetail({
     required this.sessionId,
     required this.scenarioTitle,
     required this.aiPassageEn,
     required this.aiPassageKo,
-    required this.fullTurns, // ✨ 추가
+    required this.fullTurns,
     required this.scripts,
+    this.audioUrl,
   });
 
   factory ConversationScriptDetail.fromJson(Map<String, dynamic> json) {
-    debugPrint('Parsing ConversationScriptDetail from JSON: $json'); // ✨ 디버그 출력 추가
-    
     return ConversationScriptDetail(
       sessionId: json['session_id'] ?? 0,
       scenarioTitle: json['scenario_title'] ?? '실전 회화',
       aiPassageEn: json['ai_passage_en'] ?? '',
       aiPassageKo: json['ai_passage_ko'] ?? '',
-      fullTurns: json['full_turns'] ?? [], // ✨ 파싱 추가
+      fullTurns: json['full_turns'] ?? [],
       scripts: asList(json['scripts'])
           .map((item) => ScriptLineItem.fromJson(asMap(item))).toList(),
+      audioUrl: json['audio_url'],
     );
   }
 }

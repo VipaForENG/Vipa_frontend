@@ -8,7 +8,7 @@ class ApiConfig {
 
   // [환경 전환 플래그] 
   // true면 로컬 FastAPI 서버, false면 Render 배포 서버로 연결됩니다.
-  static const bool isLocal = true; 
+  static const bool isLocal = false; 
 
   // 배포된 Render 주소 기입
   static const String _prodUrl = "https://vipa-backend.onrender.com";

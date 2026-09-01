@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -9,7 +10,324 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import 'learning_history_provider.dart';
-import '../../models/learning_history_models.dart'; // ✨ 모델 임포트
+import '../../models/learning_history_models.dart';
+
+class SessionAudioPlayer extends StatefulWidget {
+  final String? audioUrl;
+
+  const SessionAudioPlayer({super.key, this.audioUrl});
+
+  @override
+  State<SessionAudioPlayer> createState() => _SessionAudioPlayerState();
+}
+
+class _SessionAudioPlayerState extends State<SessionAudioPlayer> {
+  final AudioPlayer _player = AudioPlayer();
+  bool _isLoading = true;
+  bool _autoPlay = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _initPlayer();
+  }
+
+  Future<void> _initPlayer() async {
+    if (widget.audioUrl == null || widget.audioUrl!.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = '녹음이 없습니다.';
+      });
+      return;
+    }
+
+    try {
+      await _player.setUrl(widget.audioUrl!);
+      setState(() {
+        _isLoading = false;
+        _errorMessage = null;
+      });
+
+      if (_autoPlay) {
+        await _player.play();
+      }
+    } catch (_) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = '오디오를 불러올 수 없습니다';
+      });
+    }
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    if (duration.inHours > 0) {
+      return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+    }
+    return "$twoDigitMinutes:$twoDigitSeconds";
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.audioUrl == null || widget.audioUrl!.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.orange.shade700, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '이 세션의 녹음이 없습니다.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.orange.shade800,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.red.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _errorMessage!,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.red.shade800,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_isLoading) {
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation(Colors.grey.shade600),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '오디오 로딩 중...',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
+            ),
+            border: Border(
+              left: BorderSide(color: Colors.grey.shade200),
+              top: BorderSide(color: Colors.grey.shade200),
+              right: BorderSide(color: Colors.grey.shade200),
+            ),
+          ),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: () async {
+                  if (_player.playing) {
+                    await _player.pause();
+                  } else {
+                    await _player.play();
+                  }
+                  setState(() {});
+                },
+                icon: StreamBuilder<bool>(
+                  stream: _player.playingStream,
+                  builder: (context, snapshot) {
+                    final isPlaying = snapshot.data ?? false;
+                    return Icon(
+                      isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_fill_rounded,
+                      color: const Color(0xFF7B61FF),
+                      size: 32,
+                    );
+                  },
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '녹음 재생',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    StreamBuilder<Duration>(
+                      stream: _player.positionStream,
+                      builder: (context, snapshot) {
+                        final position = snapshot.data ?? Duration.zero;
+                        final duration = _player.duration ?? Duration.zero;
+                        return Text(
+                          '${_formatDuration(position)} / ${_formatDuration(duration)}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () async => _player.stop(),
+                icon: const Icon(Icons.stop_circle_rounded, color: Colors.grey),
+                iconSize: 24,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(12),
+              bottomRight: Radius.circular(12),
+            ),
+            border: Border(
+              left: BorderSide(color: Colors.grey.shade200),
+              bottom: BorderSide(color: Colors.grey.shade200),
+              right: BorderSide(color: Colors.grey.shade200),
+            ),
+          ),
+          child: StreamBuilder<Duration>(
+            stream: _player.positionStream,
+            builder: (context, snapshot) {
+              final position = snapshot.data ?? Duration.zero;
+              final duration = _player.duration ?? Duration.zero;
+              final progress = duration.inMilliseconds > 0
+                  ? position.inMilliseconds / duration.inMilliseconds
+                  : 0.0;
+
+              return Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress.clamp(0.0, 1.0),
+                      minHeight: 4,
+                      backgroundColor: Colors.grey.shade300,
+                      valueColor: const AlwaysStoppedAnimation(Color(0xFF7B61FF)),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _autoPlay ? Icons.play_arrow : Icons.play_arrow,
+                            size: 16,
+                            color: _autoPlay ? const Color(0xFF7B61FF) : Colors.grey.shade400,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '자동 재생',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _autoPlay ? const Color(0xFF7B61FF) : Colors.grey.shade600,
+                              fontWeight: _autoPlay ? FontWeight.w600 : FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Switch(
+                        value: _autoPlay,
+                        onChanged: (value) {
+                          setState(() {
+                            _autoPlay = value;
+                          });
+                        },
+                        activeThumbColor: const Color(0xFF7B61FF),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class ScriptDetailScreen extends StatefulWidget {
   final int sessionId;
@@ -33,7 +351,6 @@ class _ScriptDetailScreenState extends State<ScriptDetailScreen> {
 
   Future<void> _loadScript() async {
   final data = await widget.provider.fetchSessionScript(widget.sessionId);
-    debugPrint("🔍 디버그: AI 지문 데이터 확인 -> ${data?.aiPassageEn}"); // 이 로그가 찍히는지 확인
   setState(() {
     scriptData = data;
     isLoading = false;
@@ -124,6 +441,7 @@ class _ScriptDetailScreenState extends State<ScriptDetailScreen> {
         child: Column(
           children: [
             _buildAppBar(context),
+            if (scriptData != null) SessionAudioPlayer(audioUrl: scriptData!.audioUrl),
             Expanded(
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())

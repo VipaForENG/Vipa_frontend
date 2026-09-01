@@ -59,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: AuthColors.primary,
                     size: 25,
                   ),
-                  onPressed: () => debugPrint("설정 클릭"),
+                  onPressed: () {},
                 ),
               ],
             )

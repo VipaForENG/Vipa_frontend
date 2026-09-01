@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import '../api/api_service.dart';
-import 'package:flutter/foundation.dart'; // debugPrint를 위해 필요합니다.
 import '../services/auth_service.dart';
 import 'package:get_storage/get_storage.dart'; // [추가] 토큰 저장을 위해 추가
 import 'home_controller.dart';
@@ -15,11 +14,10 @@ class AuthController {
   static void _refreshHomeData() {
     try {
       if (Get.isRegistered<HomeController>()) {
-        debugPrint("🔔 [AUTH] 로그인 성공! 홈 데이터를 다시 불러옵니다.");
         Get.find<HomeController>().fetchHomeSummary();
       }
-    } catch (e) {
-      debugPrint("⚠️ HomeController가 아직 등록되지 않았습니다.");
+    } catch (_) {
+      // controller not registered
     }
   }
 
@@ -56,10 +54,8 @@ class AuthController {
           ? e.response?.data['detail']
           : e.message;
 
-      debugPrint("❌ 회원가입 API 에러: $serverMessage");
       return serverMessage ?? "회원가입 요청 중 오류가 발생했습니다.";
-    } catch (e) {
-      debugPrint("❌ 시스템 에러: $e");
+    } catch (_) {
       return "시스템 오류가 발생했습니다.";
     }
   }
@@ -87,8 +83,7 @@ class AuthController {
         return response.data;
       }
       return null;
-    } on DioException catch (e) {
-      debugPrint("❌ 로그인 API 에러: ${e.response?.data ?? e.message}");
+    } on DioException {
       return null;
     }
   }
@@ -102,8 +97,7 @@ class AuthController {
       );
       final statusCode = response.statusCode ?? 0;
       return statusCode >= 200 && statusCode < 300;
-    } on DioException catch (e) {
-      debugPrint("❌ 코드 발송 에러: ${e.response?.data ?? e.message}");
+    } on DioException {
       return false;
     }
   }
@@ -116,8 +110,7 @@ class AuthController {
         data: {"email": email, "code": code},
       );
       return response.statusCode == 200;
-    } on DioException catch (e) {
-      debugPrint("❌ 코드 검증 에러: ${e.response?.data ?? e.message}");
+    } on DioException {
       return false;
     }
   }
@@ -134,8 +127,7 @@ class AuthController {
         data: {"email": email, "code": code, "new_password": newPassword},
       );
       return response.statusCode == 200;
-    } on DioException catch (e) {
-      debugPrint("❌ 비번 재설정 에러: ${e.response?.data ?? e.message}");
+    } on DioException {
       return false;
     }
   }
@@ -165,8 +157,7 @@ class AuthController {
             .data; // {"access_token": "VIPA_JWT...", "token_type": "bearer"} 반환
       }
       return null;
-    } on DioException catch (e) {
-      debugPrint("❌ 백엔드 구글 로그인 API 에러: ${e.response?.data ?? e.message}");
+    } on DioException {
       return null;
     }
   }
@@ -194,8 +185,7 @@ class AuthController {
             .data; // {"access_token": "VIPA_JWT...", "token_type": "bearer"} 반환
       }
       return null;
-    } on DioException catch (e) {
-      debugPrint("❌ 백엔드 카카오 로그인 API 에러: ${e.response?.data ?? e.message}");
+    } on DioException {
       return null;
     }
   }
@@ -212,8 +202,7 @@ class AuthController {
         return true;
       }
       return false;
-    } on DioException catch (e) {
-      debugPrint("❌ 탈퇴 API 에러: ${e.response?.data}");
+    } on DioException {
       return false;
     }
   }
@@ -232,8 +221,7 @@ class AuthController {
         },
       );
       return response.statusCode == 200;
-    } on DioException catch (e) {
-      debugPrint("❌ 비번 변경 API 에러: ${e.response?.data}");
+    } on DioException {
       return false;
     }
   }

@@ -79,7 +79,7 @@ class AiController extends ChangeNotifier {
       if (response['session_id'] is int) {
         _currentSessionId = response['session_id'] as int;
       }
-    } catch (error) {
+    } catch (_) {
       _messages.add(
         const AiChatMessage(
           text: 'Connection lost.',
@@ -87,7 +87,6 @@ class AiController extends ChangeNotifier {
           isUser: false,
         ),
       );
-      debugPrint('AI controller error: $error');
     } finally {
       _isLoading = false;
       notifyListeners();

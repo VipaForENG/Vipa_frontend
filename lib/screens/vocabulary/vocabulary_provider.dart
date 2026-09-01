@@ -59,8 +59,7 @@ class GrammarProvider extends ChangeNotifier {
     
     try {
       quizList = await _vocabularyController.getQuizList(newCount, reviewCount, retryCount);
-    } catch (e) {
-      debugPrint("퀴즈 로드 실패: $e");
+    } catch (_) {
     } finally {
       isLoading = false;
       notifyListeners();
@@ -101,8 +100,7 @@ class GrammarProvider extends ChangeNotifier {
           onFailedComplete();
         }
       }
-    } catch (e) {
-      debugPrint("답변 체크 실패: $e");
+    } catch (_) {
     } finally {
       isChecking = false;
       notifyListeners();
@@ -134,8 +132,7 @@ class GrammarProvider extends ChangeNotifier {
       completionResult = result; 
       notifyListeners();
       onFinish(); 
-    } catch (e) {
-      debugPrint("최종 제출 실패: $e");
+    } catch (_) {
     }
   }
 
@@ -158,8 +155,7 @@ class GrammarProvider extends ChangeNotifier {
     try {
       // 2. 백엔드 API 호출
       await _vocabularyController.toggleBookmark(vocabId, newState);
-    } catch (e) {
-      debugPrint("즐겨찾기 토글 실패: $e");
+    } catch (_) {
       if (currentState) {
         _bookmarkedIds.add(vocabId);
       } else {

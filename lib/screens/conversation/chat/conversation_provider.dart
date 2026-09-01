@@ -101,8 +101,7 @@ class ConversationProvider with ChangeNotifier {
         _updateTurnUI();
         notifyListeners();
       }
-    } catch (e) {
-      debugPrint("❌ 시나리오 생성 실패: $e");
+    } catch (_) {
     }
   }
 
@@ -211,8 +210,7 @@ class ConversationProvider with ChangeNotifier {
         _isAnswered = true;
         notifyListeners();
       }
-    } catch (e) {
-      debugPrint("❌ 평가 실패: $e");
+    } catch (_) {
     }
   }
 
@@ -235,7 +233,6 @@ class ConversationProvider with ChangeNotifier {
         return hintText; // 🌟 핵심: 받아온 문장을 리턴해 줍니다.
       }
     } catch (_) {
-      debugPrint("힌트 불러오기 실패");
     }
     return ""; // 에러 발생 시 빈 문자열 반환
   }

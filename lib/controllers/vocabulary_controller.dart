@@ -30,8 +30,7 @@ class VocabularyController extends GetxController {
         chosenReview.value = dashboardData!.reviewWordsCount;
         chosenRetry.value = dashboardData!.retryWordsCount;
       }
-    } on DioException catch (e) {
-      debugPrint("🚨 대시보드 API 에러: ${e.message}");
+    } on DioException {
     } finally {
       isLoadingDashboard(false);
     }

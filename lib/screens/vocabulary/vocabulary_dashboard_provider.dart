@@ -34,8 +34,7 @@ class VocabularyDashboardProvider extends ChangeNotifier {
         chosenReview = 0;
         chosenRetry = 0;
       }
-    } catch (e) {
-      debugPrint("대시보드 로드 에러: $e");
+    } catch (_) {
     } finally {
       isLoading = false;
       notifyListeners();
